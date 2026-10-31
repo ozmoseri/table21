@@ -273,7 +273,8 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
           <span>{t('share')}</span>
         </button>
         <button className="btn ghost sm" onClick={() => setSheet('members')}>
-          {snap.members.filter((m) => m.connected).length} 👥
+          <span className="num">{snap.members.filter((m) => m.connected).length}</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" className="ico"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7 0a3 3 0 1 0 0-6M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6m1-6c2.8 0 5 2.2 5 5" /></svg>
         </button>
         <button className="btn ghost sm" onClick={() => setSheet('more')} aria-label="more">
           ⋯
@@ -286,12 +287,12 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
         </span>
         {matchRunning && match && <span className="pill">{t('matchRoundOf', { n: Math.min(match.roundsPlayed + 1, match.roundsTotal), total: match.roundsTotal })}</span>}
         {snap.phase === 'player_turns' && snap.deadline && (
-          <span className="pill num">
+          <span className="pill num" dir="ltr">
             <Seconds deadline={snap.deadline} offset={offset} />s
           </span>
         )}
         {(snap.phase === 'betting' && snap.deadline) ? (
-          <span className="pill num">
+          <span className="pill num" dir="ltr">
             <Seconds deadline={snap.deadline} offset={offset} />s
           </span>
         ) : null}

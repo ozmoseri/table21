@@ -416,8 +416,19 @@ export class RoomManager {
           room.phase = 'betting';
           room.deadline_at = this.deadline(room.settings.betSeconds * 1000);
         }
-        const active = seats.filter((s) => !s.sitting_out);
-        if (room.settings.dealerMode === 'auto' || !room.dealer_user_id) {
+        // Players who cannot afford the minimum stake (e.g. a busted match stack) do not hold up the deal.
+        const minUnits = coinsToUnits(Math.min(...room.settings.stakes));
+        const funds = await q.query<{ user_id: string; available_units: number }>(
+          'select user_id, available_units from wallets where scope = $1 and user_id = any($2)',
+          [scope, seats.map((s) => s.user_id)],
+        );
+        const canBet = (s: SeatRow) => s.bet_units > 0 || (funds.find((f) => f.user_id === s.user_id)?.available_units ?? 0) >= minUnits;
+        const active = seats.filter((s) => !s.sitting_out && canBet(s));
+        // Early deal only when everyone seated has bet and nobody connected is still watching (they may want to sit).
+        const watching = [...(this.presence.get(room.id)?.entries() ?? [])].some(
+          ([uid, p]) => p.sockets > 0 && uid !== room.dealer_user_id && !seats.some((s) => s.user_id === uid),
+        );
+        if ((room.settings.dealerMode === 'auto' || !room.dealer_user_id) && !watching) {
           if (active.length && active.every((s) => s.bet_units > 0)) room.deadline_at = this.deadline(this.timing.autoDealDelayMs);
         }
         return;

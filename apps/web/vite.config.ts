@@ -13,7 +13,7 @@ function serviceWorker(): Plugin {
     name: 'table21-sw',
     apply: 'build',
     generateBundle(_opts, bundle) {
-      const publicDir = join(__dirname, 'public');
+      const publicDir = join(import.meta.dirname, 'public');
       const walk = (d: string): string[] =>
         readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [relative(publicDir, join(d, f))]));
       const files = ['./', 'index.html', ...Object.keys(bundle), ...walk(publicDir)].filter((f) => f !== 'sw.js' && !f.endsWith('.map'));

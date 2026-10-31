@@ -40,9 +40,19 @@ export async function joinRoom(p: Player, code: string) {
   await expect(p.page.getByTestId('room')).toBeVisible();
 }
 
-export async function sitAndBet(p: Player, coins: number) {
+export async function sit(p: Player) {
   await p.page.getByTestId('sit').click();
+  await expect(p.page.locator('.stake-chip').first()).toBeVisible();
+}
+
+export async function bet(p: Player, coins: number) {
   await p.page.locator('.stake-chip', { hasText: new RegExp(`^${coins}$`) }).click();
+  await expect(p.page.locator('.stake-chip.on')).toHaveCount(1);
+}
+
+export async function sitAndBet(p: Player, coins: number) {
+  await sit(p);
+  await bet(p, coins);
 }
 
 /** Every room:state snapshot this player received over the socket, parsed. */

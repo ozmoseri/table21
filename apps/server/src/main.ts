@@ -28,6 +28,7 @@ async function main() {
   const server = await buildApp({
     db,
     https: tls,
+    sessionRateLimit: process.env.T21_SESSION_RATE ? Number(process.env.T21_SESSION_RATE) : undefined,
     deployment,
     webDist: process.env.T21_WEB_DIST ?? join(root, 'apps/web/dist'),
     logger: process.env.T21_LOG === '1',

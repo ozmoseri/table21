@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AVATARS } from '@table21/protocol';
 import { api, refreshMe, useMe } from '../api.ts';
-import { setLocale, t, getLocale } from '../i18n.ts';
+import { errorText, setLocale, t, getLocale } from '../i18n.ts';
 import { setPrefs, saveLocal, getLocal } from '../prefs.ts';
 import { Avatar, toast } from '../components/bits.tsx';
 import { go } from '../App.tsx';
@@ -36,8 +36,8 @@ export function Onboarding() {
       await api('/api/session', { method: 'POST', body: { name: name.trim(), avatar, locale: getLocale() } });
       await refreshMe();
       go('home');
-    } catch {
-      toast(t('error'));
+    } catch (e: any) {
+      toast(errorText(e?.code));
     } finally {
       setBusy(false);
     }

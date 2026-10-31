@@ -170,7 +170,9 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
 .room-head .wallet { margin-inline-start: auto; font-weight: 700; color: var(--gold-hi); }
 .code-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 0 14px; min-height: 40px; cursor: pointer; margin-inline-start: auto; }
 .code-chip bdi { font-family: var(--nums); font-weight: 700; letter-spacing: 0.15em; color: var(--gold-hi); }
-.code-chip span { font-size: 12.5px; color: var(--muted); }
+.code-chip span { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.room-head .btn { white-space: nowrap; }
+.ico { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
 .code-chip.static { cursor: default; margin-inline-start: 0; font-weight: 700; }
 .status-line { display: flex; align-items: center; gap: 8px; min-height: 32px; }
 .phase-text { font-weight: 800; font-size: 17px; }

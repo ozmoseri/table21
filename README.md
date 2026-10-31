@@ -38,8 +38,12 @@ See [docs/TEST_REPORT.md](docs/TEST_REPORT.md) for what passed, failed or was no
 1. מתקינים Node.js 22 ואז `npm i -g pnpm@10`.
 2. בתיקיית הפרויקט מריצים `pnpm install`.
 
+**ב-Windows יש סקריפט שעושה את הכל (בודק Node, מתקין pnpm ותלויות, מפעיל מארח LAN):**
+`powershell -ExecutionPolicy Bypass -File scripts\start-lan-windows.ps1`
+כשמופיעה הודעת חומת אש, מאשרים "רשתות פרטיות". רשת ה-Wi-Fi צריכה להיות מוגדרת כ-Private.
+
 **משחק עם שני חברים באותו Wi-Fi:**
-1. מריצים `pnpm lan`.
+1. מריצים `pnpm lan` (או את הסקריפט של Windows).
 2. בטרמינל תופיע כתובת כמו `http://192.168.1.20:3021` וקוד QR.
 3. כל אחד סורק את ה-QR בטלפון, בוחר שם ואווטאר.
 4. אחד יוצר חדר ושולח את הקוד, השאר מצטרפים, כל אחד מתיישב ומניח קוינס.

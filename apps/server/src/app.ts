@@ -26,6 +26,8 @@ export interface AppOptions {
   leaderboardMinHands?: number;
   logger?: boolean;
   https?: { key: Buffer; cert: Buffer };
+  /** Guest creations per IP per minute. */
+  sessionRateLimit?: number;
 }
 
 declare module 'fastify' {
@@ -40,7 +42,17 @@ export async function buildApp(opts: AppOptions) {
   const now = opts.now ?? Date.now;
   const app = Fastify({ logger: opts.logger ? { level: 'info' } : false, trustProxy: true, bodyLimit: 16 * 1024, ...(opts.https ? { https: opts.https } : {}) } as any) as unknown as import('fastify').FastifyInstance;
   await app.register(cookie);
-  await app.register(rateLimit, { max: 600, timeWindow: '1 minute' });
+  // Rate limits apply to the API only (static assets are cacheable and shared by friends behind one IP).
+  // Signed-in requests are keyed by session, so several friends on the same home network do not share a bucket.
+  await app.register(rateLimit, {
+    max: 600,
+    timeWindow: '1 minute',
+    allowList: (req) => !req.url.startsWith('/api/'),
+    keyGenerator: (req) => {
+      const tok = app.parseCookie(req.headers.cookie ?? '')[SESSION_COOKIE];
+      return tok ? `s:${tok.slice(0, 16)}` : `ip:${req.ip}`;
+    },
+  });
 
   let io: IOServer;
   const manager = new RoomManager({
@@ -103,7 +115,7 @@ export async function buildApp(opts: AppOptions) {
     return { addresses: addrs };
   });
 
-  app.post('/api/session', { preHandler: guard, config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
+  app.post('/api/session', { preHandler: guard, config: { rateLimit: { max: opts.sessionRateLimit ?? 10, timeWindow: '1 minute' } } }, async (req, reply) => {
     const body = SessionCreate.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'bad_request' });
     if (req.user) {

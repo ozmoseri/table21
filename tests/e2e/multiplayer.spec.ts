@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { SHOTS, assertRedacted, createRoom, joinRoom, lastSnapshot, onboard, player, playRound, sitAndBet } from './helpers.ts';
+import { SHOTS, assertRedacted, bet, createRoom, joinRoom, lastSnapshot, onboard, player, playRound, sit, sitAndBet } from './helpers.ts';
 
 test('three separate browsers: create, join, bet, play turns, dealer, settle, balances match server', async ({ browser }) => {
   const a = await player(browser, 'עוז');
@@ -13,9 +13,13 @@ test('three separate browsers: create, join, bet, play turns, dealer, settle, ba
   await joinRoom(b, code);
   await joinRoom(c, code);
 
-  await sitAndBet(a, 100);
-  await sitAndBet(b, 50);
-  await sitAndBet(c, 25);
+  // Everyone sits first; the early deal waits while anyone connected is still only watching.
+  await sit(a);
+  await sit(b);
+  await sit(c);
+  await bet(a, 100);
+  await bet(b, 50);
+  await bet(c, 25);
   // All seated players bet: the server auto-deals.
   await expect(a.page.locator('.dealer-cards .card')).toHaveCount(2, { timeout: 10_000 });
   await a.page.waitForTimeout(900);
@@ -53,8 +57,10 @@ test('network drop and page refresh: player reconnects to the same hand and fini
   await onboard(b, 4);
   const code = await createRoom(a);
   await joinRoom(b, code);
-  await sitAndBet(a, 10);
-  await sitAndBet(b, 10);
+  await sit(a);
+  await sit(b);
+  await bet(a, 10);
+  await bet(b, 10);
   await expect(a.page.locator('.dealer-cards .card')).toHaveCount(2, { timeout: 10_000 });
   const roundId = lastSnapshot(b).round?.roundId ?? (await b.page.waitForTimeout(500), lastSnapshot(b).round.roundId);
 

@@ -255,6 +255,7 @@ describe('authoritative multiplayer round', () => {
     const outsider = await makeUser(db, 'Late');
     await m.connect(roomId, outsider.id);
     expect((await send(m, outsider, roomId, { type: 'sit' })).error).toBe('match_locked');
+    await m.disconnect(roomId, outsider.id); // a connected watcher would (by design) hold the early deal
     for (let round = 0; round < 2; round++) {
       await waitFor(async () => ['waiting', 'betting'].includes(await phase(db, roomId)), 10000);
       await send(m, a, roomId, { type: 'bet', coins: 100 });
