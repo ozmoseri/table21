@@ -1,6 +1,6 @@
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { buildApp } from './app.ts';
 import { embeddedDb, migrate, postgresDb, type Db } from './db.ts';
 
@@ -21,8 +21,13 @@ async function main() {
   const db = await openDb();
   const applied = await migrate(db);
   if (applied.length) console.log(`[db] applied migrations: ${applied.join(', ')}`);
+  const tls =
+    process.env.T21_TLS_CERT && process.env.T21_TLS_KEY
+      ? { cert: readFileSync(process.env.T21_TLS_CERT), key: readFileSync(process.env.T21_TLS_KEY) }
+      : undefined;
   const server = await buildApp({
     db,
+    https: tls,
     deployment,
     webDist: process.env.T21_WEB_DIST ?? join(root, 'apps/web/dist'),
     logger: process.env.T21_LOG === '1',
@@ -30,7 +35,7 @@ async function main() {
   });
   const resumed = await server.manager.recover();
   await server.app.listen({ host, port });
-  console.log(`[table21] ${deployment} server on http://${host}:${port} (db: ${db.kind}, resumed rooms: ${resumed})`);
+  console.log(`[table21] ${deployment} server on ${tls ? 'https' : 'http'}://${host}:${port} (db: ${db.kind}, resumed rooms: ${resumed})`);
   const shutdown = async () => {
     await server.close();
     await db.close();

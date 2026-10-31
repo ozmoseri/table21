@@ -5,7 +5,7 @@ import { totals, type DrawnCard, type RoundState, type HandStatus, type Outcome,
 /* Shared constants                                                    */
 /* ------------------------------------------------------------------ */
 
-export const AVATARS = ['fox', 'owl', 'lion', 'bear', 'cat', 'deer', 'wolf', 'hare'] as const;
+export const AVATARS = ['amber', 'cobalt', 'sage', 'coral', 'plum', 'sand', 'slate', 'rose'] as const;
 export type AvatarId = (typeof AVATARS)[number];
 
 export const REACTIONS = ['nice', 'again', 'card', 'wow', 'gg', 'ouch'] as const;
@@ -79,6 +79,7 @@ export type ErrorCode =
   | 'rate_limited'
   | 'cooldown'
   | 'match_locked'
+  | 'timeout'
   | 'internal';
 
 export interface CommandResult {

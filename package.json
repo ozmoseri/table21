@@ -33,6 +33,7 @@
     "@table21/game-engine": "workspace:*",
     "@table21/protocol": "workspace:*",
     "@table21/server": "workspace:*",
-    "socket.io-client": "4.8.4"
+    "socket.io-client": "4.8.4",
+    "pg": "8.23.1"
   }
 }

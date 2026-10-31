@@ -10,7 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(root, '.data', 'pg');
 const SOCK = join(root, '.data', 'pg-sock');
 const PORT = Number(process.env.T21_PG_PORT ?? 55432);
-const DBS = ['table21', 'table21_test'];
+const DBS = ['table21', 'table21_test', 'table21_e2e'];
 export const url = (db = 'table21') => `postgres://t21@127.0.0.1:${PORT}/${db}`;
 
 function binDir() {

@@ -16,7 +16,7 @@ export async function freshDb(): Promise<Db> {
 }
 
 export async function makeUser(db: Db, name: string): Promise<SessionUser & { token: string }> {
-  const { token } = await createGuest(db, { name, avatar: 'fox', locale: 'he' }, DEFAULT_ECONOMY);
+  const { token } = await createGuest(db, { name, avatar: 'amber', locale: 'he' }, DEFAULT_ECONOMY);
   return { ...(await userFromToken(db, token))!, token };
 }
 

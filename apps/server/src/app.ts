@@ -25,6 +25,7 @@ export interface AppOptions {
   now?: () => number;
   leaderboardMinHands?: number;
   logger?: boolean;
+  https?: { key: Buffer; cert: Buffer };
 }
 
 declare module 'fastify' {
@@ -37,7 +38,7 @@ export async function buildApp(opts: AppOptions) {
   const deployment = opts.deployment ?? 'online';
   const eco: Economy = { ...DEFAULT_ECONOMY, ...opts.economy };
   const now = opts.now ?? Date.now;
-  const app = Fastify({ logger: opts.logger ? { level: 'info' } : false, trustProxy: true, bodyLimit: 16 * 1024 });
+  const app = Fastify({ logger: opts.logger ? { level: 'info' } : false, trustProxy: true, bodyLimit: 16 * 1024, ...(opts.https ? { https: opts.https } : {}) } as any) as unknown as import('fastify').FastifyInstance;
   await app.register(cookie);
   await app.register(rateLimit, { max: 600, timeWindow: '1 minute' });
 
@@ -186,9 +187,9 @@ export async function buildApp(opts: AppOptions) {
     await app.register(fastifyStatic, {
       root: opts.webDist,
       wildcard: false,
-      setHeaders(res, path) {
-        if (path.includes('/assets/')) (res as any).setHeader('cache-control', 'public, max-age=31536000, immutable');
-        else (res as any).setHeader('cache-control', 'no-cache');
+      setHeaders(res: any, path: string) {
+        const set = (k: string, v: string) => (typeof res.setHeader === 'function' ? res.setHeader(k, v) : res.header(k, v));
+        set('cache-control', path.includes('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache');
       },
     });
     app.get('/*', async (req, reply) => {
