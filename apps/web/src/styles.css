@@ -383,7 +383,8 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
   .shell:not(.with-nav) .screen { max-width: 1180px; }
   .room { max-width: 1180px; display: grid; grid-template-columns: 1fr 360px; grid-template-rows: auto auto auto 1fr auto; column-gap: 18px; }
   .room > .room-head, .room > .status-line, .room > .banners { grid-column: 1 / -1; }
-  .room > .felt { grid-column: 1; grid-row: 4 / span 2; min-height: 560px; }
+  .room > .felt { grid-column: 1; grid-row: 4 / span 2; min-height: 520px; height: calc(100dvh - 130px); }
+  .room > .controls { align-self: end; }
   .room > .controls, .room > .reactions, .room > .match-panel, .room > .fine { grid-column: 2; }
   .card-lg { --w: 92px; }
 }

@@ -67,7 +67,7 @@ export function App() {
   let content: ReactNode;
   let nav = true;
   if (head === 'practice' || head === 'pass') {
-    content = <LocalPlay mode={head === 'practice' ? 'solo' : 'pass'} />;
+    content = <LocalPlay key={head} mode={head === 'practice' ? 'solo' : 'pass'} />;
     nav = false;
   } else if (head === 'settings' || head === 'help') content = <Settings />;
   else if (head === 'lan') content = <Lan />;
