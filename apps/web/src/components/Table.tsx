@@ -134,7 +134,7 @@ export function Table({
   }, [settledKey]);
 
   return (
-    <section className={`felt theme-${theme}`} aria-label="table">
+    <section className={`felt theme-${theme} ${others.length === 0 ? 'is-solo' : others.length <= 2 ? 'few-seats' : 'many-seats'}`} aria-label="table">
       <div className="felt-lip" aria-hidden="true" />
       <div className="dealer-zone" dir="ltr">
         <div className="dealer-id">

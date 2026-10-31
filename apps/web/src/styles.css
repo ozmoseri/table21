@@ -401,3 +401,42 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
   .stake-chip { width: 50px; height: 50px; font-size: 14px; }
   .play-list { grid-template-columns: 1fr; }
 }
+
+/* ---------- polish v2: tighter felt, larger readable cards, aligned home tiles ---------- */
+.room > .felt { flex: none; min-height: 0; height: clamp(400px, 60dvh, 660px); justify-content: space-between; padding: 12px 10px 18px; }
+.room > .felt.is-solo { height: clamp(340px, 50dvh, 560px); }
+.room > .controls { margin-top: auto; }
+.felt-lip { top: auto; bottom: 16%; height: 30%; }
+.dealer-cards .card { --w: clamp(58px, 16.5vw, 78px); }
+.dealer-cards .card + .card, .my-hands .card + .card { margin-inline-start: calc(var(--w) * -0.36); }
+.card-lg { --w: clamp(76px, 23vw, 106px); }
+.seat { padding: 8px 6px 10px; gap: 5px; }
+.seat .card-sm { --w: 38px; }
+.few-seats .seat { width: auto; flex: 1 1 0; max-width: 176px; }
+.few-seats .seat .card-sm { --w: 48px; }
+.seat .card-sm + .card-sm { margin-inline-start: calc(var(--w) * -0.42); }
+.card-sm .idx b { font-size: calc(var(--w) * 0.36); }
+.card-sm .idx svg { width: calc(var(--w) * 0.26); height: calc(var(--w) * 0.26); }
+.few-seats .card-sm .pip { display: grid; }
+.few-seats .card-sm .pip svg { width: calc(var(--w) * 0.36); height: calc(var(--w) * 0.36); margin-top: 18%; }
+.few-seats .card-sm .pip .court { font-size: calc(var(--w) * 0.36); width: 52%; height: 40%; margin-top: 22%; }
+.hand-sm .hand-meta .total { min-width: 30px; height: 22px; font-size: 13px; }
+.dealer-text .total { font-size: 15px; }
+
+.play-list { grid-auto-rows: 1fr; }
+.play { justify-content: flex-start; min-height: 96px; gap: 4px; }
+.play.primary { justify-content: center; }
+.play b { line-height: 1.25; }
+
+@media (min-width: 1000px) and (orientation: landscape) {
+  .room > .felt { height: calc(100dvh - 130px); min-height: 520px; }
+  .card-lg { --w: 108px; }
+  .dealer-cards .card { --w: 84px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .room > .felt, .room > .felt.is-solo { height: calc(100dvh - 92px); min-height: 280px; }
+  .card-lg { --w: 62px; }
+  .dealer-cards .card { --w: 50px; }
+  .seat .card-sm, .few-seats .seat .card-sm { --w: 32px; }
+  .few-seats .card-sm .pip { display: none; }
+}

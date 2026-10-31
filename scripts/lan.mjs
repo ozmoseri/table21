@@ -7,7 +7,7 @@
 //   --postgres  use DATABASE_URL instead of the embedded database (off by default, so a DATABASE_URL
 //               from another project on this computer is never touched)
 // Env: PORT (default 3021), T21_DATA_DIR, T21_TLS_CERT + T21_TLS_KEY (optional HTTPS)
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -20,7 +20,19 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) fail(`PORT "${process.e
 const https = !!(process.env.T21_TLS_CERT && process.env.T21_TLS_KEY);
 
 // 1. Build the web client when needed (vite runs through this same Node binary).
-if (args.includes('--rebuild') || !existsSync(join(webDir, 'dist', 'index.html'))) {
+// Rebuild when the client sources are newer than the last build (for example after `git pull`).
+function newestMtime(p) {
+  if (!existsSync(p)) return 0;
+  const st = statSync(p);
+  if (!st.isDirectory()) return st.mtimeMs;
+  return Math.max(0, ...readdirSync(p).map((f) => newestMtime(join(p, f))));
+}
+const builtAt = newestMtime(join(webDir, 'dist', 'index.html'));
+const sourcesAt = Math.max(
+  ...['src', 'public', 'index.html', 'vite.config.ts', 'package.json'].map((f) => newestMtime(join(webDir, f))),
+  ...['game-engine', 'protocol'].map((pk) => newestMtime(join(root, 'packages', pk, 'src'))),
+);
+if (args.includes('--rebuild') || !builtAt || sourcesAt > builtAt) {
   console.log('[TABLE21] Building the web client...');
   runNodeSync([pkgFile(webDir, 'vite', 'bin/vite.js'), 'build'], { cwd: webDir, env: process.env, label: 'Web build' });
 }

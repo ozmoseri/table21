@@ -166,6 +166,7 @@ export function Home() {
         </button>
         <button className="play" onClick={() => setSheet('join')} disabled={!user} data-testid="open-join">
           <b>{t('joinRoom')}</b>
+          <span>{t('joinRoomSub')}</span>
         </button>
         <button className="play" onClick={() => setSheet('match')} disabled={!user}>
           <b>{t('friendsNight')}</b>

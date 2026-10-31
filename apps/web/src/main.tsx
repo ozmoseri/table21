@@ -1,11 +1,16 @@
 import { createRoot } from 'react-dom/client';
-import '@fontsource/heebo/400.css';
-import '@fontsource/heebo/500.css';
-import '@fontsource/heebo/700.css';
-import '@fontsource/heebo/800.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/700.css';
-import '@fontsource/libre-bodoni/600.css';
+// Only the Hebrew and Latin subsets are bundled (smaller offline cache for phones).
+import '@fontsource/heebo/hebrew-400.css';
+import '@fontsource/heebo/latin-400.css';
+import '@fontsource/heebo/hebrew-500.css';
+import '@fontsource/heebo/latin-500.css';
+import '@fontsource/heebo/hebrew-700.css';
+import '@fontsource/heebo/latin-700.css';
+import '@fontsource/heebo/hebrew-800.css';
+import '@fontsource/heebo/latin-800.css';
+import '@fontsource/inter/latin-500.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/libre-bodoni/latin-600.css';
 import './styles.css';
 import { App } from './App.tsx';
 import { loadConfig, refreshMe } from './api.ts';
