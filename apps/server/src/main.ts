@@ -18,7 +18,12 @@ async function main() {
   const host = process.env.HOST ?? (deployment === 'lan' ? '0.0.0.0' : '127.0.0.1');
   const port = Number(process.env.PORT ?? 3021);
   const fast = process.env.T21_FAST === '1';
-  const db = await openDb();
+  let db: Db;
+  try {
+    db = await openDb();
+  } catch (e: any) {
+    throw new Error(`Could not open the database (${e?.message ?? e}). If another TABLE21 server is running, close it first.`);
+  }
   const applied = await migrate(db);
   if (applied.length) console.log(`[db] applied migrations: ${applied.join(', ')}`);
   const tls =
@@ -35,7 +40,13 @@ async function main() {
     timing: fast ? { dealerStepMs: 150, autoDealDelayMs: 300, humanDealerSeconds: 6, reconnectGraceMs: 4000 } : undefined,
   });
   const resumed = await server.manager.recover();
-  await server.app.listen({ host, port });
+  try {
+    await server.app.listen({ host, port });
+  } catch (e: any) {
+    if (e?.code === 'EADDRINUSE') throw new Error(`Port ${port} is already in use. Close the other TABLE21 window, or start with a different PORT (for example PORT=3022).`);
+    if (e?.code === 'EACCES') throw new Error(`No permission to listen on port ${port}. Try a port above 1024.`);
+    throw e;
+  }
   console.log(`[table21] ${deployment} server on ${tls ? 'https' : 'http'}://${host}:${port} (db: ${db.kind}, resumed rooms: ${resumed})`);
   const shutdown = async () => {
     await server.close();
@@ -46,9 +57,13 @@ async function main() {
   process.on('SIGTERM', shutdown);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+const self = fileURLToPath(import.meta.url);
+const entry = process.argv[1] ? resolve(process.argv[1]) : '';
+const same = process.platform === 'win32' ? entry.toLowerCase() === self.toLowerCase() : entry === self;
+if (same) {
   main().catch((e) => {
-    console.error(e);
+    console.error(`[table21] ${e instanceof Error ? e.message : e}`);
+    if (process.env.T21_LOG === '1') console.error(e);
     process.exit(1);
   });
 }

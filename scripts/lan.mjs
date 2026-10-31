@@ -1,48 +1,71 @@
 #!/usr/bin/env node
-// LAN host: one computer serves the complete game to phones on the same Wi-Fi. No internet or cloud needed.
-// Usage: pnpm lan [--rebuild]    Optional HTTPS: T21_TLS_CERT=... T21_TLS_KEY=... pnpm lan
-import { spawn, spawnSync } from 'node:child_process';
+// LAN host: one computer serves the complete game to phones on the same Wi-Fi. No internet, cloud or
+// PostgreSQL install needed: data lives in an embedded database under .data/lan.
+//
+// Usage:  node scripts/lan.mjs [--rebuild] [--postgres]
+//   --rebuild   rebuild the web client even if apps/web/dist exists
+//   --postgres  use DATABASE_URL instead of the embedded database (off by default, so a DATABASE_URL
+//               from another project on this computer is never touched)
+// Env: PORT (default 3021), T21_DATA_DIR, T21_TLS_CERT + T21_TLS_KEY (optional HTTPS)
 import { existsSync, mkdirSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
-import { join, resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { createRequire } from 'node:module';
+import { checkNode, fail, pkgFile, root, runNode, runNodeSync, serverDir, webDir } from './lib/proc.mjs';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const require = createRequire(join(root, 'apps/server/package.json'));
-const QRCode = require('qrcode');
+checkNode();
+const args = process.argv.slice(2);
 const port = Number(process.env.PORT ?? 3021);
+if (!Number.isInteger(port) || port < 1 || port > 65535) fail(`PORT "${process.env.PORT}" is not a valid port number.`);
 const https = !!(process.env.T21_TLS_CERT && process.env.T21_TLS_KEY);
 
-if (process.argv.includes('--rebuild') || !existsSync(join(root, 'apps/web/dist/index.html'))) {
-  console.log('Building the web client...');
-  const r = spawnSync('pnpm', ['--filter', '@table21/web', 'build'], { cwd: root, stdio: 'inherit' });
-  if (r.status !== 0) process.exit(r.status ?? 1);
+// 1. Build the web client when needed (vite runs through this same Node binary).
+if (args.includes('--rebuild') || !existsSync(join(webDir, 'dist', 'index.html'))) {
+  console.log('[TABLE21] Building the web client...');
+  runNodeSync([pkgFile(webDir, 'vite', 'bin/vite.js'), 'build'], { cwd: webDir, env: process.env, label: 'Web build' });
 }
-const dataDir = process.env.T21_DATA_DIR ?? join(root, '.data', 'lan');
-mkdirSync(dataDir, { recursive: true });
 
-const server = spawn('pnpm', ['--filter', '@table21/server', 'start'], {
-  cwd: root,
-  stdio: ['inherit', 'pipe', 'inherit'],
-  env: { ...process.env, T21_DEPLOYMENT: 'lan', HOST: process.env.HOST ?? '0.0.0.0', PORT: String(port), T21_DATA_DIR: dataDir },
-});
+// 2. Start the server with the embedded database.
+const dataDir = process.env.T21_DATA_DIR ?? join(root, '.data', 'lan');
+try {
+  mkdirSync(dataDir, { recursive: true });
+} catch (e) {
+  fail(`Cannot create the data folder ${dataDir}: ${e.message}`);
+}
+const env = { ...process.env, T21_DEPLOYMENT: 'lan', HOST: process.env.HOST ?? '0.0.0.0', PORT: String(port), T21_DATA_DIR: dataDir };
+if (!args.includes('--postgres')) delete env.DATABASE_URL;
+pkgFile(serverDir, 'tsx', 'package.json'); // clear message if dependencies are missing
+
+const server = runNode(['--import', 'tsx', join('src', 'main.ts')], { cwd: serverDir, env, label: 'Server', stdio: ['inherit', 'pipe', 'inherit'] });
+
+const QRCode = createRequire(join(serverDir, 'package.json'))('qrcode');
+const VIRTUAL = /vEthernet|VirtualBox|VMware|WSL|Hyper-V|Loopback|docker|br-|veth|utun|tailscale|zerotier/i;
 let shown = false;
 server.stdout.on('data', async (buf) => {
   process.stdout.write(buf);
   if (shown || !String(buf).includes('server on')) return;
   shown = true;
-  const addrs = Object.values(networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => i.address);
-  if (!addrs.length) console.log('\nNo LAN address found. Connect this computer to the Wi-Fi network first.');
-  for (const a of addrs) {
-    const url = `${https ? 'https' : 'http'}://${a}:${port}/`;
-    console.log(`\nPhones on the same Wi-Fi open: ${url}`);
+  const all = Object.entries(networkInterfaces()).flatMap(([name, list]) =>
+    (list ?? []).filter((i) => i.family === 'IPv4' && !i.internal).map((i) => ({ name, address: i.address })),
+  );
+  const likely = all.filter((i) => !VIRTUAL.test(i.name));
+  const other = all.filter((i) => VIRTUAL.test(i.name));
+  const scheme = https ? 'https' : 'http';
+  if (!likely.length && !other.length) {
+    console.log('\n[TABLE21] No network address found. Connect this computer to the Wi-Fi first.');
+  }
+  for (const i of likely) {
+    const url = `${scheme}://${i.address}:${port}/`;
+    console.log(`\n  Phones on the same Wi-Fi open:  ${url}    (adapter: ${i.name})`);
     console.log(await QRCode.toString(url, { type: 'terminal', small: true }));
   }
-  console.log('If a phone cannot connect: allow Node in the firewall, and avoid guest networks with client isolation. See docs/LAN_SETUP.md.');
-  if (!https) console.log('Plain http: play works, but phones cannot install the app or use offline mode. See docs/LAN_SETUP.md for HTTPS.');
+  if (other.length) console.log(`  Ignore these virtual adapters: ${other.map((i) => `${i.address} (${i.name})`).join(', ')}`);
+  console.log(`  QR on this computer's screen: ${scheme}://localhost:${port}/#/lan`);
+  console.log('  Phone cannot connect? Allow Node.js on Private networks in the firewall, and avoid guest Wi-Fi.');
+  if (!https) console.log('  Plain http: play works; installing to the home screen and offline mode need HTTPS (docs/LAN_SETUP.md).');
+  console.log('  Stop the host with Ctrl+C.\n');
 });
-const stop = () => server.kill('SIGTERM');
-process.on('SIGINT', stop);
-process.on('SIGTERM', stop);
-server.on('exit', (c) => process.exit(c ?? 0));
+server.on('exit', (code) => {
+  if (code && code !== 0) console.error(`\n[TABLE21] The server stopped with exit code ${code}. See the messages above.`);
+  process.exit(code ?? 0);
+});

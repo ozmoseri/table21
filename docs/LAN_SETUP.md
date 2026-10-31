@@ -39,3 +39,12 @@ LAN games use local guest identities and coins on the host's database. The host 
 
 ## Phone-only LAN
 Not available. See PHONE_LAN_RESEARCH.md.
+
+## Windows quick start
+
+Double-click `START-LAN-WINDOWS.cmd` (or run `powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\start-lan-windows.ps1"`).
+It checks Node.js 22.12+, installs pnpm 10 if missing, runs `pnpm install --frozen-lockfile`, builds the client on first
+run and starts the host. Every step stops with a message if it fails. Tools are started through `node` directly
+(no `.cmd` shims), so folders with spaces work. The embedded database lives in `.data\lan`; a `DATABASE_URL`
+set for other projects on the computer is ignored unless you pass `--postgres`.
+Status: written for Windows but NOT yet run on a real Windows machine (verified on Linux, including a path with spaces).

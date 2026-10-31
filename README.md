@@ -38,9 +38,7 @@ See [docs/TEST_REPORT.md](docs/TEST_REPORT.md) for what passed, failed or was no
 1. מתקינים Node.js 22 ואז `npm i -g pnpm@10`.
 2. בתיקיית הפרויקט מריצים `pnpm install`.
 
-**ב-Windows יש סקריפט שעושה את הכל (בודק Node, מתקין pnpm ותלויות, מפעיל מארח LAN):**
-`powershell -ExecutionPolicy Bypass -File scripts\start-lan-windows.ps1`
-כשמופיעה הודעת חומת אש, מאשרים "רשתות פרטיות". רשת ה-Wi-Fi צריכה להיות מוגדרת כ-Private.
+**ב-Windows:** לוחצים פעמיים על `START-LAN-WINDOWS.cmd` בתיקיית הפרויקט. הסקריפט בודק Node 22.12 ומעלה, מתקין pnpm ותלויות, בונה ומפעיל את המארח עם בסיס נתונים מובנה (בלי התקנת PostgreSQL). כל שלב שנכשל עוצר עם הודעה. כשמופיעה הודעת חומת אש, מאשרים "רשתות פרטיות".
 
 **משחק עם שני חברים באותו Wi-Fi:**
 1. מריצים `pnpm lan` (או את הסקריפט של Windows).
