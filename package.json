@@ -1,0 +1,38 @@
+{
+  "name": "table21",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "db:start": "node scripts/db.mjs start",
+    "db:stop": "node scripts/db.mjs stop",
+    "db:reset": "node scripts/db.mjs reset",
+    "migrate": "pnpm --filter @table21/server migrate",
+    "dev": "node scripts/dev.mjs",
+    "build": "pnpm --filter @table21/web build",
+    "start": "pnpm --filter @table21/server start",
+    "lan": "node scripts/lan.mjs",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:unit": "vitest run --config vitest.config.ts tests/unit",
+    "test:integration": "vitest run --config vitest.config.ts tests/integration",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.ts",
+    "export": "node scripts/export.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.6.6",
+    "fast-check": "4.10.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5",
+    "@table21/game-engine": "workspace:*",
+    "@table21/protocol": "workspace:*",
+    "@table21/server": "workspace:*",
+    "socket.io-client": "4.8.4"
+  }
+}
