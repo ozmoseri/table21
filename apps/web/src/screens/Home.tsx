@@ -199,6 +199,10 @@ export function Home() {
             {t('join')}
           </button>
         </form>
+        <a className="practice-row" href="#/practice" data-testid="practice">
+          <span className="practice-chip" aria-hidden="true" />
+          <span>{t('practiceShort')}</span>
+        </a>
         <InstallHint />
         <section className="hero-table" aria-hidden="true">
           <div className="hero-felt">
@@ -239,10 +243,6 @@ export function Home() {
             <b>{t('friendsNight')}</b>
             <span>{t('friendsNightSub')}</span>
           </button>
-          <a className="play" href="#/practice" data-testid="practice">
-            <b>{t('practice')}</b>
-            <span>{t('practiceSub')}</span>
-          </a>
           <a className="play" href="#/pass">
             <b>{t('passPlay')}</b>
             <span>{t('passPlaySub')}</span>
@@ -252,7 +252,9 @@ export function Home() {
             <span>{t('rewardsSub')}</span>
           </a>
         </div>
-        <p className="fine center">{t('coinsNote')}</p>
+        <p className="fine center" data-testid="coins-note">
+          {t('coinsNote')}
+        </p>
       </div>
 
       <CreateRoomSheet open={sheet === 'casual' || sheet === 'match'} preset={sheet === 'match' ? 'match' : 'casual'} key={sheet ?? 'none'} onClose={() => setSheet(null)} />

@@ -2,7 +2,8 @@
 
 > **סיכום לעוז:**
 > - **מה בנוי:** 12 צלילים מקוריים שנוצרים בקוד, בלי קבצים ובלי שירות חיצוני.
-> - **בלי עומס:** אין צליל שחוזר מהר מדי, ואין יותר מ-4 צלילים בבת אחת.
+> - **בלי עומס:** אין צליל שחוזר מהר מדי, ואין יותר מ-3 צלילים בבת אחת (DECISIONS 10). צליל ניצחון יכול לתפוס את המקום של הצליל הישן ביותר.
+> - **שלב 4:** צליל קלף אחד לכל קלף, ברגע הנחיתה. גובה הצליל משתנה ב-±2% רק בקלפים. בזמן צליל ניצחון השאר יורד ב-4dB. אווירת חדר כבויה כברירת מחדל. רטט לפי פרק 7 בבייבל (רק באנדרואיד).
 > - **ניקוי:** בחיבור מחדש, ביציאה לרקע ובסיבוב חדש, צלילים שכבר תוזמנו מתבטלים.
 > - **הפסד ותיקו:** אין צליל עונשי להפסד. תיקו נשמע כמו החזרת צ׳יפים, לא כמו חגיגה.
 > - **מה לא נבדק:** אני לא יכול להאזין, ולכן לא אומת אם הצלילים נעימים. מצורפת הדגמה של עשרה סיבובים, ויש בהגדרות לוח "בדיקת צלילים".
@@ -17,7 +18,7 @@ Code: `apps/web/src/sound.ts`. Demo: `scripts/render-sound-demo.mjs` renders `ta
 | tap | secondary buttons in the table (reactions, hand chips) | 40 ms | very quiet click |
 | chip | picking a stake chip; a push result (stake returned) | 100 ms | ceramic click |
 | bet | the flying chip lands on the bet spot | 160 ms | two soft clacks, lower |
-| deal | each card leaving the shoe (presentation stagger) | 90 ms | card slide |
+| deal | each card as it lands (84% of its flight, at the playback rate); three variants, pitch +-2% | 90 ms | slide tail into a soft place |
 | flip | dealer hole card revealed | 120 ms | short flip |
 | turn | my turn starts, after the deal sequence | 130 ms | gentle chime |
 | payout | reserved for chip count-back (win includes it) | 360 ms | three quick clicks |

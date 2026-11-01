@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { unitsLabel } from '@table21/protocol';
 import { t } from '../i18n.ts';
 import { reducedMotion } from '../prefs.ts';
@@ -27,6 +27,37 @@ export function Coins({ units, sign, className }: { units: number; sign?: boolea
       {unitsLabel(Math.abs(units))}
     </bdi>
   );
+}
+
+/**
+ * Balance that rolls up when it grows (a payout lands), 600 ms ease-out; drops and reduced motion show at once.
+ * The number it ends on is always the snapshot's: the roll is presentation only.
+ */
+export function RollingCoins({ units, className }: { units: number; className?: string }) {
+  const [shown, setShown] = useState(units);
+  const prev = useRef(units);
+  useEffect(() => {
+    const from = prev.current;
+    prev.current = units;
+    if (units <= from || reducedMotion()) {
+      setShown(units);
+      return;
+    }
+    const t0 = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / 600);
+      // whole coins while rolling (2 units = 1 coin), the exact value at the end
+      setShown(k >= 1 ? units : Math.round((from + (units - from) * (1 - Math.pow(1 - k, 3))) / 2) * 2);
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(raf);
+      setShown(units);
+    };
+  }, [units]);
+  return <Coins units={shown} className={`${className ?? ''} ${shown !== units ? 'is-rolling' : ''}`} />;
 }
 
 export function ChipStack({ units, small }: { units: number; small?: boolean }) {

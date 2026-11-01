@@ -1,4 +1,5 @@
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { AgeGate, SessionReminder, ageConfirmed } from './components/Guards.tsx';
 import { useMe, useNet } from './api.ts';
 import { Waking } from './screens/Waking.tsx';
 import { UpdateBanner } from './components/UpdateBanner.tsx';
@@ -64,6 +65,7 @@ export function App() {
   const route = useRoute();
   usePrefs();
   const [head, ...rest] = route.split('/');
+  const [adult, setAdult] = useState(ageConfirmed);
 
   useEffect(() => {
     scrollTo(0, 0);
@@ -101,12 +103,18 @@ export function App() {
   else if (head === 'account') content = <Account />;
   else if (head === 'rewards') content = <Club key="rewards" initial="rewards" />;
   else content = <Home />;
+  // 18+ gate before anything else (lab views are test-only builds).
+  if (!adult && head !== 'lab') {
+    content = <AgeGate onConfirm={() => setAdult(true)} />;
+    nav = false;
+  }
 
   return (
     <>
       <Shell route={head} nav={nav}>
         {content}
       </Shell>
+      {adult && <SessionReminder />}
       <UpdateBanner />
       <Toaster />
       <Announcer />

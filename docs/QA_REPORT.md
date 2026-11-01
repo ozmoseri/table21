@@ -196,6 +196,41 @@ Screenshots (`docs/screenshots/premium/`, by `scripts/premium-shots.mjs`, two re
 Full hand: `full-hand-390x844.webm` (Playwright recordVideo, practice at Elegant) and `frames/f*.jpg` (one frame
 about every 100 ms of the same hand: bet, arc flights, turn, stand, hole card lift and flip, result).
 
+## 11. Premium round, stages 4-6 and art-director fixes F1-F5
+
+Spec: GROKBOT 2026-11-01 16:03 (F1-F5) > DECISIONS.md > CLAUDE_BRIEF stages 4-6 and DESIGN_BIBLE §5, §7-§9. Details:
+docs/PREMIUM2.md. Engine rules, odds, server rules, the idempotent coin flow and `PROTOCOL_VERSION` (1) are
+unchanged; no credits, payments or generation were used. **The deployment candidate is still c38b481.**
+
+Suites on this commit: SUITES_LINE
+
+| # | Check | Result | Evidence |
+|---|---|---|---|
+| 11.1 | F1 felt: texture veiled 60%, centre #125743 to edge #082F25, one warm centre light; HUD #0B1218 at 90% | PASS | premium2.spec (computed styles), compare-table2-* |
+| 11.2 | F2 two players: friend's seat more than 60 px off the centre line; ring around my total (no floating dial); 32 px between groups where the height allows | PASS | premium2.spec, compare-table2-* |
+| 11.3 | F2 landscape: my card 76 px wide (76x106 at the standard 1:1.4 card; the review asked about 76x108) | PASS | premium2.spec |
+| 11.4 | F3 face and back share a 2px ivory frame and one radius; back pattern muted about 45% (derived from the existing back) | PASS | premium2.spec, cardback-simple.webp |
+| 11.5 | F3 "BLACKJACK PAYS 3 TO 2" never under a hand, name, avatar or total: lab solo/three/six/split at 390x844, 844x390, 360x640 | PASS | premium2.spec (box overlap). In landscape with friends there is no spare row, so it is left out there |
+| 11.6 | FOUND: the 32 px gap and the 54 px ring pushed my hand into the seats on 360x640 split and 844x390 three | FAIL, fixed | gap scales with height (12 px short portrait, 6 px landscape), smaller ring in landscape; layout-v4 and turn-fit pass |
+| 11.7 | F4 lobby: play with friends, room code and practice above the fold at 390x844; install strip 56-64 px; art at most 80 px; no letter spacing in "קוד חדר" | PASS | premium2.spec |
+| 11.8 | F5 / stage 5: banner headline 20 px Rubik 600, +amount 28 px; result headline 20 px Rubik 600, net 28 px | PASS | premium2.spec |
+| 11.9 | Stage 5: win banner 500 ms, natural 900 ms (skippable after 600), nothing for push or net <= 0, at most 40 particles, no 10x event | PASS | premium2.test (rule), premium2.spec (measured 450-700 / 850-1100 ms in the browser) |
+| 11.10 | Stage 5: balance rolls up in whole coins and ends on the snapshot value; a reload never re-celebrates | PASS | RollingCoins; social.spec / turn-fit (hydrate without celebration) |
+| 11.11 | Stage 4: never more than 3 voices over ten hands; a stinger takes the oldest voice; card pitch within +-2%; 4 dB duck | PASS | premium2.spec (`maxVoices` read from the page), premium2.test |
+| 11.12 | FOUND: the new card sound's second layer started 54 ms after the first, so the older sound-budget test counted each card twice | FAIL, fixed | layer starts within 45 ms; turn-fit ten-rounds and premium2 sound test pass twice in a row |
+| 11.13 | Stage 4: one card sound per card at its landing; ambience off by default; iOS audio session "ambient" | PASS (ambience default, landing schedule) / NOT RUN (iOS silent switch) | premium2.spec; needs an iPhone |
+| 11.14 | Stage 4 haptics: chip bet 10, own card land 12 (stubbed `navigator.vibrate`), patterns per bible §7 | PASS | premium2.spec, premium2.test |
+| 11.15 | Stage 4: Kenney CC0 samples (ogg + m4a) | NOT DONE | the workspace cannot download them; synthesized set kept, CREDITS.txt |
+| 11.16 | Stage 6 ethics: 18+ gate (under 18 stops, confirm remembered, practice behind it too); 60-minute reminder only at a safe point, one-tap close, not again within the hour; menu line "דילר אוטומטי · 18+ · לקוינס אין ערך כספי" | PASS | premium2.spec |
+| 11.17 | DECISIONS 9: no insurance in the engine, no coin-moving gift or transfer in the ledger, no streak | PASS | premium2.test (reads the source) |
+| 11.18 | FOUND: my `pickAndConfirm` helper decided "more chips" before the bet bar rendered (version-mismatch test hung) | FAIL, fixed (test) | helper waits for the bet bar |
+| 11.19 | Stage 6 lobby items needing server data or rules (Play Now with strangers, tiers, XP/levels, daily challenges, leaderboard) | NOT DONE (by rule) | listed in docs/NEXT_STEPS.md for Oz's decision |
+| 11.20 | Stage 6 art swap from ART_PROMPTS | NOT DONE (by rule) | no generation or credits; assets_incoming has only trial 1, already in the repo |
+| 11.21 | Real phones: haptics feel, sound balance, 18+ gate and reminder on installed PWA, F1 felt on OLED | NOT RUN | needs Oz's phones; Claude cannot listen |
+
+Screenshots: `docs/screenshots/premium2/before/` (6e7f9a2), `after/`, and side by side `compare-{home,table2,practice-turn,celebrate,results}-{portrait-390x844,landscape-844x390}.jpg`.
+The celebrate shots are frozen inside the banner's hold by a lab-build-only 4x stretch (`t21:fx-slow`); real timings are measured by the e2e tests at full speed.
+
 ## 9. NOT RUN (needs a person or a device)
 
 | # | Check | Why |

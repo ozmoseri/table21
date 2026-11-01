@@ -11,7 +11,7 @@ import { api, refreshMe } from '../api.ts';
 import { REACTION_TEXT, errorText, getLocale, t } from '../i18n.ts';
 import { ActionButtons, BetConfirm, ResultPanel, StakePicker, Table, myTurnText, totalLabel, type DealerInfo } from '../components/Table.tsx';
 import { DealSettings } from '../components/DealSettings.tsx';
-import { Avatar, Coins, Seconds, Sheet, toast } from '../components/bits.tsx';
+import { Avatar, Coins, Seconds, Sheet, toast, RollingCoins } from '../components/bits.tsx';
 import { go } from '../App.tsx';
 
 function nextDealerStepLabel(s: RoomSnapshot) {
@@ -312,7 +312,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
           </svg>
         </button>
         <span className="wallet hud-balance">
-          <Coins units={snap.you.availableUnits} />
+          <RollingCoins units={snap.you.availableUnits} />
           {st.pending && <span className="sync-dot" title={t('syncing')} />}
         </span>
         <span className="hud-spacer" />
@@ -446,6 +446,9 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
             {t('leaveRoom')}
           </button>
           <p className="fine">{t('coinsNote')}</p>
+          <p className="menu-footer" data-testid="menu-footer">
+            {t('footerNote')}
+          </p>
         </div>
       </Sheet>
       <RoomSettingsSheet snap={snap} open={sheet === 'settings'} onClose={() => setSheet(null)} send={send} />

@@ -10,7 +10,7 @@ import { SFX, play } from '../sound.ts';
 export function Settings() {
   const p = usePrefs();
   const me = useMe();
-  const toggle = (k: 'sound' | 'haptics') => setPrefs({ [k]: !p[k] });
+  const toggle = (k: 'sound' | 'haptics' | 'ambience') => setPrefs({ [k]: !p[k] });
   return (
     <div className="pad stack">
       <h1 className="title">{t('settings')}</h1>
@@ -23,6 +23,10 @@ export function Settings() {
         <label className="check">
           <input type="checkbox" checked={p.haptics} onChange={() => toggle('haptics')} />
           <span>{t('haptics')}</span>
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={p.ambience} onChange={() => toggle('ambience')} data-testid="ambience" />
+          <span>{t('ambience')}</span>
         </label>
         <div className="row between">
           <span>{t('motion')}</span>

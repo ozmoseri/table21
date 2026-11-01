@@ -50,6 +50,8 @@ export async function sit(p: Player) {
  * Picking alone sends nothing; the confirm button is the one gold action of the bet bar.
  */
 export async function pickAndConfirm(page: Page, coins?: number) {
+  // Wait for the bet bar itself before deciding whether the stake is on the first page of chips.
+  await page.locator('.stake-chip').first().waitFor({ timeout: 20_000 });
   const chip = coins === undefined ? page.locator('.stake-chip').first() : page.locator('.stake-chip', { hasText: new RegExp(`^${coins}$`) });
   if (!(await chip.isVisible().catch(() => false))) await page.getByTestId('stake-more').click();
   await chip.click();

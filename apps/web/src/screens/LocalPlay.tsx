@@ -5,7 +5,7 @@ import { getLocal, saveLocal } from '../prefs.ts';
 import { t } from '../i18n.ts';
 import { ActionButtons, BetConfirm, ResultPanel, StakePicker, Table, myTurnText } from '../components/Table.tsx';
 import { DealSettings } from '../components/DealSettings.tsx';
-import { Avatar, Coins, Sheet } from '../components/bits.tsx';
+import { Avatar, Coins, Sheet, RollingCoins } from '../components/bits.tsx';
 import { go } from '../App.tsx';
 import { useMe } from '../api.ts';
 import { useHandBusy } from '../update.ts';
@@ -39,7 +39,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
         </button>
         {solo && (
           <span className="wallet hud-balance">
-            <Coins units={snap.you.availableUnits} />
+            <RollingCoins units={snap.you.availableUnits} />
           </span>
         )}
         <span className="hud-spacer" />
@@ -140,6 +140,9 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
             {t('back')}
           </button>
           <p className="fine">{t('practiceNote')}</p>
+          <p className="menu-footer" data-testid="menu-footer">
+            {t('footerNote')}
+          </p>
         </div>
       </Sheet>
     </div>

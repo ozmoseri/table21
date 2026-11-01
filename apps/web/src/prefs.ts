@@ -15,10 +15,12 @@ export interface Prefs {
   leftHanded: boolean;
   /** The one-time "full screen / add to home screen" card was closed. */
   installHintClosed: boolean;
+  /** Quiet room tone under the effects (DECISIONS 10: music/ambience off by default). */
+  ambience: boolean;
 }
 
 const mq = typeof matchMedia !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
-let prefs: Prefs = { sound: true, motion: 'system', haptics: true, locale: 'he', dealSpeed: 'elegant', leftHanded: false, installHintClosed: false };
+let prefs: Prefs = { sound: true, motion: 'system', haptics: true, locale: 'he', dealSpeed: 'elegant', leftHanded: false, installHintClosed: false, ambience: false };
 const subs = new Set<() => void>();
 mq?.addEventListener?.('change', () => {
   apply();

@@ -65,7 +65,7 @@
   /* v5 motion tokens (anim/timing.ts holds the queue timings) */
   --dur-flip: 260ms;
   --dur-card-travel: 260ms;
-  --dur-win: 600ms;
+  --dur-win: 500ms;
   --dur-celebrate: 900ms;
 }
 
@@ -84,4 +84,4 @@ input, textarea, select, [contenteditable], .user-id, .link-box, .url, .code-gri
 #root { min-height: 100dvh; }
 .num, .coins, .total, .code-chip bdi { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
 .screen { padding-top: var(--safe-t); padding-left: var(--safe-l); padding-right: var(--safe-r); }
-h1, .title, .brand-word, .result-head, .natural-tag { font-family: var(--display); font-weight: 700; letter-spacing: 0; }
+h1, .title, .brand-word, .natural-tag { font-family: var(--display); font-weight: 700; letter-spacing: 0; }

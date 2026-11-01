@@ -15,18 +15,21 @@
   margin: 0 !important;
   overflow: hidden;
   padding: calc(var(--safe-t) + 6px) max(10px, var(--safe-r)) calc(var(--safe-b) + 8px) max(10px, var(--safe-l));
+  /* F1: deep green felt, texture at 40% (a 60% veil of flat felt over it), dark edge, one warm pool of light on the
+     table centre instead of a wash over the whole screen. */
   background:
-    radial-gradient(70% 34% at 50% 20%, rgba(255, 236, 190, 0.1), transparent 70%),
-    radial-gradient(150% 95% at 50% 32%, transparent 52%, rgba(3, 14, 10, 0.62) 100%),
+    radial-gradient(42% 26% at 50% 50%, rgba(255, 214, 150, 0.09), transparent 75%),
+    radial-gradient(125% 90% at 50% 48%, transparent 38%, rgba(8, 47, 37, 0.9) 100%),
+    linear-gradient(rgba(18, 87, 67, 0.6), rgba(18, 87, 67, 0.6)),
     var(--felt-art) center top / cover no-repeat,
-    radial-gradient(130% 95% at 50% 30%, var(--felt-a), var(--felt-b) 50%, var(--felt-c));
+    radial-gradient(125% 90% at 50% 48%, var(--t-felt), var(--t-felt-edge));
 }
 @media (orientation: landscape) { .room { --felt-art: url(/art/club/felt-landscape.webp); } }
 .room:has(> .felt.theme-sapphire) { --felt-a: #2a6aa0; --felt-b: #18456b; --felt-c: #0b2236; --felt-art: none; }
 .room:has(> .felt.theme-bordeaux) { --felt-a: #8a3043; --felt-b: #5e1c2b; --felt-c: #2e0c14; --felt-art: none; }
 /* results scroll on short screens; the table itself never does */
 .room[data-phase='results'] { height: auto; min-height: 100dvh; overflow: visible; }
-body:has(.room) { background: var(--felt-c); }
+body:has(.room) { background: var(--t-felt-edge); }
 body:has(.room)::before { display: none; }
 
 /* the table area is no longer a framed box: printed rail line and arc on the cloth */
@@ -59,7 +62,7 @@ body:has(.room)::before { display: none; }
 .hud-spacer { flex: 1; }
 .hud-btn {
   width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
-  background: rgba(11, 18, 24, 0.55); border: 1px solid rgba(246, 241, 228, 0.12); color: var(--t-ivory);
+  background: rgba(11, 18, 24, 0.9); border: 1px solid rgba(246, 241, 228, 0.12); color: var(--t-ivory);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 .hud-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -67,12 +70,12 @@ body:has(.room)::before { display: none; }
 [dir='rtl'] .hud-back svg { transform: scaleX(-1); }
 .hud-balance {
   display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px;
-  background: rgba(11, 18, 24, 0.6); border: 1px solid rgba(201, 162, 75, 0.35); color: var(--t-ivory) !important; font-weight: 600; font-size: 15px;
+  background: rgba(11, 18, 24, 0.9); border: 1px solid rgba(201, 162, 75, 0.35); color: var(--t-ivory) !important; font-weight: 600; font-size: 15px;
   margin-inline-start: 0 !important;
 }
 .room-head .hud-invite, .room-head .hud-mode {
   margin-inline-start: 0; min-height: 44px; padding: 0 12px; gap: 6px;
-  background: rgba(11, 18, 24, 0.55); border: 1px solid rgba(246, 241, 228, 0.12); color: var(--t-ivory);
+  background: rgba(11, 18, 24, 0.9); border: 1px solid rgba(246, 241, 228, 0.12); color: var(--t-ivory);
 }
 .hud-invite svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
 .hud-invite .num { font-weight: 600; }
@@ -82,7 +85,7 @@ body:has(.room)::before { display: none; }
 /* turn and timer: one quiet line under the HUD */
 .room > .status-line { justify-content: center; min-height: 28px; position: relative; z-index: 4; }
 .room .phase-text { font-family: var(--ui); font-weight: 600; font-size: 15px; color: var(--t-ivory); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
-.room > .status-line .pill { min-height: 26px; background: rgba(11, 18, 24, 0.55); border-color: rgba(246, 241, 228, 0.14); font-size: 13px; }
+.room > .status-line .pill { min-height: 26px; background: rgba(11, 18, 24, 0.9); border-color: rgba(246, 241, 228, 0.14); font-size: 13px; }
 .room .banners { position: relative; z-index: 4; }
 .room .banner { background: rgba(11, 18, 24, 0.82); }
 
@@ -201,11 +204,155 @@ body:has(.room)::before { display: none; }
   .room .actions, .actions { grid-template-columns: 1fr 1fr; grid-template-rows: 52px 52px; gap: 8px; }
   .room .actions .act { min-height: 52px; }
   .room > .controls::before { display: none; }
+  /* F2: my cards about 76 x 108 CSS px in landscape, whatever the seat count */
+  .room .me-zone .card-lg, .room .felt.is-solo .me-zone .card-lg, .room .felt.few-seats .me-zone .card-lg, .room .felt.many-seats .me-zone .card-lg { --w: 76px; }
+  .room > .felt { row-gap: 10px; }
+  .felt-print { font-size: 9px; }
   .stake-more, .stake-clear { width: 48px; height: 48px; }
   .btn.confirm { min-width: 120px; }
-  .room > .felt::before { top: 52%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .skip-anim { animation: none; }
+}
+
+/* =====================================================================================================
+   v6 art-director pass (F1-F3, ChatGPT review of the premium screenshots)
+   ===================================================================================================== */
+/* F1: HUD panels are room-dark at 90%; no blur needed over a darker felt */
+.hud-btn, .hud-balance, .room-head .hud-invite, .room-head .hud-mode { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* F2: breathing room between card groups (dealer, friends, me): 32 to 48 px */
+.room > .felt { row-gap: 32px; }
+.room .others { margin-block: 8px; flex-shrink: 0; }
+/* two players: the friend sits on a side seat, off the axis my hand and the dealer share */
+.room > .felt[data-seats='2'] .others { align-self: stretch; justify-content: flex-end; padding-inline: 4% 8%; }
+.room > .felt[data-seats='2'] .others .seat { --arc-y: 0px !important; }
+
+/* F2: the turn timer is a ring around my total */
+.total.has-ring { position: relative; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 17px; }
+.total.has-ring.is-soft { min-width: 54px; height: 54px; font-size: 13px; }
+.total.has-ring .timer-ring { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); }
+.total.has-ring .timer-ring .bar { stroke: var(--t-confirm); stroke-width: 3.5; }
+
+/* F3: one card language. Face and back share a 2px ivory frame and one radius; the back's art sits inside the frame. */
+.card-face, .card-back { border: 2px solid var(--t-ivory) !important; border-radius: calc(var(--w) * 0.09) !important; box-sizing: border-box; }
+.card-face { box-shadow: 0 0 0 0.5px rgba(20, 22, 26, 0.35), 0 6px 12px -4px rgba(0, 0, 0, 0.55); }
+.card-back { background-clip: padding-box; background-origin: padding-box; box-shadow: 0 0 0 0.5px rgba(20, 22, 26, 0.35), 0 6px 12px -4px rgba(0, 0, 0, 0.55); }
+.shoe i { border: 1.5px solid var(--t-ivory); background-size: cover; background-clip: padding-box; }
+
+/* F3: the printed line is its own row on the cloth, between the dealer and the players, so no hand or name is ever on it */
+.room > .felt::before { content: none; }
+.felt-print {
+  margin: 0; align-self: center; text-align: center; pointer-events: none; white-space: nowrap;
+  font-family: var(--display); font-size: 10px; letter-spacing: 0.3em; color: rgba(229, 199, 126, 0.26);
+}
+.felt:not(.room > .felt) .felt-print { display: none; }
+
+/* =====================================================================================================
+   Stage 5: celebrations by total net (DECISIONS 9, F5). Win 500 ms, natural 900 ms, push nothing, never net <= 0.
+   ===================================================================================================== */
+.celebration {
+  position: absolute; z-index: 7; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 26px 14px; border-radius: 18px;
+  background: rgba(11, 18, 24, 0.9); border: 1px solid rgba(229, 199, 126, 0.45);
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9), 0 0 0 6px rgba(229, 199, 126, 0.06);
+  color: var(--t-ivory); pointer-events: auto; cursor: default;
+  animation: cel-in-out var(--dur-win) cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.celebration.c-bj { animation-duration: var(--dur-celebrate); border-color: rgba(229, 199, 126, 0.8); }
+.cel-head { font-family: var(--ui); font-weight: 600; font-size: 20px; line-height: 1.2; }
+.c-bj .cel-head { color: var(--t-confirm); }
+.cel-amount { font-family: var(--nums); font-weight: 600; font-size: 28px; line-height: 1.15; color: var(--t-win); animation: cel-float var(--dur-win) ease-out both; }
+.c-bj .cel-amount { animation-duration: var(--dur-celebrate); }
+@keyframes cel-in-out {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  22% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  78% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -58%) scale(0.98); }
+}
+@keyframes cel-float { from { transform: translateY(8px); } to { transform: translateY(-6px); } }
+.sparkles { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.sparkles i {
+  position: absolute; width: 6px; height: 6px; margin: -3px; border-radius: 50%;
+  background: radial-gradient(circle, #fff3cf, var(--t-confirm) 60%, transparent 70%);
+  animation: sparkle var(--dur-celebrate) var(--t, 0ms) ease-out both;
+}
+@keyframes sparkle {
+  0% { transform: rotate(var(--a)) translateX(0) scale(0.4); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(var(--d)) scale(1); opacity: 0; }
+}
+[data-motion='reduced'] .sparkles { display: none; }
+
+/* win: one sheen sweeps across my cards (500 ms) */
+.felt.celebrate-win .me-zone .hand-cards, .felt.celebrate-bj .me-zone .hand-cards { position: relative; }
+.felt.celebrate-win .me-zone .hand-cards::after, .felt.celebrate-bj .me-zone .hand-cards::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; border-radius: 8px;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 246, 220, 0.55) 48%, transparent 66%) no-repeat;
+  background-size: 260% 100%; animation: sheen var(--dur-win) ease-out both;
+}
+.felt.celebrate-bj .me-zone .hand-cards::after { animation-duration: var(--dur-celebrate); }
+@keyframes sheen { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+
+/* bust: the hand dims to 60%, its total shakes twice */
+.me-zone .hand.is-bust .hand-cards { opacity: 0.6; }
+.me-zone .hand.is-bust .total { color: var(--t-loss); border-color: rgba(229, 150, 156, 0.5); animation: bust-shake 240ms ease-in-out 1; }
+@keyframes bust-shake { 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
+
+/* F5 results: headline 20px Rubik 600, net amount 28px */
+.room .result-head { font-family: var(--ui); font-weight: 600; font-size: 20px; letter-spacing: 0; }
+.room .result-panel .net .coins { font-size: 28px; font-weight: 600; }
+.room .result-panel.pos .net .coins { color: var(--t-win); }
+
+/* the balance rolls up after a payout */
+.hud-balance .coins.is-rolling { color: var(--t-confirm); }
+
+/* =====================================================================================================
+   Stage 6 lobby (DECISIONS 11, F4): resume, play with friends and join by code first; practice smaller.
+   ===================================================================================================== */
+.practice-row {
+  display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-radius: 14px;
+  background: rgba(22, 34, 44, 0.7); border: 1px solid rgba(246, 241, 228, 0.1); color: var(--t-ivory); text-decoration: none; font-weight: 500;
+}
+.practice-chip { width: 22px; height: 22px; border-radius: 50%; flex: none; background: radial-gradient(circle, #e9e2cf 0 30%, #1f6b52 31% 62%, #e9e2cf 63% 70%, #1f6b52 71%); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3); }
+.install-strip {
+  display: flex; align-items: center; gap: 8px; min-height: 56px; max-height: 64px; padding: 0 6px 0 14px; border-radius: 14px;
+  background: var(--t-panel); border: 1px solid rgba(201, 162, 75, 0.3); overflow: hidden;
+}
+.install-text { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; color: var(--t-ivory); }
+.install-close { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: none; border: 0; color: var(--muted); cursor: pointer; }
+.install-close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.home .hero-table { height: 80px; max-height: 80px; }
+.home .hero-card { width: 46px; height: 64px; top: 8px; left: calc(50% - 23px); }
+.code-input::placeholder { letter-spacing: 0; }
+.code-input.sm:placeholder-shown { letter-spacing: 0; }
+
+/* ethics guardrails */
+.age-gate { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; gap: 14px; max-width: 420px; margin: 0 auto; padding: 24px 20px calc(24px + var(--safe-b)); text-align: center; }
+.age-badge { align-self: center; display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--t-brass); color: var(--t-confirm); font-size: 24px; font-weight: 600; }
+.age-body, .age-blocked { color: var(--t-ivory); font-size: 16px; line-height: 1.5; margin: 0; }
+.age-gate .btn.wide { width: 100%; min-height: 52px; }
+.session-reminder {
+  position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 56px);
+  width: min(460px, calc(100% - 24px)); display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border-radius: 14px;
+  background: rgba(11, 18, 24, 0.94); border: 1px solid rgba(201, 162, 75, 0.4); color: var(--t-ivory); font-size: 14px; line-height: 1.35;
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.9);
+}
+.session-reminder > span { flex: 1; }
+.menu-footer { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+/* F2 spacing scales with the screen: 32 px between card groups where the height allows it (390x844 and up),
+   tighter on short portrait screens and in landscape, where every pixel of height goes to the cards. */
+@media (max-height: 700px) {
+  .room > .felt { row-gap: 12px; }
+  .room .others { margin-block: 0; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .room > .felt { row-gap: 6px; }
+  .room .others { margin-block: 0; }
+  .total.has-ring { min-width: 34px; height: 34px; font-size: 15px; }
+  .total.has-ring.is-soft { min-width: 44px; height: 44px; font-size: 12px; }
+  /* with friends at the table there is no spare row in landscape: the print is left out rather than put under a hand */
+  .felt.few-seats .felt-print, .felt.many-seats .felt-print { display: none; }
 }

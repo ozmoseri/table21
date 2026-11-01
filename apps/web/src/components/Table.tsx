@@ -6,10 +6,12 @@ import { Card } from './Card.tsx';
 import { Avatar, ChipStack, Coins, TimerRing, announce, flyChip } from './bits.tsx';
 import { GiftIcon, REACTION_GLYPH } from './gifts.tsx';
 import { REACTION_TEXT, getLocale, t, type Key } from '../i18n.ts';
-import { buzz, play } from '../sound.ts';
+import { ambience, play } from '../sound.ts';
+import { haptic } from '../haptics.ts';
+import { CELEBRATE_MS, SKIPPABLE_AFTER_MS, SPARKLES, celebrationFor, type CelebrationKind } from '../fx/celebrate.ts';
 import { PresentationContext, TablePresentation } from '../presentation.ts';
 import type { ShownHand } from '../anim/timeline.ts';
-import { reducedMotion, subscribePrefs } from '../prefs.ts';
+import { reducedMotion, subscribePrefs, usePrefs } from '../prefs.ts';
 
 export interface DealerInfo {
   name: string;
@@ -51,17 +53,40 @@ export function myTurnText(snap: RoomSnapshot, meId: string): string {
 /** A+10-value after a split is an ordinary 21 under our rules, not a natural. The UI says so explicitly. */
 export const isSplit21 = (h: Pick<PublicHand, 'fromSplit' | 'cards' | 'total'>) => h.fromSplit && h.cards.length === 2 && h.total === 21;
 
-function HandView({ hand, back, size, active }: { hand: PublicHand; back: string; size: 'sm' | 'md' | 'lg'; active?: boolean }) {
+/**
+ * Lab builds only (VITE_LAB=1, never production): screenshot scripts may stretch the banner (sessionStorage
+ * t21:fx-slow, with --dur-win / --dur-celebrate stretched the same way) to freeze a frame inside the hold.
+ */
+const reviewSlow = () => {
+  if (import.meta.env.VITE_LAB !== '1') return 1;
+  try {
+    return Math.max(1, Number(sessionStorage.getItem('t21:fx-slow')) || 1);
+  } catch {
+    return 1;
+  }
+};
+interface Celebration {
+  kind: CelebrationKind | 'lose';
+  net: number;
+  at: number;
+}
+
+function HandView({ hand, back, size, active, ring }: { hand: PublicHand; back: string; size: 'sm' | 'md' | 'lg'; active?: boolean; ring?: ReactNode }) {
   const ok = outcomeKey(hand);
   return (
-    <div className={`hand hand-${size} ${active ? 'active' : ''} ${hand.outcome ? `out-${hand.outcome}` : ''} ${hand.status === 'bust' ? 'out-lose' : ''}`}>
+    <div className={`hand hand-${size} ${active ? 'active' : ''} ${hand.outcome ? `out-${hand.outcome}` : ''} ${hand.status === 'bust' ? 'out-lose is-bust' : ''}`}>
       <div className="hand-cards">
         {hand.cards.map((c) => (
           <Card key={c.id} card={c} back={back} size={size} />
         ))}
       </div>
       <div className="hand-meta">
-        {!(hand as ShownHand).totalHidden && <span className="total num">{totalLabel(hand)}</span>}
+        {!(hand as ShownHand).totalHidden && (
+          <span className={`total num ${ring ? 'has-ring' : ''} ${totalLabel(hand).includes('/') ? 'is-soft' : ''}`}>
+            {totalLabel(hand)}
+            {ring}
+          </span>
+        )}
         {size !== 'sm' && <ChipStack units={hand.stakeUnits} small />}
         {ok && ok !== 'blackjack' && <span className={`badge b-${ok}`}>{t(ok)}</span>}
         {hand.outcome === 'blackjack' || hand.status === 'blackjack' ? (
@@ -82,7 +107,7 @@ function HandView({ hand, back, size, active }: { hand: PublicHand; back: string
 }
 
 /** Split hands: the hand in focus stays large; the others become numbered chips with total and state. */
-function SplitHands({ hands, back, activeIndex }: { hands: PublicHand[]; back: string; activeIndex: number | null }) {
+function SplitHands({ hands, back, activeIndex, ring }: { hands: PublicHand[]; back: string; activeIndex: number | null; ring?: ReactNode }) {
   const [picked, setPicked] = useState<number | null>(null);
   useEffect(() => setPicked(null), [activeIndex]);
   const focus = picked ?? activeIndex ?? Math.max(0, hands.findIndex((h) => h.status === 'active' || h.status === 'waiting'));
@@ -92,7 +117,7 @@ function SplitHands({ hands, back, activeIndex }: { hands: PublicHand[]; back: s
         {t('handOf', { n: focus + 1, m: hands.length })}
         {activeIndex === focus ? ` · ${t('playingNow')}` : ''}
       </span>
-      <HandView hand={hands[focus]} back={back} size={hands.length > 2 ? 'md' : 'lg'} active={activeIndex === focus} />
+      <HandView hand={hands[focus]} back={back} size={hands.length > 2 ? 'md' : 'lg'} active={activeIndex === focus} ring={activeIndex === focus ? ring : undefined} />
       <div className="hand-chips" role="tablist" aria-label="hands">
         {hands.map((h, i) => {
           const k = statusKey(h);
@@ -321,23 +346,46 @@ export function Table({
   const reactionOf = (uid: string) =>
     isMuted(uid) ? undefined : [...reactions].reverse().find((r) => r.userId === uid && now - r.at < 2800);
 
+  // Room tone (off by default) plays while a table is open; it stops when the table closes.
+  const prefs = usePrefs();
+  useEffect(() => {
+    ambience(true);
+    return () => ambience(false);
+  }, [prefs.ambience, prefs.sound]);
+
   const lastTurn = useRef<string | null>(null);
   useEffect(() => {
     const key = myTurn && round ? `${round.roundId}:${round.turn?.hand}` : null;
     if (key && key !== lastTurn.current) {
       presentation.afterSequence(() => {
         play('turn');
-        buzz(20);
+        haptic('selection');
       });
       announce(t('yourTurn'));
     }
     lastTurn.current = key;
   }, [myTurn, round?.roundId, round?.turn?.hand]);
 
+  // 5 s left on my turn: two short pulses, once per turn (DESIGN_BIBLE 7).
+  useEffect(() => {
+    if (!myTurn || !snap.deadline) return;
+    const left = snap.deadline - (Date.now() + offset) - 5000;
+    if (left <= 0) return;
+    const id = setTimeout(() => haptic('turnWarning'), left);
+    return () => clearTimeout(id);
+  }, [myTurn, snap.deadline]);
+
+  // My hand busts: one firmer pulse; the hand dims and its total shakes (CSS .is-bust).
+  const bustKey = mine?.hands.map((h) => h.status === 'bust').join(',');
+  const lastBust = useRef(bustKey);
+  useEffect(() => {
+    if (bustKey && lastBust.current !== undefined && bustKey !== lastBust.current && bustKey.split(',').some((b, i) => b === 'true' && lastBust.current?.split(',')[i] !== 'true')) haptic('bust');
+    lastBust.current = bustKey;
+  }, [bustKey]);
 
   const settledKey = round && (round.phase === 'settled' || round.phase === 'voided') ? round.roundId : null;
   const lastSettled = useRef<string | null>(null);
-  const [celebrate, setCelebrate] = useState<null | 'bj' | 'win' | 'push' | 'lose'>(null);
+  const [celebrate, setCelebrate] = useState<null | Celebration>(null);
   useEffect(() => {
     if (!settledKey || settledKey === lastSettled.current) return;
     lastSettled.current = settledKey;
@@ -346,26 +394,34 @@ export function Table({
     if (presentation.hydratedLast) return;
     const net = mine.hands.reduce((a, h) => a + (h.returnedUnits ?? 0) - h.stakeUnits, 0);
     const bj = mine.hands.some((h) => h.outcome === 'blackjack');
-    // The result sound waits until the dealer's last card has landed.
-    presentation.sound(bj ? 'blackjack' : net > 0 ? 'win' : net < 0 ? 'lose' : 'chip');
+    // Celebration by total net (DECISIONS 9): never for net <= 0, so a natural on one split hand that loses overall
+    // shows nothing. Push: no celebration, a plain chip sound. Loss: a calm settle, a neutral low sound.
+    const kind = celebrationFor(net, bj);
+    presentation.sound(kind === 'bj' ? 'blackjack' : kind === 'win' ? 'win' : net < 0 ? 'lose' : 'chip');
     presentation.afterSequence(() => announce(`${net > 0 ? t('resultUp') : net < 0 ? t('resultDown') : t('resultEven')} ${net / 2}`));
-    // Celebration scale follows the event: natural blackjack 950 ms, win 600 ms, push none, loss a calm settle.
-    const kind = bj ? 'bj' : net > 0 ? 'win' : net < 0 ? 'lose' : 'push';
-    presentation.afterSequence(() => setCelebrate(kind));
+    if (kind === 'bj') haptic('blackjack');
+    else if (kind === 'win') haptic('win');
+    if (kind || net < 0) presentation.afterSequence(() => setCelebrate({ kind: kind ?? 'lose', net, at: performance.now() }));
   }, [settledKey]);
   useEffect(() => {
     if (!celebrate) return;
-    const id = setTimeout(() => setCelebrate(null), celebrate === 'bj' ? 1100 : 750);
+    const id = setTimeout(() => setCelebrate(null), CELEBRATE_MS[celebrate.kind] * reviewSlow());
     return () => clearTimeout(id);
   }, [celebrate]);
+  // Skippable after 600 ms (a natural runs 900 ms).
+  const dismissCelebration = () => {
+    if (celebrate && performance.now() - celebrate.at >= SKIPPABLE_AFTER_MS) setCelebrate(null);
+  };
 
   const myActiveHand = myTurn ? (round?.turn?.hand ?? null) : null;
+  // The turn timer is a ring around my total (F2), not a separate floating dial.
+  const myRing = mySeat && myTurn && snap.deadline ? <TimerRing deadline={snap.deadline} total={snap.settings.turnSeconds * 1000} offset={offset} /> : undefined;
   const seatCount = others.length;
   const layout = seatCount === 0 ? 'is-solo' : seatCount <= 2 ? 'few-seats' : 'many-seats';
 
   return (
     <PresentationContext.Provider value={presentation}>
-      <section ref={feltRef} className={`felt theme-${theme} ${layout} ${round ? '' : 'no-round'} ${celebrate ? `celebrate-${celebrate}` : ''}`} aria-label="table" data-seats={seatCount + (mySeat ? 1 : 0)}>
+      <section ref={feltRef} className={`felt theme-${theme} ${layout} ${round ? '' : 'no-round'} ${celebrate ? `celebrate-${celebrate.kind}` : ''}`} aria-label="table" data-seats={seatCount + (mySeat ? 1 : 0)}>
         <div className="felt-lip" aria-hidden="true" />
         <div className="dealer-zone" dir="ltr">
           <button className="dealer-id" onClick={onDealerTap} data-uid={dealer.userId ?? 'dealer'} disabled={!onDealerTap}>
@@ -391,6 +447,10 @@ export function Table({
           </div>
         </div>
 
+        <p className="felt-print" aria-hidden="true" dir="ltr">
+          BLACKJACK PAYS 3 TO 2
+        </p>
+
         {others.length > 0 && (
           <div className="others" dir="ltr">
             {others.map((s, i) => (
@@ -415,10 +475,10 @@ export function Table({
           <ReactionBubble r={reactionOf(meId)} />
           {mine ? (
             mine.hands.length > 1 ? (
-              <SplitHands hands={mine.hands} back={back} activeIndex={myActiveHand} />
+              <SplitHands hands={mine.hands} back={back} activeIndex={myActiveHand} ring={myRing} />
             ) : (
               <div className="my-hands">
-                <HandView hand={mine.hands[0]} back={back} size="lg" />
+                <HandView hand={mine.hands[0]} back={back} size="lg" ring={myRing} />
               </div>
             )
           ) : mySeat ? (
@@ -427,11 +487,6 @@ export function Table({
             </div>
           ) : null}
           <span className="gift-anchor">{mySeat && <GiftBadges gifts={giftsFor(meId)} />}</span>
-          {mySeat && myTurn && snap.deadline && (
-            <div className="my-timer">
-              <TimerRing deadline={snap.deadline} total={snap.settings.turnSeconds * 1000} offset={offset} />
-            </div>
-          )}
         </div>
 
         {flights.map((f) => (
@@ -443,6 +498,26 @@ export function Table({
               <path d="M4 6l8 6-8 6zM12 6l8 6-8 6z" />
             </svg>
           </button>
+        )}
+        {celebrate && celebrate.kind !== 'lose' && (
+          <div
+            className={`celebration c-${celebrate.kind}`}
+            data-testid="celebration"
+            data-kind={celebrate.kind}
+            role="status"
+            onClick={dismissCelebration}
+            style={reviewSlow() > 1 ? ({ ['--dur-win' as string]: `${CELEBRATE_MS.win * reviewSlow()}ms`, ['--dur-celebrate' as string]: `${CELEBRATE_MS.bj * reviewSlow()}ms` } as CSSProperties) : undefined}
+          >
+            {celebrate.kind === 'bj' && (
+              <span className="sparkles" aria-hidden="true">
+                {Array.from({ length: SPARKLES }, (_, i) => (
+                  <i key={i} style={{ ['--a' as string]: `${(360 / SPARKLES) * i}deg`, ['--d' as string]: `${70 + ((i * 37) % 50)}px`, ['--t' as string]: `${(i % 5) * 24}ms` }} />
+                ))}
+              </span>
+            )}
+            <span className="cel-head">{t(celebrate.kind === 'bj' ? 'natural' : 'celebrateWin')}</span>
+            <Coins units={celebrate.net} sign className="cel-amount" />
+          </div>
         )}
         {overlay}
       </section>
@@ -497,7 +572,7 @@ export function ActionButtons({ legal, disabled, onAction }: { legal: PlayerActi
   const fire = (a: PlayerAction) => {
     if (locked || disabled || !legal.includes(a)) return;
     setLocked(true);
-    buzz(8);
+    haptic('selection');
     play('tap');
     onAction(a);
   };
@@ -562,7 +637,7 @@ export function StakePicker({
             disabled={disabled || !can}
             onClick={(e) => {
               play('chip');
-              buzz(6);
+              haptic('bet');
               flyChip(e.currentTarget, `t${Math.min(i + 1, 5)}`);
               setPage2(false);
               onPick(c);

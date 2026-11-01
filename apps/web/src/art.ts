@@ -3,7 +3,9 @@
  * card backs list the SVG as a second background layer, so a missing WebP still shows a designed back.
  */
 export const CLUB_ART = '/art/club';
-const RASTER_BACKS: Record<string, string> = { classic: `${CLUB_ART}/cardback.webp` };
+// F3: the same Club back with its fan field muted about 45% and its own ivory margin cropped; every back and every face
+// now share one 2px ivory frame and one radius from CSS (theme/premium.css), so back and face read as one card.
+const RASTER_BACKS: Record<string, string> = { classic: `${CLUB_ART}/cardback-simple.webp` };
 
 /** CSS background-image for a card back: raster first, the original SVG underneath as the fallback. */
 export function backImage(back: string): string {

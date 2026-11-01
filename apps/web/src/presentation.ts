@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import { reducedMotion } from './prefs.ts';
 import { play, stopAll, type Sfx } from './sound.ts';
+import { haptic } from './haptics.ts';
 import { BASE } from './anim/timing.ts';
 import { EASING, arcKeyframes, flipAfterLanding, peekKeyframes, revealKeyframes } from './anim/flight.ts';
 
@@ -94,7 +95,10 @@ export class TablePresentation {
       const f = flipAfterLanding(BASE.flight, BASE.flip);
       this.track(inner.animate(f.frames, { duration: f.duration, fill: 'backwards' }));
     }
-    play('deal');
+    // One card sound, on the landing (84% of the flight), at the current playback rate; my own cards also tick.
+    const land = (BASE.flight * 0.84) / this.rate;
+    play('deal', land / 1000);
+    if (el.closest('.me-zone')) this.later(() => haptic('land'), land);
   }
 
   private reveal(el: HTMLElement) {
