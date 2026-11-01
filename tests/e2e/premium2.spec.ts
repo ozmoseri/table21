@@ -86,24 +86,44 @@ test('celebration by total net: win 500 ms, natural 900 ms, nothing for push or 
   const p = await player(browser, 'Cele');
   await logCelebrations(p.page);
   await p.page.goto('/#/practice');
-  // A losing or pushed hand shows no banner.
-  await playUntil(p.page, (n) => n <= 0);
-  await p.page.waitForTimeout(1000);
-  expect(await p.page.evaluate(() => (window as any).__cel.length)).toBe(0);
-  await p.page.getByTestId('next-round').click();
-  // A winning hand: banner with the net, then gone.
-  await playUntil(p.page, (n) => n > 0);
-  await expect.poll(() => p.page.evaluate(() => (window as any).__cel.filter((c: any) => c.removed).length), { timeout: 3000 }).toBe(1);
-  const [c] = await p.page.evaluate(() => (window as any).__cel);
-  const ms = c.removed - c.added;
-  if (c.kind === 'win') expect(ms).toBeGreaterThanOrEqual(450), expect(ms).toBeLessThanOrEqual(700);
-  else expect(c.kind).toBe('bj'), expect(ms).toBeGreaterThanOrEqual(850), expect(ms).toBeLessThanOrEqual(1100);
-  // F5: headline 20 px Rubik 600, net amount 28 px.
-  const head = await p.page.getByTestId('result-head').evaluate((el) => { const s = getComputedStyle(el); return { size: s.fontSize, weight: s.fontWeight, family: s.fontFamily }; });
-  expect(head.size).toBe('20px');
-  expect(head.weight).toBe('600');
-  expect(head.family).toMatch(/Rubik/);
-  expect(await p.page.locator('.result-panel .net .coins').evaluate((el) => getComputedStyle(el).fontSize)).toBe('28px');
+  // Random shoe: every hand is checked on its own. A hand with net <= 0 adds no banner; a hand with net > 0 adds
+  // exactly one, of the right length. Play until both kinds have been seen.
+  let sawNoWin = false;
+  let sawWin = false;
+  for (let i = 0; i < 40 && !(sawNoWin && sawWin); i++) {
+    const before: number = await p.page.evaluate(() => (window as any).__cel.length);
+    await p.page.locator('.stake-chip').first().click();
+    await p.page.getByTestId('deal').click();
+    const stand = p.page.locator('.act-stand');
+    if (await expect(stand).toBeEnabled({ timeout: 6000 }).then(() => true, () => false)) await stand.click();
+    await p.page.getByTestId('result-panel').waitFor({ timeout: 15_000 });
+    const net = Number(await p.page.getByTestId('result-panel').getAttribute('data-net'));
+    // Longer than the longest banner (900 ms), so a banner of this hand has come and gone.
+    await p.page.waitForTimeout(1300);
+    const fresh: { kind: string; added: number; removed?: number }[] = await p.page.evaluate((b) => (window as any).__cel.slice(b), before);
+    if (net <= 0) {
+      expect(fresh, `hand ${i}: net ${net} must not celebrate`).toHaveLength(0);
+      sawNoWin = true;
+    } else {
+      expect(fresh, `hand ${i}: net ${net} celebrates once`).toHaveLength(1);
+      const c = fresh[0];
+      expect(c.removed, 'banner closed').toBeDefined();
+      const ms = c.removed! - c.added;
+      if (c.kind === 'win') expect(ms).toBeGreaterThanOrEqual(450), expect(ms).toBeLessThanOrEqual(700);
+      else expect(c.kind).toBe('bj'), expect(ms).toBeGreaterThanOrEqual(850), expect(ms).toBeLessThanOrEqual(1100);
+      if (!sawWin) {
+        // F5: headline 20 px Rubik 600, net amount 28 px.
+        const head = await p.page.getByTestId('result-head').evaluate((el) => { const s = getComputedStyle(el); return { size: s.fontSize, weight: s.fontWeight, family: s.fontFamily }; });
+        expect(head.size).toBe('20px');
+        expect(head.weight).toBe('600');
+        expect(head.family).toMatch(/Rubik/);
+        expect(await p.page.locator('.result-panel .net .coins').evaluate((el) => getComputedStyle(el).fontSize)).toBe('28px');
+      }
+      sawWin = true;
+    }
+    await p.page.getByTestId('next-round').click();
+  }
+  expect(sawNoWin && sawWin, 'saw both a non-winning and a winning hand').toBe(true);
   await p.ctx.close();
 });
 

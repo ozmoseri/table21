@@ -89,13 +89,16 @@ for (const s of [
   if (await age.isVisible({ timeout: 1500 }).catch(() => false)) await age.click();
   let turnShot = false;
   let won = false;
-  for (let i = 0; i < 40 && !won; i++) {
+  // Keep dealing until there is both a turn to show and a winning hand (a natural can come first and has no turn).
+  for (let i = 0; i < 40 && !(won && turnShot); i++) {
     await pick(solo.page, 25);
+    const firstWin = !won;
     // Watch for the banner from the moment the hand starts (it lives 500 ms, 900 ms for a natural).
     // The picture is taken by the watcher itself, inside the hold (22% to 78% of the banner's life).
     const banner = solo.page
       .waitForFunction(() => document.querySelector('[data-testid=celebration]'), null, { polling: 'raf', timeout: 20_000 })
       .then(async () => {
+        if (!firstWin) return true;
         await solo.page.waitForTimeout(800); // 40% of the slowed 2 s banner: fully shown
         await solo.page.screenshot({ path: `${out}/celebrate-${s.name}.png` });
         return true;
@@ -111,17 +114,51 @@ for (const s of [
     }
     await solo.page.getByTestId('result-panel').waitFor({ timeout: 15_000 });
     const net = Number((await solo.page.getByTestId('result-panel').getAttribute('data-net')) ?? 0);
-    if (net > 0) {
+    if (net > 0 && !won) {
       if (!(await banner)) throw new Error('winning hand without a banner');
       files.push(`${out}/celebrate-${s.name}.png`);
       await solo.page.waitForTimeout(4000);
       await shot(solo.page, `results-${s.name}.png`);
       won = true;
-      break;
+      if (turnShot) break;
     }
     await solo.page.getByTestId('next-round').click();
   }
   await solo.ctx.close();
 }
+// Stages 4 and 6 screens: the 18+ gate (a device that has not confirmed yet), the 60-minute reminder, sound and
+// haptics settings, and the room menu with the guardrails line.
+for (const s of [
+  { name: 'portrait-390x844', viewport: { width: 390, height: 844 } },
+  { name: 'landscape-844x390', viewport: { width: 844, height: 390 } },
+]) {
+  const gate = await browser.newContext({ viewport: s.viewport, isMobile: true, hasTouch: true, deviceScaleFactor: 2, locale: 'he-IL' });
+  const g = await gate.newPage();
+  await g.goto(base + '/');
+  await g.getByTestId('age-gate').waitFor();
+  await shot(g, `age-gate-${s.name}.png`);
+  await gate.close();
+
+  const st = await mk(s.viewport);
+  await st.ctx.addInitScript(() => {
+    if (!sessionStorage.getItem('t21:seeded')) {
+      sessionStorage.setItem('t21:seeded', '1');
+      sessionStorage.setItem('t21:active-ms', String(60 * 60_000 - 1000));
+    }
+  });
+  await st.page.goto(base + '/#/practice');
+  await st.page.getByTestId('session-reminder').waitFor({ timeout: 10_000 });
+  await shot(st.page, `session-reminder-${s.name}.png`);
+  await st.page.getByTestId('session-ok').click();
+  await st.page.getByTestId('room-menu').click();
+  await st.page.getByTestId('menu-footer').waitFor();
+  await st.page.waitForTimeout(400);
+  await shot(st.page, `menu-guardrails-${s.name}.png`);
+  await st.page.goto(base + '/#/settings');
+  await st.page.getByTestId('ambience').waitFor();
+  await shot(st.page, `settings-sound-${s.name}.png`);
+  await st.ctx.close();
+}
+
 await browser.close();
 console.log(files.join('\n'));

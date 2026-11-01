@@ -202,7 +202,7 @@ Spec: GROKBOT 2026-11-01 16:03 (F1-F5) > DECISIONS.md > CLAUDE_BRIEF stages 4-6 
 docs/PREMIUM2.md. Engine rules, odds, server rules, the idempotent coin flow and `PROTOCOL_VERSION` (1) are
 unchanged; no credits, payments or generation were used. **The deployment candidate is still c38b481.**
 
-Suites on this commit: SUITES_LINE
+Suites on this commit (full run after the fix in 11.22): typecheck PASS (4 packages), unit PASS 44/44 (37 + 7 in `premium2.test.ts`), integration PASS 67/67, e2e PASS 54/54 (42 + 12 in `premium2.spec.ts`). After the last change (18+ badge reading LTR, 11.23) typecheck and `premium2.spec` were rerun: PASS 12/12.
 
 | # | Check | Result | Evidence |
 |---|---|---|---|
@@ -224,11 +224,13 @@ Suites on this commit: SUITES_LINE
 | 11.16 | Stage 6 ethics: 18+ gate (under 18 stops, confirm remembered, practice behind it too); 60-minute reminder only at a safe point, one-tap close, not again within the hour; menu line "דילר אוטומטי · 18+ · לקוינס אין ערך כספי" | PASS | premium2.spec |
 | 11.17 | DECISIONS 9: no insurance in the engine, no coin-moving gift or transfer in the ledger, no streak | PASS | premium2.test (reads the source) |
 | 11.18 | FOUND: my `pickAndConfirm` helper decided "more chips" before the bet bar rendered (version-mismatch test hung) | FAIL, fixed (test) | helper waits for the bet bar |
+| 11.22 | FOUND: the celebration test (53/54 in the paused run) assumed the first hands lose; with a random shoe a winning hand can come first and rightly shows a banner, so the test failed by chance | FAIL, fixed (test, stricter) | every hand is now checked on its own: net <= 0 adds no banner, net > 0 adds exactly one of the right length; 6/6 with `--repeat-each 6` |
+| 11.23 | FOUND in the review shots: the 18+ badge on the gate read "+18" in the Hebrew layout | FAIL, fixed | badge set to LTR; age-gate-* shots |
 | 11.19 | Stage 6 lobby items needing server data or rules (Play Now with strangers, tiers, XP/levels, daily challenges, leaderboard) | NOT DONE (by rule) | listed in docs/NEXT_STEPS.md for Oz's decision |
 | 11.20 | Stage 6 art swap from ART_PROMPTS | NOT DONE (by rule) | no generation or credits; assets_incoming has only trial 1, already in the repo |
 | 11.21 | Real phones: haptics feel, sound balance, 18+ gate and reminder on installed PWA, F1 felt on OLED | NOT RUN | needs Oz's phones; Claude cannot listen |
 
-Screenshots: `docs/screenshots/premium2/before/` (6e7f9a2), `after/`, and side by side `compare-{home,table2,practice-turn,celebrate,results}-{portrait-390x844,landscape-844x390}.jpg`.
+Screenshots: `docs/screenshots/premium2/before/` (6e7f9a2), `after/`, and side by side `compare-{home,table2,practice-turn,celebrate,results}-{portrait-390x844,landscape-844x390}.jpg`. Stages 4 and 6 also: `after/{age-gate,session-reminder,menu-guardrails,settings-sound}-{portrait-390x844,landscape-844x390}.png`.
 The celebrate shots are frozen inside the banner's hold by a lab-build-only 4x stretch (`t21:fx-slow`); real timings are measured by the e2e tests at full speed.
 
 ## 9. NOT RUN (needs a person or a device)

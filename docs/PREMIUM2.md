@@ -98,4 +98,7 @@ The rule is in `fx/celebrate.ts`: by total net only. `celebrationFor(net, natura
 | `tests/e2e/premium2.spec.ts` | 18+ gate, session reminder at a safe point, celebration durations and nothing for net <= 0, F5 sizes, at most 3 voices over ten hands, haptic patterns, F4 lobby fold, F1 felt and HUD, F2 side seat and ring, F3 frame and felt print at 390x844 / 844x390 / 360x640, landscape card 76 px, menu footer |
 | `tests/e2e/playwright.config.ts` | every context starts past the 18+ gate (`storageState`); the gate test opts out |
 
-Screenshots: `docs/screenshots/premium2/before/` (6e7f9a2) and `after/`, by `scripts/premium2-shots.mjs`.
+Screenshots (`scripts/premium2-shots.mjs`, portrait 390x844 and landscape 844x390):
+- `docs/screenshots/premium2/before/` (6e7f9a2) and `after/`: home, table2 (two players), practice-turn, celebrate (banner mid-hold), results.
+- `after/age-gate-*`, `after/session-reminder-*`, `after/menu-guardrails-*`, `after/settings-sound-*` (stages 4 and 6).
+- `compare-*.jpg`: before and after side by side for F1-F5.

@@ -30,7 +30,7 @@ export function AgeGate({ onConfirm }: { onConfirm: () => void }) {
   const [under, setUnder] = useState(false);
   return (
     <section className="age-gate" role="dialog" aria-modal="true" aria-labelledby="age-title" data-testid="age-gate">
-      <span className="age-badge num" aria-hidden="true">
+      <span className="age-badge num" aria-hidden="true" dir="ltr">
         18+
       </span>
       <h1 id="age-title" className="title">
