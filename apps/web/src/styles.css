@@ -548,3 +548,8 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
 .felt.no-round .dealer-cards { min-height: 0; }
 .felt.no-round .me-zone { min-height: 64px; }
 .felt.no-round .felt-lip, .felt.no-round::after { display: none; }
+
+/* ---------- 21 after split (not a natural) ---------- */
+.split21-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: .74rem; font-weight: 600; color: var(--gold-100, #f3e3b5); background: rgba(212, 175, 95, .16); border: 1px solid rgba(212, 175, 95, .45); white-space: nowrap; }
+.split21-note { margin: 6px 0 0; font-size: .82rem; line-height: 1.45; color: var(--ink-2, #c9d3cf); text-align: center; }
+.split21-note b { color: var(--gold-100, #f3e3b5); }

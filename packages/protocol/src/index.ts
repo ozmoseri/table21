@@ -270,8 +270,47 @@ export interface MeResponse {
   wallet: { availableUnits: number; reservedUnits: number };
   grants: { dailyAvailable: boolean; rescueAvailable: boolean; nextDailyAt: string | null; nextRescueAt: string | null };
   activeRoom: { roomId: string; code: string } | null;
-  crossDeviceRecovery: false;
+  /** True once the account has a way back on another device (recovery codes or a linked provider). */
+  crossDeviceRecovery: boolean;
+  account: AccountSummary;
 }
+
+/* ------------------------------ identity (Stage C) ------------------------------ */
+
+export const AUTH_PROVIDERS = ['google', 'facebook', 'apple', 'test'] as const;
+export type AuthProviderId = (typeof AUTH_PROVIDERS)[number];
+
+export interface AccountSummary {
+  /** guest: no way back yet. saved: recovery codes or a linked provider. */
+  kind: 'guest' | 'saved';
+  identities: { provider: AuthProviderId; emailHint: string | null; linkedAt: string }[];
+  recovery: { remaining: number; createdAt: string | null };
+  sessions: number;
+}
+
+export interface ProviderStatus {
+  id: AuthProviderId;
+  state: 'ready' | 'not_configured' | 'planned';
+  publicConfig?: Record<string, string>;
+  missing?: string[];
+  needsHttps?: boolean;
+}
+
+export const ProviderAuthInput = z.object({
+  provider: z.enum(AUTH_PROVIDERS),
+  credential: z.string().min(1).max(8192),
+  nonce: z.string().max(100).nullable().default(null),
+  intent: z.enum(['link', 'signin']),
+  confirmSwitch: z.boolean().default(false),
+});
+export const CodeInput = z.object({ code: z.string().min(4).max(32), confirmSwitch: z.boolean().default(false) });
+export const InviteCreate = z.object({
+  kind: z.enum(['friend', 'club']),
+  groupId: z.string().max(64).optional(),
+  maxUses: z.number().int().min(1).max(50).optional(),
+  ttlHours: z.number().int().min(1).max(720).optional(),
+});
+export const UserRef = z.object({ userId: z.string().min(1).max(64) });
 
 export interface StatsResponse {
   hands: number;

@@ -217,6 +217,35 @@ describe('round flow', () => {
     expect(hand(done, 0, 0).returned).toBe(400);
   });
 
+  it('regression (Oz phone screenshot): split aces A+Q vs dealer 6+5+10 is a 21 push, not a blackjack; totals match', () => {
+    // 50 coins (100 units) on A,A; split aces draw Q and 4; dealer 6,5 then draws 10 = 21 with three cards.
+    const s = start(oneSeat('A', '6', 'A', '5', ['Q', '4', '10']), 100);
+    const sp = applyAction(s, 'split', BIG);
+    expect(ranks(sp, 0, 0)).toEqual(['A', 'Q']);
+    expect(ranks(sp, 0, 1)).toEqual(['A', '4']);
+    expect(hand(sp, 0, 0).fromSplit).toBe(true);
+    expect(hand(sp, 0, 0).status).not.toBe('blackjack');
+    const done = playDealer(sp);
+    expect(done.dealer.cards.map((c) => c.rank)).toEqual(['6', '5', '10']);
+    expect(hand(done, 0, 0).outcome).toBe('push');
+    expect(hand(done, 0, 0).returned).toBe(100);
+    expect(hand(done, 0, 1).outcome).toBe('lose');
+    expect(hand(done, 0, 1).returned).toBe(0);
+    // Stake 100 coins in total, 50 coins back: net -50 coins, exactly what the result panel showed.
+    expect(seatStake(done.seats[0])).toBe(200);
+    expect(seatReturn(done.seats[0])).toBe(100);
+  });
+
+  it('the same A+Q as the original two cards is a natural and beats the dealer three-card 21 at 3:2', () => {
+    // seat0 A,Q natural; seat1 9,8 stands so the dealer must play out 6+5+10.
+    const s = start(stacked(['A', '9', '6', 'Q', '8', '5', '10'], 10), 100, 2);
+    expect(hand(s).status).toBe('blackjack');
+    const done = playDealer(applyAction(s, 'stand', BIG));
+    expect(done.dealer.cards).toHaveLength(3);
+    expect(hand(done).outcome).toBe('blackjack');
+    expect(hand(done).returned).toBe(250);
+  });
+
   it('timeout stands the active hand', () => {
     const s = start(oneSeat('10', '9', '6', '7'));
     const t = timeoutStand(s);

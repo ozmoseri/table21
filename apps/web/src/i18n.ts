@@ -2,6 +2,8 @@ export type Locale = 'he' | 'en';
 
 const he = {
   tagline: 'בלאק ג׳ק עם החבר׳ה',
+  split21: '21 אחרי פיצול',
+  split21Why: 'בלאקג׳ק הוא אס וקלף בשווי 10 בשני הקלפים המקוריים, לפני פיצול. אחרי פיצול זה 21 רגיל שמשלם 1:1, ומול 21 של הדילר זה תיקו.',
   coinsNote: 'קוינס דמיוניים בלבד. אין להם ערך כספי ואי אפשר לקנות, למכור או להעביר אותם.',
   // onboarding
   welcome: 'ברוכים הבאים לשולחן',
@@ -229,6 +231,8 @@ const he = {
 export type Key = keyof typeof he;
 
 const en: Record<Key, string | string[]> = {
+  split21: '21 after split',
+  split21Why: 'Blackjack is an ace and a ten-value card as the original two cards, before any split. After a split it is an ordinary 21 that pays 1:1, and it pushes against a dealer 21.',
   tagline: 'Blackjack with the crew',
   coinsNote: 'Fictional coins only. They have no cash value and cannot be bought, sold or transferred.',
   welcome: 'Welcome to the table',

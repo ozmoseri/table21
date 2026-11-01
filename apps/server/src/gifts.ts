@@ -1,6 +1,7 @@
 import { GIFT_TTL_MS, type GiftEvent, type GiftId } from '@table21/protocol';
 import type { Db } from './db.ts';
 import { newId } from './util.ts';
+import { blockedEither } from './friends.ts';
 
 export const GIFT_LIMITS = { minIntervalMs: 6_000, perHour: 30 };
 
@@ -37,6 +38,8 @@ export async function sendGift(
     await q.query('select pg_advisory_xact_lock(hashtext($1))', [`gift:${input.senderId}`]);
     const dup = await q.query<Row>('select * from gift_events where sender_id = $1 and client_event_id = $2', [input.senderId, input.eventId]);
     if (dup[0]) return { ok: true as const, event: toEvent(dup[0]), duplicate: true };
+    // A block in either direction: answered like an absent recipient, so the block is not revealed.
+    if (await blockedEither(q, input.senderId, input.recipientId)) return { ok: false as const, error: 'not_found' as const };
     const now = new Date(input.now);
     const recent = await q.query<{ last: Date | null; hour: number }>(
       `select max(created_at) as last, count(*) filter (where created_at > $2)::int as hour from gift_events where sender_id = $1`,

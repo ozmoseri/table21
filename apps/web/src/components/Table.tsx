@@ -31,6 +31,9 @@ function outcomeKey(h: PublicHand): Key | null {
 
 const statusKey = (h: PublicHand): Key | null => outcomeKey(h) ?? (h.status === 'stood' ? 'stood' : h.status === 'active' ? 'playing' : null);
 
+/** A+10-value after a split is an ordinary 21 under our rules, not a natural. The UI says so explicitly. */
+export const isSplit21 = (h: Pick<PublicHand, 'fromSplit' | 'cards' | 'total'>) => h.fromSplit && h.cards.length === 2 && h.total === 21;
+
 function HandView({ hand, back, size, active }: { hand: PublicHand; back: string; size: 'sm' | 'md' | 'lg'; active?: boolean }) {
   const ok = outcomeKey(hand);
   return (
@@ -44,6 +47,12 @@ function HandView({ hand, back, size, active }: { hand: PublicHand; back: string
         <span className="total num">{totalLabel(hand)}</span>
         {size !== 'sm' && <ChipStack units={hand.stakeUnits} small />}
         {ok && <span className={`badge b-${ok}`}>{t(ok)}</span>}
+        {isSplit21(hand) && (
+          <span className="split21-tag" data-testid="split21">
+            {t('split21')}
+            <span className="sr-only">. {t('split21Why')}</span>
+          </span>
+        )}
       </div>
     </div>
   );
@@ -510,6 +519,11 @@ export function ResultPanel({ snap, meId }: { snap: RoomSnapshot; meId: string }
           </span>
         ))}
       </div>
+      {mine.hands.some(isSplit21) && (
+        <p className="split21-note" data-testid="split21-note">
+          <b>{t('split21')}.</b> {t('split21Why')}
+        </p>
+      )}
       <dl className="result-nums">
         <div>
           <dt>{t('stake')}</dt>

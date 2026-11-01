@@ -7,10 +7,13 @@ import { existsSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { z } from 'zod';
 import type { Card } from '@table21/game-engine';
-import { AVATARS, Command, DisplayName, GiftInput, ReactionInput, RoomCreate, SessionCreate } from '@table21/protocol';
+import { AVATARS, AUTH_PROVIDERS, CodeInput, Command, DisplayName, GiftInput, InviteCreate, ProviderAuthInput, ReactionInput, RoomCreate, SessionCreate, UserRef } from '@table21/protocol';
 import { sendGift } from './gifts.ts';
 import type { Db } from './db.ts';
-import { DEFAULT_ECONOMY, SESSION_COOKIE, createGuest, userFromToken, type Economy, type SessionUser } from './auth.ts';
+import { DEFAULT_ECONOMY, SESSION_COOKIE, SESSION_DAYS, createGuest, deviceLabel, userFromToken, type Economy, type SessionUser } from './auth.ts';
+import { Accounts, NONCE_TTL_MS, type SwitchResult } from './identity/accounts.ts';
+import { Providers, assertSafeAuthConfig, providerConfigFromEnv, type ProviderConfig } from './identity/providers.ts';
+import { Friends, blockPeers, blockedEither } from './friends.ts';
 import { CmdError, RoomManager, type Timing } from './rooms.ts';
 import { Social } from './social.ts';
 import { RateLimiter, normalizeCode } from './util.ts';
@@ -29,7 +32,11 @@ export interface AppOptions {
   https?: { key: Buffer; cert: Buffer };
   /** Guest creations per IP per minute. */
   sessionRateLimit?: number;
+  /** Sign-in providers. Defaults to the environment (T21_GOOGLE_CLIENT_ID, T21_FACEBOOK_APP_ID/SECRET, T21_TEST_AUTH). */
+  providers?: ProviderConfig;
 }
+
+const NONCE_COOKIE = 't21n';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -74,22 +81,55 @@ export async function buildApp(opts: AppOptions) {
     },
   });
   const social = new Social(opts.db, eco, now);
+  if (!opts.providers) assertSafeAuthConfig(process.env, deployment);
+  const providerCfg = opts.providers ?? providerConfigFromEnv(process.env);
+  if (providerCfg.test && deployment === 'lan') throw new Error('The test sign-in provider cannot run in LAN mode.');
+  const providers = new Providers(providerCfg, now);
+  /** Live sockets by session id, so a revoked session (sign out elsewhere, deletion, switch) loses realtime access too. */
+  const socketsBySession = new Map<string, Set<{ disconnect: (close?: boolean) => void }>>();
+  const accounts = new Accounts(opts.db, providers, now, (ids) => {
+    for (const id of ids) for (const s of socketsBySession.get(id) ?? []) s.disconnect(true);
+  });
+  const friendsSvc = new Friends(opts.db, now);
+  const touched = new Map<string, number>();
   const onlineUsers = new Map<string, number>();
   const isOnline = (id: string) => (onlineUsers.get(id) ?? 0) > 0;
 
+  // Provider origins are added to the CSP only when that provider is configured on this server.
+  const ready = new Set(providers.status().filter((p) => p.state === 'ready').map((p) => p.id));
+  const csp = {
+    script: ["'self'", ...(ready.has('google') ? ['https://accounts.google.com/gsi/client'] : []), ...(ready.has('facebook') ? ['https://connect.facebook.net'] : [])],
+    style: ["'self'", "'unsafe-inline'", ...(ready.has('google') ? ['https://accounts.google.com/gsi/style'] : [])],
+    frame: [...(ready.has('google') ? ['https://accounts.google.com/gsi/'] : []), ...(ready.has('facebook') ? ['https://www.facebook.com', 'https://web.facebook.com'] : [])],
+    connect: ["'self'", 'ws:', 'wss:', ...(ready.has('google') ? ['https://accounts.google.com/gsi/'] : []), ...(ready.has('facebook') ? ['https://www.facebook.com', 'https://graph.facebook.com'] : [])],
+  };
+  const cspHeader = [
+    "default-src 'self'",
+    `script-src ${csp.script.join(' ')}`,
+    `style-src ${csp.style.join(' ')}`,
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    `connect-src ${csp.connect.join(' ')}`,
+    ...(csp.frame.length ? [`frame-src ${csp.frame.join(' ')}`] : []),
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+  ].join('; ');
   app.addHook('onSend', async (_req, reply, payload) => {
     reply.header('x-content-type-options', 'nosniff');
     reply.header('referrer-policy', 'same-origin');
-    reply.header(
-      'content-security-policy',
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'self'",
-    );
+    reply.header('content-security-policy', cspHeader);
     return payload;
   });
 
   app.decorateRequest('user', null);
   app.addHook('preHandler', async (req) => {
     req.user = await userFromToken(opts.db, req.cookies[SESSION_COOKIE]);
+    // last_seen_at for the devices list, written at most every 10 minutes per session.
+    if (req.user && (touched.get(req.user.session_id) ?? 0) + 600_000 < now()) {
+      touched.set(req.user.session_id, now());
+      if (touched.size > 20_000) touched.clear();
+      void opts.db.query('update sessions set last_seen_at = now() where id = $1', [req.user.session_id]).catch(() => {});
+    }
   });
 
   /** CSRF: state-changing API calls need a custom header (not sendable cross-site without CORS) and a same-origin Origin. */
@@ -123,15 +163,139 @@ export async function buildApp(opts: AppOptions) {
       await social.updateProfile(req.user, { name: body.data.name, avatar: body.data.avatar, locale: body.data.locale });
       return { ok: true, created: false };
     }
-    const { token } = await createGuest(opts.db, body.data, eco);
-    reply.setCookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/', secure: secure(req), maxAge: 400 * 24 * 3600 });
+    const { token } = await createGuest(opts.db, body.data, eco, deviceLabel(req.headers['user-agent']));
+    setSession(req, reply, token);
     return { ok: true, created: true };
   });
 
   app.get('/api/me', async (req, reply) => {
     if (!req.user) return reply.code(401).send({ error: 'unauthorized' });
-    return social.me(req.user);
+    const account = await accounts.summary(req.user.id);
+    return { ...(await social.me(req.user)), crossDeviceRecovery: account.kind === 'saved', account };
   });
+
+  /* ------------------------------- identity -------------------------------- */
+
+  function setSession(req: FastifyRequest, reply: FastifyReply, token: string) {
+    reply.setCookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', path: '/', secure: secure(req), maxAge: SESSION_DAYS * 24 * 3600 });
+  }
+  const device = (req: FastifyRequest) => ({ label: deviceLabel(req.headers['user-agent']) });
+  /** Maps a switch outcome to HTTP. The session token only ever travels in the httpOnly cookie. */
+  const switchReply = (req: FastifyRequest, reply: FastifyReply, r: SwitchResult | { status: string; [k: string]: any }) => {
+    if ('token' in r && r.token) {
+      setSession(req, reply, r.token);
+      return { status: r.status };
+    }
+    if (r.status === 'invalid') return reply.code(400).send({ error: 'invalid_code' });
+    if (r.status === 'rejected') return reply.code(401).send({ error: 'provider_rejected', reason: (r as any).reason });
+    if (r.status === 'confirm_switch') return reply.code(409).send({ error: 'confirm_switch', guest: (r as any).guest });
+    if (['identity_in_use', 'provider_already_linked'].includes(r.status)) return reply.code(409).send({ error: r.status });
+    return { status: r.status };
+  };
+  const strict = (max: number, minutes = 15) => ({ rateLimit: { max, timeWindow: `${minutes} minutes` } });
+
+  app.get('/api/auth/providers', async () => ({ providers: providers.status(), deployment }));
+  app.get('/api/auth/account', authed, async (req) => accounts.summary(req.user!.id));
+  app.post('/api/auth/nonce', { preHandler: guard, config: strict(30, 1) }, async (req, reply) => {
+    const nonce = await accounts.createNonce();
+    reply.setCookie(NONCE_COOKIE, nonce, { httpOnly: true, sameSite: 'strict', path: '/api/auth', secure: secure(req), maxAge: NONCE_TTL_MS / 1000 });
+    return { nonce };
+  });
+  app.post('/api/auth/provider', { preHandler: guard, config: strict(30) }, async (req, reply) => {
+    const body = ProviderAuthInput.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    if (!providers.isReady(body.data.provider)) return reply.code(400).send({ error: 'provider_not_configured' });
+    // The nonce in the token must also be the one this browser received (cookie), so a token cannot be replayed elsewhere.
+    if (providers.usesNonce(body.data.provider) && (!body.data.nonce || req.cookies[NONCE_COOKIE] !== body.data.nonce))
+      return reply.code(401).send({ error: 'provider_rejected', reason: 'nonce' });
+    if (body.data.intent === 'link' && !req.user) return reply.code(401).send({ error: 'unauthorized' });
+    const r = await accounts.providerAuth(req.user, body.data, device(req));
+    if (r.status === 'signed_in' || r.status === 'linked' || r.status === 'already_linked' || r.status === 'same_account') reply.clearCookie(NONCE_COOKIE, { path: '/api/auth' });
+    return switchReply(req, reply, r);
+  });
+  app.post('/api/auth/unlink', authed, async (req, reply) => {
+    const body = z.object({ provider: z.enum(AUTH_PROVIDERS) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    const r = await accounts.unlink(req.user!, body.data.provider);
+    return r.ok ? r : reply.code(r.error === 'not_found' ? 404 : 409).send({ error: r.error });
+  });
+  app.post('/api/auth/recovery-codes', { ...authed, config: strict(10) }, async (req) => ({ codes: await accounts.createRecoveryCodes(req.user!) }));
+  app.post('/api/auth/recover', { preHandler: guard, config: strict(10) }, async (req, reply) => {
+    const body = CodeInput.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    return switchReply(req, reply, await accounts.redeemRecovery(req.user, body.data.code, body.data.confirmSwitch, device(req)));
+  });
+  app.post('/api/auth/pair', { ...authed, config: strict(20) }, async (req) => accounts.createPairCode(req.user!));
+  app.post('/api/auth/pair/redeem', { preHandler: guard, config: strict(15) }, async (req, reply) => {
+    const body = CodeInput.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    return switchReply(req, reply, await accounts.redeemPair(req.user, body.data.code, body.data.confirmSwitch, device(req)));
+  });
+  app.get('/api/auth/sessions', authed, async (req) => accounts.sessions(req.user!));
+  app.post('/api/auth/sessions/revoke', authed, async (req, reply) => {
+    const body = z.object({ sessionId: z.string().max(64) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    return (await accounts.revokeSession(req.user!, body.data.sessionId)) ? { ok: true } : reply.code(404).send({ error: 'not_found' });
+  });
+  app.post('/api/auth/sessions/revoke-others', authed, async (req) => ({ revoked: await accounts.revokeOthers(req.user!) }));
+  app.post('/api/auth/signout', authed, async (req, reply) => {
+    const body = z.object({ confirmLoss: z.boolean().default(false) }).safeParse(req.body ?? {});
+    const r = await accounts.signOut(req.user!, body.success ? body.data.confirmLoss : false);
+    if (!r.ok) return reply.code(409).send({ error: r.error });
+    reply.clearCookie(SESSION_COOKIE, { path: '/' });
+    return r;
+  });
+  app.post('/api/auth/delete', { ...authed, config: strict(5) }, async (req, reply) => {
+    const body = z.object({ confirmName: z.string().max(40) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    const r = await accounts.deleteAccount(req.user!, body.data.confirmName);
+    if (!r.ok) return reply.code(409).send({ error: r.error });
+    reply.clearCookie(SESSION_COOKIE, { path: '/' });
+    return r;
+  });
+
+  /* ------------------------- invites, blocks, clubs ------------------------- */
+
+  app.post('/api/invites', { ...authed, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
+    const body = InviteCreate.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    const r = await friendsSvc.createInvite(req.user!, body.data);
+    return r.ok ? r : reply.code(r.error === 'forbidden' ? 403 : 429).send({ error: r.error });
+  });
+  app.get('/api/invites', authed, async (req) => friendsSvc.myInvites(req.user!));
+  app.get('/api/invites/:token', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (req, reply) => {
+    const p = await friendsSvc.preview(String((req.params as any).token), req.user?.id ?? null);
+    return p ?? reply.code(404).send({ error: 'invite_not_found' });
+  });
+  app.post('/api/invites/:token/accept', { ...authed, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
+    const r = await friendsSvc.accept(req.user!, String((req.params as any).token));
+    if (r.ok) return r;
+    return reply.code(r.error === 'not_found' ? 404 : 409).send({ error: r.error === 'not_found' ? 'invite_not_found' : `invite_${r.error}` });
+  });
+  app.post('/api/invites/:id/revoke', authed, async (req, reply) =>
+    (await friendsSvc.revokeInvite(req.user!, String((req.params as any).id))) ? { ok: true } : reply.code(404).send({ error: 'not_found' }),
+  );
+  app.post('/api/friends/remove', authed, async (req, reply) => {
+    const body = UserRef.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    await friendsSvc.removeFriend(req.user!, body.data.userId);
+    return { ok: true };
+  });
+  app.get('/api/blocks', authed, async (req) => friendsSvc.blocked(req.user!));
+  app.post('/api/blocks', authed, async (req, reply) => {
+    const body = UserRef.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    return (await friendsSvc.block(req.user!, body.data.userId)) ? { ok: true } : reply.code(404).send({ error: 'not_found' });
+  });
+  app.post('/api/blocks/remove', authed, async (req, reply) => {
+    const body = UserRef.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    await friendsSvc.unblock(req.user!, body.data.userId);
+    return { ok: true };
+  });
+  app.post('/api/groups/:id/leave', authed, async (req, reply) =>
+    (await friendsSvc.leaveGroup(req.user!, String((req.params as any).id))) ? { ok: true } : reply.code(404).send({ error: 'not_found' }),
+  );
 
   const ProfilePatch = z.object({
     name: DisplayName.optional(),
@@ -229,6 +393,7 @@ export async function buildApp(opts: AppOptions) {
       const user = await userFromToken(opts.db, token);
       if (!user) return next(new Error('unauthorized'));
       socket.data.user = user;
+      socket.data.sessionId = user.session_id;
       next();
     } catch {
       next(new Error('unauthorized'));
@@ -239,6 +404,9 @@ export async function buildApp(opts: AppOptions) {
     const user = socket.data.user as SessionUser;
     let roomId: string | null = null;
     onlineUsers.set(user.id, (onlineUsers.get(user.id) ?? 0) + 1);
+    const sid = socket.data.sessionId as string;
+    if (!socketsBySession.has(sid)) socketsBySession.set(sid, new Set());
+    socketsBySession.get(sid)!.add(socket);
 
     const leave = async () => {
       if (!roomId) return;
@@ -253,7 +421,8 @@ export async function buildApp(opts: AppOptions) {
       if (!joinLimiter.take(user.id)) return ack({ ok: false, error: 'rate_limited' });
       const code = normalizeCode(String(raw?.code ?? ''));
       const room = code ? await manager.findByCode(code) : null;
-      if (!room) return ack({ ok: false, error: 'not_found' });
+      // A block with the room owner looks exactly like a missing room.
+      if (!room || (room.owner_id !== user.id && (await blockedEither(opts.db, user.id, room.owner_id)))) return ack({ ok: false, error: 'not_found' });
       if (roomId !== room.id) {
         await leave();
         roomId = room.id;
@@ -305,10 +474,18 @@ export async function buildApp(opts: AppOptions) {
       const t = now();
       if ((reactLast.get(user.id) ?? 0) + 2500 > t) return;
       reactLast.set(user.id, t);
-      io.to(roomId).emit('room:reaction', { userId: user.id, name: user.name, reaction: p.data.reaction, at: t });
+      const r = roomId;
+      void (async () => {
+        const peers = await blockPeers(opts.db, user.id);
+        const msg = { userId: user.id, name: user.name, reaction: p.data.reaction, at: t };
+        if (!peers.size) return io.to(r).emit('room:reaction', msg);
+        for (const s of await io.in(r).fetchSockets()) if (!peers.has((s.data.user as SessionUser).id)) s.emit('room:reaction', msg);
+      })().catch(() => {});
     });
 
     socket.on('disconnect', async () => {
+      socketsBySession.get(sid)?.delete(socket);
+      if (!socketsBySession.get(sid)?.size) socketsBySession.delete(sid);
       onlineUsers.set(user.id, Math.max(0, (onlineUsers.get(user.id) ?? 1) - 1));
       await leave();
     });
@@ -319,6 +496,9 @@ export async function buildApp(opts: AppOptions) {
     io,
     manager,
     social,
+    accounts,
+    friends: friendsSvc,
+    providers,
     async close() {
       manager.stop();
       io.close();

@@ -1,6 +1,7 @@
 import type { Db } from './db.ts';
 import type { Economy, SessionUser } from './auth.ts';
 import { ensureWallet, lockWallet, move } from './wallet.ts';
+import { blockedEither } from './friends.ts';
 import { jerusalemDate, jerusalemWeekStart, newCode, newId, nextJerusalemMidnight } from './util.ts';
 import type { LeaderboardRow, MeResponse, StatsResponse } from '@table21/protocol';
 
@@ -23,7 +24,7 @@ export const levelFor = (hands: number) => {
 export class Social {
   constructor(private db: Db, private eco: Economy, private now: () => number = Date.now) {}
 
-  async me(user: SessionUser): Promise<MeResponse> {
+  async me(user: SessionUser): Promise<Omit<MeResponse, 'account' | 'crossDeviceRecovery'>> {
     const w = (await this.db.query('select available_units, reserved_units from wallets where user_id = $1 and scope = $2', [user.id, 'casual']))[0];
     const g = await this.grantStatus(user.id, w?.available_units ?? 0);
     const active = (
@@ -40,7 +41,6 @@ export class Social {
       wallet: { availableUnits: w?.available_units ?? 0, reservedUnits: w?.reserved_units ?? 0 },
       grants: g,
       activeRoom: active ? { roomId: active.id, code: active.code } : null,
-      crossDeviceRecovery: false,
     };
   }
 
@@ -173,8 +173,9 @@ export class Social {
   }
 
   async addFriend(user: SessionUser, friendCode: string) {
-    const f = (await this.db.query('select id from users where friend_code = $1', [friendCode]))[0];
+    const f = (await this.db.query('select id from users where friend_code = $1 and deleted_at is null', [friendCode]))[0];
     if (!f || f.id === user.id) return false;
+    if (await blockedEither(this.db, user.id, f.id)) return false;
     const [a, b] = [user.id, f.id].sort();
     await this.db.query('insert into friendships(user_a, user_b) values ($1,$2) on conflict do nothing', [a, b]);
     return true;

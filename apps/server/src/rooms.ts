@@ -273,8 +273,8 @@ export class RoomManager {
     return code;
   }
 
-  async findByCode(code: string): Promise<{ id: string; mode: string } | null> {
-    const rows = await this.db.query<{ id: string; mode: string }>(`select id, mode from rooms where code = $1 and status = 'open'`, [code]);
+  async findByCode(code: string): Promise<{ id: string; mode: string; owner_id: string } | null> {
+    const rows = await this.db.query<{ id: string; mode: string; owner_id: string }>(`select id, mode, owner_id from rooms where code = $1 and status = 'open'`, [code]);
     return rows[0] ?? null;
   }
 
