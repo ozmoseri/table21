@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AVATARS } from '@table21/protocol';
-import { api, refreshMe, useMe } from '../api.ts';
+import { api, isWaking, refreshMe, useMe } from '../api.ts';
 import { errorText, setLocale, t, getLocale } from '../i18n.ts';
 import { setPrefs, saveLocal, getLocal } from '../prefs.ts';
 import { Avatar, toast } from '../components/bits.tsx';
@@ -93,7 +93,10 @@ export function Onboarding() {
         </fieldset>
         {offline ? (
           <>
-            <p className="note">{t('offlineOnboard')}</p>
+            <p className="note" data-testid="offline-note">
+              {t('offlineOnboard')}
+              {isWaking() ? ` ${t('serverWaking')}` : ''}
+            </p>
             <div className="row">
               <button type="button" className="btn primary" onClick={() => (saveLocal({ name: name.trim() || 'אני', avatar }), go('practice'))}>
                 {t('practice')}

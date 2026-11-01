@@ -1,0 +1,38 @@
+# Render Blueprint for a free test server (docs/DEPLOY.md).
+# One web service (single instance: the room authority lives in the process) plus one free Postgres so sessions,
+# wallets and rooms survive restarts and spin-downs during the test period. Free Postgres expires 30 days after
+# creation; see docs/DEPLOY.md for what to do then.
+services:
+  - type: web
+    name: table21
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npx --yes pnpm@10.28.0 install --frozen-lockfile && npx --yes pnpm@10.28.0 --filter @table21/web build
+    startCommand: cd apps/server && node --import tsx src/main.ts
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: T21_DEPLOYMENT
+        value: online
+      - key: T21_DATA_DIR
+        value: /tmp/table21-data
+      - key: DATABASE_URL
+        fromDatabase:
+          name: table21-db
+          property: connectionString
+
+databases:
+  - name: table21-db
+    plan: free
+    region: frankfurt
+    databaseName: table21
+    user: table21
+    ipAllowList: []

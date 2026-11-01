@@ -1,5 +1,7 @@
 # Deployment options (nothing deployed)
 
+Update 2026-11-01: the free test server path is prepared and rehearsed for Render: see docs/DEPLOY.md.
+
 No deployment, account or project has been created. Every option below requires Oz's explicit instruction.
 
 ## Shape of a deployment

@@ -28,7 +28,9 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) return;
   if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request).catch(() => caches.match('./index.html', { ignoreSearch: true })));
+    // Network first; if the server is down or answers with a 5xx (asleep, restarting), use the cached app shell.
+    const shell = () => caches.match('./index.html', { ignoreSearch: true });
+    e.respondWith(fetch(e.request).then((r) => (r.status >= 500 ? shell().then((c) => c || r) : r)).catch(shell));
     return;
   }
   e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request)));

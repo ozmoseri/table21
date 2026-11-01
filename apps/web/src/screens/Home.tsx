@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, refreshMe, useMe } from '../api.ts';
+import { api, isWaking, refreshMe, useMe } from '../api.ts';
 import { errorText, t } from '../i18n.ts';
 import { Avatar, Coins, Sheet, toast } from '../components/bits.tsx';
 import { go } from '../App.tsx';
@@ -143,6 +143,13 @@ export function Home() {
           </a>
         )}
       </header>
+
+      {me.status === 'offline' && (
+        <p className="note" data-testid="offline-note">
+          {t('offlineOnboard')}
+          {isWaking() ? ` ${t('serverWaking')}` : ''}
+        </p>
+      )}
 
       <div className="home-col home-main">
         {user?.activeRoom && (

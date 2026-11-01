@@ -13,7 +13,7 @@ import '@fontsource/inter/latin-700.css';
 import '@fontsource/libre-bodoni/latin-600.css';
 import './styles.css';
 import { App } from './App.tsx';
-import { loadConfig, refreshMe } from './api.ts';
+import { loadConfig, refreshMe, retryUntilOnline } from './api.ts';
 import { loadLocal, loadPrefs } from './prefs.ts';
 import { setLocale } from './i18n.ts';
 
@@ -23,7 +23,8 @@ async function boot() {
   await loadLocal();
   createRoot(document.getElementById('root')!).render(<App />);
   void loadConfig();
-  await refreshMe();
+  const first = await refreshMe();
+  if (first.status === 'offline') retryUntilOnline();
   // Service workers need a secure context (https or localhost). Plain-http LAN play works without one.
   if ('serviceWorker' in navigator && isSecureContext && import.meta.env.PROD) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});

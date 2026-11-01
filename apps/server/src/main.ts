@@ -15,7 +15,10 @@ export async function openDb(): Promise<Db> {
 
 async function main() {
   const deployment = process.env.T21_DEPLOYMENT === 'lan' ? 'lan' : 'online';
-  const host = process.env.HOST ?? (deployment === 'lan' ? '0.0.0.0' : '127.0.0.1');
+  // Hosting platforms (Render sets RENDER and PORT) route traffic to the container, so listen on all interfaces there.
+  const platform = !!process.env.RENDER;
+  const host = process.env.HOST ?? (deployment === 'lan' || platform ? '0.0.0.0' : '127.0.0.1');
+  if (!process.env.T21_PUBLIC_ORIGIN && process.env.RENDER_EXTERNAL_URL) process.env.T21_PUBLIC_ORIGIN = process.env.RENDER_EXTERNAL_URL;
   const port = Number(process.env.PORT ?? 3021);
   const fast = process.env.T21_FAST === '1';
   let db: Db;

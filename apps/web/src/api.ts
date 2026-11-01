@@ -35,6 +35,30 @@ export async function refreshMe(): Promise<MeState> {
   return me;
 }
 
+/**
+ * A free host may be asleep (cold start takes up to about a minute). While the server is unreachable the app keeps
+ * offline modes available and retries quietly; once it answers, the online features appear without a reload.
+ */
+let waking = false;
+export const isWaking = () => waking;
+export function retryUntilOnline(maxMs = 150_000) {
+  if (waking || me.status !== 'offline') return;
+  waking = true;
+  emit();
+  const started = Date.now();
+  const tick = async () => {
+    const r = await refreshMe();
+    if (r.status !== 'offline' || Date.now() - started > maxMs) {
+      waking = false;
+      emit();
+      if (r.status !== 'offline') void loadConfig();
+      return;
+    }
+    setTimeout(tick, 4000);
+  };
+  setTimeout(tick, 3000);
+}
+
 export const useMe = () =>
   useSyncExternalStore(
     (f) => {
