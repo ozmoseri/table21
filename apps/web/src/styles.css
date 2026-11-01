@@ -531,3 +531,20 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
 
 .club-head { padding-bottom: 0; display: flex; flex-direction: column; gap: 10px; }
 .club-head .segmented { align-self: flex-start; }
+
+/* home v3: inline join, online friends, aligned tiles */
+.home > .play.primary { min-height: 92px; }
+.join-row { display: flex; gap: 8px; }
+.join-row .code-input.sm { font-size: 20px; letter-spacing: 0.2em; min-height: 52px; flex: 1; }
+.join-row .btn { min-height: 52px; min-width: 96px; }
+.online-strip { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--text); }
+.online-avatars { display: flex; margin-inline-start: auto; }
+.online-avatars .avatar { border: 2px solid var(--bg); margin-inline-start: -8px; }
+.club-tile { border-color: rgba(140, 107, 200, 0.45); background: linear-gradient(160deg, rgba(140, 107, 200, 0.16), var(--panel)); }
+.hero-table { height: 120px; }
+/* bubbles stay inside the seat row (the row scrolls horizontally, which clips overflow) */
+.seat .react-bubble { bottom: auto; top: 2px; max-width: 96%; overflow: hidden; text-overflow: ellipsis; }
+/* waiting for bets: no reserved card space, the table stays compact until the deal */
+.felt.no-round .dealer-cards { min-height: 0; }
+.felt.no-round .me-zone { min-height: 64px; }
+.felt.no-round .felt-lip, .felt.no-round::after { display: none; }

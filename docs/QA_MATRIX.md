@@ -46,3 +46,28 @@ Chromium emulation is not a real-device test. Last full run: docs/TEST_REPORT.md
 
 Status values: PASS (a test exists and passed in the last run), FAIL, NOT_RUN (no test, not built, or needs hardware or
 accounts that are not available).
+
+## Update after Stage A/B (branch upgrade/social-club, 2026-11-01)
+
+Runs in Claude's cloud workspace: unit 24/24 PASS, integration 16/16 PASS (PostgreSQL 16), e2e 10/10 PASS (Chromium
+emulation). Rows below override the matching NOT_RUN entries above.
+
+| Area | Check | Status | Evidence |
+|---|---|---|---|
+| 1 | Normal hand, blackjack, push, bust, double, four-hand split rules and payouts | PASS | tests/unit/engine.test.ts (unchanged engine) |
+| 1 | Cosmetics never change balances or rules | PASS | gifts.test.ts asserts gifts write no ledger rows; cosmetics only change `users.card_back/table_theme` |
+| 2 | New deal of any size animates (no >10 skip) | PASS | social.spec.ts "presentation" (running card animations after deal) |
+| 2 | Reload or reconnect does not replay old animations | PASS | social.spec.ts "online reload mid-round hydrates" (0 running animations after reload) |
+| 2 | New local game does not inherit seen cards | PASS | social.spec.ts "presentation" (pass-and-play after practice animates) |
+| 3 | 6 players, long Hebrew names, 320/360/390/430 px, landscape, text at 125% | PASS (emulation) | social.spec.ts "lab layouts" |
+| 3 | Real Safari toolbars, keyboard, safe areas on iPhone | NOT_RUN | needs a physical iPhone |
+| 4 | Reduced-motion switch mid-animation | PASS | social.spec.ts "presentation" (emulateMedia reduce, 0 running animations) |
+| 4 | Background/resume near turn end, rapid snapshots | PARTIAL | visibilitychange triggers hydrate in code; not covered by an automated test |
+| 5 | Gift once per event id under concurrent retries | PASS | tests/integration/gifts.test.ts |
+| 5 | Gift rate limit (1 per 6 s, 30 per hour), no self gift | PASS | gifts.test.ts, social.spec.ts toast check |
+| 5 | Per-person mute, gift kept on reload without replay | PASS | social.spec.ts "gifts and reactions" |
+| 5 | Gift never hides cards, totals, buttons or timer | PASS (visual review) | docs/screenshots/after-*.png |
+| 5 | Sender left the room, expiry while disconnected | PARTIAL | expiry covered (gifts.test.ts); sender-left not automated |
+| 6 to 9 | Wheel, scratch, missions, identity, purchases | NOT_RUN | not built (Stage C to E) |
+| 10 | Real iPhone and Android, two devices in one room, router WAN off | NOT_RUN | Oz reported the LAN host working with an iPhone on 2026-11-01 (not verified by Claude) |
+| 12 | 60 fps and 100 ms visual response on target devices | NOT_RUN | headless Chromium only: 58.5 fps average during a deal, 78 to 82 ms local command round trip |

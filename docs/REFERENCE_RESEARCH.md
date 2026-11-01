@@ -18,27 +18,45 @@ Where a help page states odds or RNG certification, that is the publisher's clai
 
 ## Method and tool status
 
-- **REA (morluto/rea): NOT connected, not installed, not run.** Per its public README it is an MCP server
-  ("One MCP for reverse engineering across binaries, applications, and runtime behavior") that lets an agent inspect
-  native binaries, JS/Electron apps, .NET, Android APKs, websites, firmware, SQLite and packet captures. Needs Node 22+,
-  and for native work an existing Hopper/Ghidra/IDA install; runtime capture "runs or interacts with the selected target
-  using your user permissions"; setup edits the agent's MCP configuration. MIT licensed, no price stated, commercial
-  disassemblers need their own licenses. README limits use to lawful research and software you own or are authorized
-  to examine. It was not needed: TABLE21 copies no code, and reverse engineering a third-party app is outside scope.
+Updated 2026-11-01 after Oz approved connecting REA (no purchases, no paid components).
+
+- **REA (morluto/rea) v6.8.0: installed and verified in Claude's cloud workspace, CLI mode.**
+  - Lookup first: no existing REA install or MCP registration was found in this cloud session (no `rea` binary,
+    nothing in Claude settings). Oz's computer could only be checked through the connected TABLE21 folder, and the
+    computer's device shell is a VM without network, so an install there could not be checked or used.
+  - Install: `npm install rea-agents@6.8.0` into an isolated scratch folder. No global install, no agent configuration
+    changed (so nothing needed a backup), no Hopper/IDA/JEB or other commercial component installed. MIT licensed.
+  - `rea doctor`: Node 22.23.4 and host healthy; native engines (Hopper, Ghidra, IDA) missing, which only matters for
+    binary analysis and is not needed for web work.
+  - **Verification on TABLE21 (PASS):** headless Chromium with a loopback CDP endpoint opened the TABLE21 lab page;
+    `rea list-browser-targets` found it and `rea capture-web-screenshot` returned evidence
+    `ev_63e342690fe0d40ced8ff77bc52090bd9d71c47abedcbaa8423c1796fa9496c4` with origin `http://127.0.0.1:3021`, a 500x701
+    viewport and a PNG artifact (sha256 `e614d525...6fc6`). `rea analyze-javascript-application` on the built client was
+    cancelled at a 180 s limit on this 2 vCPU machine (not a failure of REA itself; not rerun).
+  - **Zynga with REA: BLOCKED.** This workspace's egress proxy refuses `www.zynga.com` and `www.zyngapoker.com`
+    (`connect_rejected`), so REA could not open them here. Oz can allow those domains for Claude sessions (Settings >
+    Capabilities) if REA captures of the public site are wanted later. The playable game needs a login, which was not
+    used, so in-game screens stay out of reach either way.
+- **Built-in browser on Oz's computer (public pages only, OBSERVED):** zyngapoker.com home, store.zyngapoker.com, the
+  Daily Streak page and the 15th birthday news page were opened as an anonymous visitor; the cookie banner was answered
+  with "Reject All". Nothing was signed in, bought, sent or downloaded. Observations are tagged OBSERVED below.
 - **App Explorer (RevylAI/app-explorer): NOT run.** Per README it boots a **cloud device** through the Revyl CLI
   (requires `revyl auth login`, so an external account), uploads an APK/IPA, explores screens breadth-first and builds a
-  navigation map with screenshots. Needs Python 3.11+, Node 20+, macOS + Xcode only for the optional iOS `skeleton` step.
-  Android exploration is "on the roadmap". License and pricing are not stated in the fetched README (NOT_VERIFIED).
-  Running it would require an external account, an app binary and possibly a paid service, so it is out of bounds.
-- **What was actually done:** WebSearch and WebFetch on ~35 public pages: Zynga official site, Zynga corporate news,
-  the Zynga Poker help center (helpshift), App Store and Google Play listings, version "What's new" text on a third-party
-  APK mirror, Apple and Google policy pages, Google Identity docs, Meta Graph API docs, web.dev, and help pages of
-  three other social card/casino games (Big Fish Casino, Governor of Poker 3, Poker Legends).
-  One image search was run; its thumbnails were shown in the UI but were not inspected by me, so nothing is OBSERVED.
-  No logins, accounts, purchases, gifts, messages, private APIs or downloads.
-- **Gaps:** no in-app screenshots or video frames reviewed, so layout, animation and state transitions of the reference
-  are NOT_VERIFIED. Meta `user_friends` permission entry was cut off in the fetched page. Steam store page redirected to
-  sign-in/age check. One fan Q&A site errored. Israeli law on games of chance was not researched.
+  navigation map with screenshots. License and pricing are not stated in the fetched README (NOT_VERIFIED). Out of bounds.
+- **Web research:** WebSearch and WebFetch on about 35 public pages (Zynga official and corporate pages, help center,
+  store listings, Apple and Google policy pages, Google Identity docs, Meta Graph API docs, web.dev, help pages of three
+  other social card games). See RESEARCH_SOURCES.md.
+- **Gaps:** no in-app screenshots or video frames of the reference game, so its table layout, gift animations and state
+  transitions are NOT_VERIFIED. Meta `user_friends` entry was cut off. Israeli law on games of chance not researched.
+
+### OBSERVED on public Zynga pages (2026-11-01, anonymous visitor)
+
+| Page | What was visible | Use for TABLE21 |
+|---|---|---|
+| zyngapoker.com | Three feature pillars under the play button: "Lucky Bonus" (a slot-style machine spun daily for free chips), "Collections" (watches and rings shown off to opponents), "Challenges" (three daily goals with prizes). Footer states games are for adults, no real-money gambling, and that social casino success does not imply real gambling success. | Same three-pillar clarity on our home/club (free daily wheel, collection, three missions) with our own art; keep an adult-audience and no-cash disclaimer. |
+| store.zyngapoker.com | Two currencies: Chips (wagering) and Gold (spins the "Mega Lucky Bonus"); seven chip tiers and six gold tiers, each requiring login; a "Daily Free Gift" once per 24 h; the web store advertises 20% more chips than in-app stores; FAQ on refunds. Prices only after login. | One currency only (coins), no premium currency; any future store must show fixed contents and come from a configured provider; never sell spins of a random machine. |
+| store.zyngapoker.com/daily-streak | Seven daily rewards plus a final reward, all hidden until login; text says skipping a day forfeits previous rewards and the final reward. | Streaks pause instead of resetting rewards already earned; rewards visible before claiming. |
+| zynga.com/corporate/zyngapoker15 | 2022 news: 21-day birthday event with daily surprises, Lucky Bonus spins, "unique table gifts", themed tables and limited watches tied to challenges; VIP tiers with exclusive chip packages. | Seasonal themed tables and cosmetic gifts fit; VIP tiers based on spending are left out. |
 
 ---
 

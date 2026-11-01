@@ -220,6 +220,8 @@ const he = {
   stood: 'עומד',
   playing: 'בתור',
   navClub: 'מועדון',
+  friendsOnline: '{n} חברים מחוברים עכשיו',
+  rewardsSub: 'מתנה יומית ומילוי חינמי',
   club: 'המועדון',
   collection: 'האוסף שלי',
 };
@@ -433,6 +435,8 @@ const en: Record<Key, string | string[]> = {
   stood: 'Stands',
   playing: 'Playing',
   navClub: 'Club',
+  friendsOnline: '{n} friends online now',
+  rewardsSub: 'Daily gift and free refill',
   club: 'The club',
   collection: 'My collection',
 };

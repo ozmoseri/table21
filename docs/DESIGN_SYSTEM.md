@@ -45,3 +45,25 @@ Visible keyboard focus, labeled buttons, live region announcing turns and result
 
 ## Art
 Original SVG/CSS only in v1 (`apps/web/public/art`). Card faces, ranks, suits, coin values, buttons and Hebrew text are always code/vector, never AI images. Provenance in `assets/manifest.json`; optional manual Higgsfield requests in `assets/higgsfield-requests.json` and `docs/ASSET_BRIEFS.md`.
+
+## v3 Social Club additions (2026-11-01)
+
+תקציר לעוז: שולחן קומפקטי שגדל לפי התוכן, מושבים על קשת, ידיים מפוצלות כשבבים ממוספרים, חפיסה מקורית עם סימן 21 בגב, צ׳יפים עם שוליים מחורצים וערך קריא, מתנות ותגובות ליד המושב. סגול אמטיסט משמש רק למשימות, למענקים ולאוספים.
+
+- Tokens: `--amethyst #8C6BC8` (missions, rewards, collections only), `--charcoal #161C20`, `--brass` gradient for primary
+  actions. Existing tokens unchanged.
+- Table: height follows content (no stretched empty felt). Reserved minimum heights for the dealer row and the local
+  hand keep the layout from jumping between betting and dealing. Opponents sit on a shallow arc (`--arc-y`), 1, 3 and
+  6 player layouts reviewed in the lab fixtures (`#/lab/solo|three|six|split|result`, only in builds with `VITE_LAB=1`).
+- Split hands: the hand in focus is large; all hands appear as numbered chips with total and state (44 px tall).
+  Opponents with more than two hands show the active hand plus "+n".
+- Deck: ranks and suits are text and vector paths drawn in code; J, Q, K use original court marks (plumed cap, tiara,
+  crown) with a gold accent; card backs carry a code-drawn "21" medallion over the SVG back art.
+- Chips: notched edge ring, value in a center disc, tier colors teal, violet, red, black, brass; the amount is always
+  also shown as text next to stacks.
+- Gifts: six original vector icons (coffee, tea, cookie, rose, small trophy, tissue). Badge at the recipient avatar,
+  newest replaces older, never covers cards, totals, buttons or the timer.
+- Reactions: eight presets as ivory bubbles above the sender's seat; global and per-person mute.
+- Navigation: Home, Friends, Club, Profile. Club holds ranking, rewards and collection; settings open from Profile.
+- Home: one primary action (play with friends), inline room-code join, online friends strip, equal tiles for friends
+  night, practice, one phone, rewards.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, refreshMe, useMe } from '../api.ts';
 import { errorText, t } from '../i18n.ts';
 import { Avatar, Coins, Sheet, toast } from '../components/bits.tsx';
@@ -108,8 +108,16 @@ export function JoinSheet({ open, onClose }: { open: boolean; onClose: () => voi
 
 export function Home() {
   const me = useMe();
-  const [sheet, setSheet] = useState<null | 'casual' | 'match' | 'join'>(null);
+  const [sheet, setSheet] = useState<null | 'casual' | 'match'>(null);
+  const [code, setCode] = useState('');
+  const [online, setOnline] = useState<{ userId: string; avatar: string }[]>([]);
   const user = me.status === 'ready' ? me.me : null;
+  useEffect(() => {
+    if (!user) return;
+    api<{ userId: string; avatar: string; online: boolean }[]>('/api/friends')
+      .then((f) => setOnline(f.filter((x) => x.online)))
+      .catch(() => {});
+  }, [!!user]);
 
   const claim = async (kind: 'daily' | 'rescue') => {
     try {
@@ -159,15 +167,49 @@ export function Home() {
         </div>
       </section>
 
+      <button className="play primary" onClick={() => setSheet('casual')} disabled={!user} data-testid="play-friends">
+        <b>{t('playFriends')}</b>
+        <span>{t('playFriendsSub')}</span>
+      </button>
+
+      <form
+        className="join-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const c = code.toUpperCase().replace(/[^0-9A-Z]/g, '');
+          if (c.length >= 4) go(`r/${c}`);
+        }}
+      >
+        <input
+          className="code-input sm"
+          dir="ltr"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          maxLength={8}
+          placeholder={t('roomCode')}
+          aria-label={t('roomCode')}
+          autoCapitalize="characters"
+          autoComplete="off"
+          data-testid="join-code"
+        />
+        <button className="btn" disabled={!user || code.replace(/[^0-9A-Za-z]/g, '').length < 4} data-testid="join-go">
+          {t('join')}
+        </button>
+      </form>
+
+      {online.length > 0 && (
+        <a className="online-strip" href="#/friends" aria-label={t('online')}>
+          <span className="dot on" aria-hidden="true" />
+          <span className="small">{t('friendsOnline', { n: online.length })}</span>
+          <span className="online-avatars">
+            {online.slice(0, 5).map((f) => (
+              <Avatar key={f.userId} id={f.avatar} size={28} />
+            ))}
+          </span>
+        </a>
+      )}
+
       <div className="play-list">
-        <button className="play primary" onClick={() => setSheet('casual')} disabled={!user} data-testid="play-friends">
-          <b>{t('playFriends')}</b>
-          <span>{t('playFriendsSub')}</span>
-        </button>
-        <button className="play" onClick={() => setSheet('join')} disabled={!user} data-testid="open-join">
-          <b>{t('joinRoom')}</b>
-          <span>{t('joinRoomSub')}</span>
-        </button>
         <button className="play" onClick={() => setSheet('match')} disabled={!user}>
           <b>{t('friendsNight')}</b>
           <span>{t('friendsNightSub')}</span>
@@ -180,14 +222,14 @@ export function Home() {
           <b>{t('passPlay')}</b>
           <span>{t('passPlaySub')}</span>
         </a>
+        <a className="play club-tile" href="#/rewards">
+          <b>{t('rewards')}</b>
+          <span>{t('rewardsSub')}</span>
+        </a>
       </div>
-      <a className="link-row" href="#/rewards">
-        {t('rewards')}
-      </a>
       <p className="fine center">{t('coinsNote')}</p>
 
       <CreateRoomSheet open={sheet === 'casual' || sheet === 'match'} preset={sheet === 'match' ? 'match' : 'casual'} key={sheet ?? 'none'} onClose={() => setSheet(null)} />
-      <JoinSheet open={sheet === 'join'} onClose={() => setSheet(null)} />
     </div>
   );
 }

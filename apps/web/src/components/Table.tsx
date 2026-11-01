@@ -312,7 +312,7 @@ export function Table({
 
   return (
     <PresentationContext.Provider value={presentation}>
-      <section ref={feltRef} className={`felt theme-${theme} ${layout}`} aria-label="table" data-seats={seatCount + (mySeat ? 1 : 0)}>
+      <section ref={feltRef} className={`felt theme-${theme} ${layout} ${round ? '' : 'no-round'}`} aria-label="table" data-seats={seatCount + (mySeat ? 1 : 0)}>
         <div className="felt-lip" aria-hidden="true" />
         <div className="dealer-zone" dir="ltr">
           <button className="dealer-id" onClick={onDealerTap} data-uid={dealer.userId ?? 'dealer'} disabled={!onDealerTap}>
