@@ -587,3 +587,190 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
 .seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .btn.more { min-width: 44px; font-size: 20px; line-height: 1; }
 .home-save { align-self: center; font-size: 14px; color: var(--gold-hi); text-decoration: none; border: 1px solid rgba(216, 180, 106, 0.4); border-radius: 999px; padding: 6px 14px; min-height: 36px; display: inline-flex; align-items: center; }
+
+/* =====================================================================================================
+   v4 Club Lounge (art direction A): warm room, brass rail, lamp light on the felt, medallion avatars,
+   plus dedicated landscape layouts (not a shrunken portrait). Tokens: docs/DESIGN_SYSTEM.md "v4".
+   ===================================================================================================== */
+:root {
+  --room-0: #050b09;
+  --room-1: #0b1a14;
+  --room-lamp: #1d4434;
+  --brass-hi: #f3dc9e;
+  --brass-mid: #c9a35a;
+  --brass-lo: #6b5226;
+  --felt-lamp: rgba(255, 233, 180, 0.2);
+  --turn: #f0d595;          /* whose turn: halo, timer, "your turn" text */
+  --win: #7fe0b0;           /* net gain */
+  --push: #d7dfdb;          /* stake returned */
+  --loss-soft: #f19a96;     /* net loss, never alarming red */
+  --reward: #e2c27a;        /* rewards, progress */
+  --tap: 48px;              /* minimum main tap target */
+}
+body {
+  background:
+    radial-gradient(110% 60% at 50% -12%, var(--room-lamp) 0%, var(--room-1) 52%, var(--room-0) 100%) fixed,
+    var(--room-0);
+}
+
+/* the table: brass rail as a real border, lamp pool on the felt */
+.felt {
+  border: 7px solid transparent;
+  background:
+    radial-gradient(52% 36% at 50% 0%, var(--felt-lamp), transparent 72%) padding-box,
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.03) 0 2px, transparent 2px 4px) padding-box,
+    radial-gradient(130% 95% at 50% 26%, var(--felt-a, #2b8461), var(--felt-b, #165c43) 46%, var(--felt-c, #0a3324)) padding-box,
+    linear-gradient(180deg, var(--brass-hi), var(--brass-mid) 22%, var(--brass-lo) 55%, var(--brass-mid) 85%, var(--brass-lo)) border-box;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), inset 0 -26px 48px rgba(0, 0, 0, 0.38), 0 26px 48px -18px rgba(0, 0, 0, 0.9);
+}
+.felt.theme-sapphire { --felt-a: #2a6aa0; --felt-b: #18456b; --felt-c: #0b2236; }
+.felt.theme-bordeaux { --felt-a: #8a3043; --felt-b: #5e1c2b; --felt-c: #2e0c14; }
+
+/* players: medallion avatars, larger readable names and totals */
+.seat-avatar { width: 46px; height: 46px; }
+.seat .avatar { width: 46px; height: 46px; box-shadow: 0 0 0 2px var(--brass-mid), 0 4px 10px rgba(0, 0, 0, 0.45); }
+.seat-name { font-size: 13.5px; font-weight: 700; }
+.seat.is-active .avatar { box-shadow: 0 0 0 2.5px var(--turn), 0 0 16px rgba(240, 213, 149, 0.55); }
+.hand-sm .hand-meta .total { min-width: 32px; height: 24px; font-size: 14px; }
+.dealer-text .total { font-size: 16px; }
+.many-seats .seat-avatar, .many-seats .seat .avatar { width: 38px; height: 38px; }
+.many-seats .seat-name { font-size: 12.5px; }
+
+/* main actions: never below the tap target */
+.act, .controls .btn { min-height: var(--tap); }
+
+/* result panel wording and colors by meaning (text always says it too) */
+.result-panel.pos .result-nums div:last-child dd { color: var(--win); }
+.result-panel.neg .result-nums div:last-child dd { color: var(--loss-soft); }
+
+/* ------------------------------ landscape phones ------------------------------ */
+@media (orientation: landscape) and (max-height: 560px) {
+  :root { --side-safe: max(10px, env(safe-area-inset-left), env(safe-area-inset-right)); }
+
+  /* navigation becomes a rail on the start side instead of eating vertical space */
+  .shell.with-nav { padding-bottom: 0; padding-inline-start: calc(78px + var(--side-safe)); }
+  .tabbar { inset: 0 auto 0 auto; inset-inline-start: 0; width: calc(78px + var(--side-safe)); grid-template-columns: 1fr; grid-auto-rows: min-content; align-content: center; gap: 4px; border-top: 0; border-inline-end: 1px solid var(--line); padding: 8px 4px; padding-inline-start: var(--side-safe); }
+  .screen { max-width: none; padding-inline: var(--side-safe); }
+
+  /* home: two columns, play side and friends side */
+  .home { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 18px; row-gap: 10px; align-items: start; max-width: 1100px; margin: 0 auto; }
+  .home > .home-head { grid-column: 1 / -1; }
+  .home-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .home .hero-table { height: 112px; }
+  .home .play-list { grid-template-columns: 1fr 1fr; }
+
+  /* profile: identity and stats beside settings, cosmetics and history */
+  .profile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 18px; row-gap: 10px; align-items: start; max-width: 1100px; margin: 0 auto; }
+  .profile > .row:first-child { grid-column: 1 / -1; }
+  .profile-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .profile .stat-grid { grid-template-columns: repeat(3, 1fr); }
+
+  /* table: the felt takes the full height on the start side; status, actions and reactions on the end side */
+  .room, .room.local {
+    display: grid; max-width: none; margin: 0;
+    grid-template-columns: minmax(0, 1fr) clamp(210px, 31vw, 300px);
+    grid-template-rows: repeat(10, min-content) 1fr;
+    column-gap: 12px; row-gap: 8px; align-content: stretch;
+    height: 100dvh; min-height: 0;
+    padding: 8px var(--side-safe) calc(8px + var(--safe-b));
+  }
+  .room > *, .room > .room-head, .room > .status-line, .room > .banners, .room > .controls, .room > .reactions, .room > .match-panel, .room > .fine { grid-column: 2; min-width: 0; }
+  .room > .felt, .room > .felt.is-solo { grid-column: 1; grid-row: 1 / -1; height: auto; min-height: 0; justify-content: space-between; padding: 8px 10px 10px; }
+  .room > .controls { grid-row: -2 / -1; align-self: end; margin-top: 0; }
+  .room > .room-head { flex-wrap: wrap; }
+  .dealer-cards { min-height: 0; }
+  .dealer-cards .card { --w: clamp(44px, 12.5dvh, 70px); }
+  .card-lg { --w: clamp(54px, 15dvh, 84px); }
+  .me-zone { min-height: 0; }
+  .seat .card-sm, .few-seats .seat .card-sm { --w: clamp(28px, 8.5dvh, 40px); }
+  .many-seats .seat .card-sm { --w: clamp(26px, 7.5dvh, 34px); }
+  .few-seats .card-sm .pip { display: none; }
+  .others { padding-bottom: 2px; }
+  .many-seats .others { --arc-max: 10px; }
+  .seat { padding: 4px 4px 6px; }
+  .seat-avatar, .seat .avatar { width: 36px; height: 36px; }
+  .controls .acts, .controls .bet-row { flex-wrap: wrap; }
+  /* solo and few players: the felt has room, so the cards grow */
+  .felt.is-solo .card-lg { --w: clamp(60px, 21dvh, 100px); }
+  .felt.is-solo .dealer-cards .card { --w: clamp(50px, 16dvh, 82px); }
+  .felt.few-seats .card-lg { --w: clamp(50px, 14dvh, 78px); }
+  .felt.few-seats .dealer-cards .card { --w: clamp(40px, 11dvh, 62px); }
+  .few-seats .seat .card-sm { --w: clamp(26px, 7.5dvh, 36px); }
+  .few-seats .others { --arc-max: 6px; }
+  /* friends' totals sit beside their cards, not under them, to save height */
+  .seat .hand-sm { flex-direction: row; align-items: center; gap: 4px; }
+  .seat .hand-sm .hand-meta { flex-direction: column; gap: 2px; }
+  .few-seats .seat { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 6px; padding: 4px 6px 6px; }
+  .few-seats .seat-hands { flex-basis: 100%; }
+  /* six players: compact seats so the dealer, the ring of friends and my hand all fit the height */
+  .felt.many-seats .card-lg { --w: clamp(46px, 12.5dvh, 68px); }
+  .felt.many-seats .dealer-cards .card { --w: clamp(40px, 10.5dvh, 56px); }
+  .many-seats .seat { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 4px; padding: 3px 4px 4px; }
+  .many-seats .seat-avatar, .many-seats .seat .avatar { width: 28px; height: 28px; }
+  .many-seats .seat-name { font-size: 11.5px; max-width: 64px; }
+  .many-seats .seat-hands { flex-basis: 100%; }
+  .many-seats .seat { transform: none; }
+  .many-seats .seat .card-sm { --w: clamp(22px, 6.5dvh, 28px); }
+  .felt { gap: 6px; }
+}
+
+/* very wide landscape (tablet, desktop) keeps the side panel but lets the felt grow */
+@media (orientation: landscape) and (min-height: 561px) and (min-width: 1000px) {
+  .home { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 24px; align-items: start; max-width: 1100px; margin: 0 auto; }
+  .home > .home-head { grid-column: 1 / -1; }
+  .home-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .shell.with-nav .screen { max-width: 1100px; }
+}
+/* outside the wide layouts the column wrappers do not exist for layout purposes */
+@media not ((orientation: landscape) and (max-height: 560px)) {
+  .profile-col { display: contents; }
+}
+@media not (((orientation: landscape) and (max-height: 560px)) or ((orientation: landscape) and (min-height: 561px) and (min-width: 1000px))) {
+  .home-col { display: contents; }
+}
+
+/* ------------------------------ portrait phones ------------------------------ */
+/* The table fills the height between the header and the actions, so the actions sit in the thumb zone and
+   no large empty band is left under them. Content inside the felt spreads dealer to top, my hand to bottom. */
+@media (orientation: portrait) {
+  .room { min-height: 100dvh; }
+  .room > .felt, .room > .felt.is-solo { flex: 1 1 auto; min-height: 340px; max-height: 720px; justify-content: space-between; }
+  .room > .controls { margin-top: 0; }
+  .felt.is-solo .card-lg { --w: clamp(86px, 26vw, 118px); }
+  .felt.is-solo .dealer-cards .card { --w: clamp(66px, 19vw, 90px); }
+  .felt.few-seats .card-lg { --w: clamp(80px, 24vw, 110px); }
+}
+
+/* ------------------------------ round polish (v4) ------------------------------ */
+:root {
+  /* motion tokens: docs/MOTION_SPEC.md (design targets, measured values listed there separately) */
+  --dur-press: 90ms;
+  --dur-chip: 280ms;
+  --dur-card: 230ms;
+  --dur-flip: 320ms;
+  --dur-result: 420ms;
+  --dur-celebrate: 900ms;
+  --ease-out: cubic-bezier(.2, .75, .25, 1);
+}
+.bet-spot { position: relative; display: flex; align-items: center; justify-content: center; width: clamp(96px, 30vw, 132px); aspect-ratio: 1; border-radius: 50%; margin: 0 auto; border: 2px dashed rgba(240, 213, 149, 0.45); background: radial-gradient(circle, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.05) 70%); }
+.bet-spot.has-bet { border-style: solid; border-color: rgba(240, 213, 149, 0.7); box-shadow: 0 0 0 6px rgba(240, 213, 149, 0.08); }
+.bet-spot .chips { flex-direction: column; gap: 4px; font-size: 16px; }
+.bet-spot .chip-pile, .bet-spot .chip { width: 34px; height: 34px; border-width: 4px; }
+.bet-spot .chip { bottom: calc(var(--i) * 4px); }
+.bet-spot .chips { animation: bet-pop var(--dur-chip) var(--ease-out); }
+.bet-hint { font-size: 13px; color: rgba(245, 242, 234, 0.7); text-align: center; padding: 0 10px; }
+@keyframes bet-pop { 0% { transform: scale(0.86); } 60% { transform: scale(1.06); } 100% { transform: none; } }
+.fly-chip { position: fixed; left: 0; top: 0; bottom: auto; width: 28px; height: 28px; z-index: 60; pointer-events: none; animation: none; }
+.stake-chip:active:not(:disabled) { transform: scale(0.92); transition: transform var(--dur-press); }
+.stake-chip.on { box-shadow: 0 0 0 3px var(--turn), 0 6px 14px rgba(0, 0, 0, 0.45); transform: translateY(-3px); }
+.natural-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: .74rem; font-weight: 800; color: #241806; background: linear-gradient(180deg, var(--brass-hi), var(--brass-mid)); white-space: nowrap; }
+.double-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: .74rem; font-weight: 700; color: var(--turn); border: 1px solid rgba(240, 213, 149, 0.6); white-space: nowrap; }
+.hand-meta { flex-wrap: wrap; justify-content: center; }
+@media (orientation: landscape) and (max-height: 560px) {
+  .bet-spot { width: clamp(80px, 26dvh, 116px); }
+}
+
+.sound-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.empty-club { display: flex; flex-direction: column; gap: 12px; }
+.empty-club p { margin: 0; }
+.empty-club .btn { flex: 1; }

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import type { GiftEvent, PublicHand, PublicRoundSeat, ReactionEvent, RoomSnapshot, SeatView } from '@table21/protocol';
 import type { PlayerAction } from '@table21/game-engine';
 import { Card } from './Card.tsx';
-import { Avatar, ChipStack, Coins, TimerRing, announce } from './bits.tsx';
+import { Avatar, ChipStack, Coins, TimerRing, announce, flyChip } from './bits.tsx';
 import { GiftIcon, REACTION_GLYPH } from './gifts.tsx';
 import { REACTION_TEXT, getLocale, t, type Key } from '../i18n.ts';
 import { buzz, play } from '../sound.ts';
@@ -17,8 +17,13 @@ export interface DealerInfo {
   userId?: string;
 }
 
-export function totalLabel(h: Pick<PublicHand, 'total' | 'soft' | 'cards'>) {
-  if (h.soft && h.total < 21 && h.cards.length < 6) return `${h.total - 10} / ${h.total}`;
+/**
+ * "8 / 18" only while the hand can still change. Once a hand is finished (stood, settled, doubled, bust) the final
+ * best total is shown, so a settled A+7 reads 18 and not 8 / 18.
+ */
+export function totalLabel(h: Pick<PublicHand, 'total' | 'soft' | 'cards'> & Partial<Pick<PublicHand, 'status' | 'outcome'>>, finished = false) {
+  const done = finished || h.outcome != null || (h.status != null && h.status !== 'active' && h.status !== 'waiting');
+  if (!done && h.soft && h.total < 21 && h.cards.length < 6) return `${h.total - 10} / ${h.total}`;
   return String(h.total);
 }
 
@@ -47,6 +52,12 @@ function HandView({ hand, back, size, active }: { hand: PublicHand; back: string
         <span className="total num">{totalLabel(hand)}</span>
         {size !== 'sm' && <ChipStack units={hand.stakeUnits} small />}
         {ok && <span className={`badge b-${ok}`}>{t(ok)}</span>}
+        {hand.outcome === 'blackjack' || hand.status === 'blackjack' ? (
+          <span className="natural-tag" data-testid="natural">
+            {t('natural')}
+          </span>
+        ) : null}
+        {hand.doubled && <span className="double-tag">{t('doubledTag')}</span>}
         {isSplit21(hand) && (
           <span className="split21-tag" data-testid="split21">
             {t('split21')}
@@ -272,7 +283,7 @@ export function Table({
     }
     if (add.length) {
       setFlights((f) => [...f, ...add]);
-      play('chip');
+      play('gift');
     }
   }, [gifts.map((g) => g.id).join(','), sessionKey, resyncKey]);
 
@@ -332,7 +343,7 @@ export function Table({
             <span className="dealer-text">
               <bdi className="dealer-name">{dealer.name}</bdi>
               {round && round.dealer.total !== null && (
-                <span className="total num">{round.dealer.revealed ? totalLabel({ total: round.dealer.total, soft: round.dealer.soft, cards: round.dealer.cards }) : round.dealer.total}</span>
+                <span className="total num">{round.dealer.revealed ? totalLabel({ total: round.dealer.total, soft: round.dealer.soft, cards: round.dealer.cards }, round.phase === 'settled' || snap.phase === 'dealer_turn') : round.dealer.total}</span>
               )}
             </span>
             {dealer.userId && <ReactionBubble r={reactionOf(dealer.userId)} />}
@@ -377,9 +388,9 @@ export function Table({
                 <HandView hand={mine.hands[0]} back={back} size="lg" />
               </div>
             )
-          ) : mySeat && mySeat.betUnits > 0 ? (
-            <div className="my-bet">
-              <ChipStack units={mySeat.betUnits} />
+          ) : mySeat ? (
+            <div className={`bet-spot ${mySeat.betUnits > 0 ? 'has-bet' : ''}`} data-bet-spot data-testid="bet-spot">
+              {mySeat.betUnits > 0 ? <ChipStack key={mySeat.betUnits} units={mySeat.betUnits} /> : <span className="bet-hint">{t('betHint')}</span>}
             </div>
           ) : null}
           <span className="gift-anchor">{mySeat && <GiftBadges gifts={giftsFor(meId)} />}</span>
@@ -479,9 +490,10 @@ export function StakePicker({
             key={c}
             className={`stake-chip tier-${Math.min(i + 1, 5)} ${current === c * 2 ? 'on' : ''}`}
             disabled={disabled || !can}
-            onClick={() => {
+            onClick={(e) => {
               play('chip');
               buzz(6);
+              flyChip(e.currentTarget, `t${Math.min(i + 1, 5)}`);
               onPick(c);
             }}
             aria-pressed={current === c * 2}

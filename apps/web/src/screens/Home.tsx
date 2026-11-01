@@ -144,96 +144,96 @@ export function Home() {
         )}
       </header>
 
-      {user?.account.kind === 'guest' && (
-        <a className="home-save" href="#/account" data-testid="home-save">
-          {t('saveAccount')}
-        </a>
-      )}
+      <div className="home-col home-main">
+        {user?.activeRoom && (
+          <a className="resume" href={`#/r/${user.activeRoom.code}`}>
+            {t('backToRoom')} <bdi dir="ltr">{user.activeRoom.code}</bdi>
+          </a>
+        )}
+        <section className="hero-table" aria-hidden="true">
+          <div className="hero-felt">
+            <span className="hero-card c1" />
+            <span className="hero-card c2" />
+            <span className="hero-arc" />
+          </div>
+        </section>
 
-      {user?.activeRoom && (
-        <a className="resume" href={`#/r/${user.activeRoom.code}`}>
-          {t('backToRoom')} <bdi dir="ltr">{user.activeRoom.code}</bdi>
-        </a>
-      )}
+        <button className="play primary" onClick={() => setSheet('casual')} disabled={!user} data-testid="play-friends">
+          <b>{t('playFriends')}</b>
+          <span>{t('playFriendsSub')}</span>
+        </button>
 
-      {user && (user.grants.dailyAvailable || user.grants.rescueAvailable) && (
-        <div className="grant-strip">
-          <span>{user.grants.rescueAvailable ? t('rescueReady') : t('dailyReady')}</span>
-          <button className="btn sm gold" onClick={() => claim(user.grants.rescueAvailable ? 'rescue' : 'daily')} data-testid="claim-grant">
-            {t('claim')}
+        <form
+          className="join-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const c = code.toUpperCase().replace(/[^0-9A-Z]/g, '');
+            if (c.length >= 4) go(`r/${c}`);
+          }}
+        >
+          <input
+            className="code-input sm"
+            dir="ltr"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            maxLength={8}
+            placeholder={t('roomCode')}
+            aria-label={t('roomCode')}
+            autoCapitalize="characters"
+            autoComplete="off"
+            data-testid="join-code"
+          />
+          <button className="btn" disabled={!user || code.replace(/[^0-9A-Za-z]/g, '').length < 4} data-testid="join-go">
+            {t('join')}
           </button>
-        </div>
-      )}
-
-      <section className="hero-table" aria-hidden="true">
-        <div className="hero-felt">
-          <span className="hero-card c1" />
-          <span className="hero-card c2" />
-          <span className="hero-arc" />
-        </div>
-      </section>
-
-      <button className="play primary" onClick={() => setSheet('casual')} disabled={!user} data-testid="play-friends">
-        <b>{t('playFriends')}</b>
-        <span>{t('playFriendsSub')}</span>
-      </button>
-
-      <form
-        className="join-row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const c = code.toUpperCase().replace(/[^0-9A-Z]/g, '');
-          if (c.length >= 4) go(`r/${c}`);
-        }}
-      >
-        <input
-          className="code-input sm"
-          dir="ltr"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          maxLength={8}
-          placeholder={t('roomCode')}
-          aria-label={t('roomCode')}
-          autoCapitalize="characters"
-          autoComplete="off"
-          data-testid="join-code"
-        />
-        <button className="btn" disabled={!user || code.replace(/[^0-9A-Za-z]/g, '').length < 4} data-testid="join-go">
-          {t('join')}
-        </button>
-      </form>
-
-      {online.length > 0 && (
-        <a className="online-strip" href="#/friends" aria-label={t('online')}>
-          <span className="dot on" aria-hidden="true" />
-          <span className="small">{t('friendsOnline', { n: online.length })}</span>
-          <span className="online-avatars">
-            {online.slice(0, 5).map((f) => (
-              <Avatar key={f.userId} id={f.avatar} size={28} />
-            ))}
-          </span>
-        </a>
-      )}
-
-      <div className="play-list">
-        <button className="play" onClick={() => setSheet('match')} disabled={!user}>
-          <b>{t('friendsNight')}</b>
-          <span>{t('friendsNightSub')}</span>
-        </button>
-        <a className="play" href="#/practice" data-testid="practice">
-          <b>{t('practice')}</b>
-          <span>{t('practiceSub')}</span>
-        </a>
-        <a className="play" href="#/pass">
-          <b>{t('passPlay')}</b>
-          <span>{t('passPlaySub')}</span>
-        </a>
-        <a className="play club-tile" href="#/rewards">
-          <b>{t('rewards')}</b>
-          <span>{t('rewardsSub')}</span>
-        </a>
+        </form>
       </div>
-      <p className="fine center">{t('coinsNote')}</p>
+      <div className="home-col home-side">
+        {user?.account.kind === 'guest' && (
+          <a className="home-save" href="#/account" data-testid="home-save">
+            {t('saveAccount')}
+          </a>
+        )}
+        {user && (user.grants.dailyAvailable || user.grants.rescueAvailable) && (
+          <div className="grant-strip">
+            <span>{user.grants.rescueAvailable ? t('rescueReady') : t('dailyReady')}</span>
+            <button className="btn sm gold" onClick={() => claim(user.grants.rescueAvailable ? 'rescue' : 'daily')} data-testid="claim-grant">
+              {t('claim')}
+            </button>
+          </div>
+        )}
+        {online.length > 0 && (
+          <a className="online-strip" href="#/friends" aria-label={t('online')}>
+            <span className="dot on" aria-hidden="true" />
+            <span className="small">{t('friendsOnline', { n: online.length })}</span>
+            <span className="online-avatars">
+              {online.slice(0, 5).map((f) => (
+                <Avatar key={f.userId} id={f.avatar} size={28} />
+              ))}
+            </span>
+          </a>
+        )}
+
+        <div className="play-list">
+          <button className="play" onClick={() => setSheet('match')} disabled={!user}>
+            <b>{t('friendsNight')}</b>
+            <span>{t('friendsNightSub')}</span>
+          </button>
+          <a className="play" href="#/practice" data-testid="practice">
+            <b>{t('practice')}</b>
+            <span>{t('practiceSub')}</span>
+          </a>
+          <a className="play" href="#/pass">
+            <b>{t('passPlay')}</b>
+            <span>{t('passPlaySub')}</span>
+          </a>
+          <a className="play club-tile" href="#/rewards">
+            <b>{t('rewards')}</b>
+            <span>{t('rewardsSub')}</span>
+          </a>
+        </div>
+        <p className="fine center">{t('coinsNote')}</p>
+      </div>
 
       <CreateRoomSheet open={sheet === 'casual' || sheet === 'match'} preset={sheet === 'match' ? 'match' : 'casual'} key={sheet ?? 'none'} onClose={() => setSheet(null)} />
     </div>

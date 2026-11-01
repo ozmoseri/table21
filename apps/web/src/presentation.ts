@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { reducedMotion } from './prefs.ts';
-import { play, type Sfx } from './sound.ts';
+import { play, stopAll, type Sfx } from './sound.ts';
 
 /**
  * TablePresentationController: one per table session (online room or local game instance).
@@ -59,6 +59,8 @@ export class TablePresentation {
       const a = it.el.animate(
         [
           { transform: `translate(${dx}px, ${dy}px) rotate(-14deg) scale(.82)`, opacity: 0.4 },
+          // a small settle at the end: the card lands, it does not stop dead
+          { transform: 'translate(0, -3px) rotate(0.6deg) scale(1.03)', opacity: 1, offset: 0.82 },
           { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
         ],
         { duration, delay, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' },
@@ -104,6 +106,8 @@ export class TablePresentation {
     this.anims.clear();
     for (const t of this.timers) clearTimeout(t);
     this.timers.clear();
+    // Sounds already handed to WebAudio for the old sequence are silenced too.
+    stopAll();
     this.sequenceEndsAt = 0;
     this.batch = [];
   }

@@ -30,3 +30,15 @@ pnpm lan                           # phones on the same Wi-Fi
 
 ## Next small step
 Oz runs the LAN host on Windows and plays one round with two phones; fix whatever the phones reveal.
+
+## Blockers and decisions waiting for Oz (2026-11-01)
+
+1. Art direction: A (Club Lounge) is implemented as the working direction. Confirm A, or pick B or C on the canvas.
+2. Higgsfield: the direct connection has no Unlimited (every generation costs credits; 2 credits per Nano Banana 2.1
+   image in the account history). Either sign in to Higgsfield yourself in the Claude browser pane on the PC so included
+   generation can be checked there, or approve a credit package (trial kit: table, card back, chips, coffee gift).
+   Spent so far: 0 credits.
+3. Listen to `table21-sound-demo.m4a` and Settings > Sound check on the phone; report anything too loud, quiet or annoying.
+4. Phone checks: portrait and landscape table, rotation during a deal, Safari toolbars, background and return.
+5. Google/Facebook sign-in need a public HTTPS domain and provider apps (docs/PROVIDER_SETUP.md).
+6. The GitHub repository is public.

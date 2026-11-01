@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { unitsLabel } from '@table21/protocol';
 import { t } from '../i18n.ts';
+import { reducedMotion } from '../prefs.ts';
+import { play } from '../sound.ts';
 
 export function Avatar({ id, size = 40, dealer, ring }: { id?: string; size?: number; dealer?: boolean; ring?: boolean }) {
   return (
@@ -133,4 +135,37 @@ export function Announcer() {
       {s}
     </div>
   );
+}
+
+/**
+ * Bet feedback: a chip flies from the picked stake chip to the bet spot on the felt, then the "bet" sound plays when it
+ * lands. Purely visual; the bet itself is already sent. Skipped in reduced motion (the stack still updates in place).
+ */
+export function flyChip(from: HTMLElement, tier: string) {
+  const to = document.querySelector('[data-bet-spot]');
+  if (!to || reducedMotion()) {
+    play('bet', 0.05);
+    return;
+  }
+  const a = from.getBoundingClientRect();
+  const b = to.getBoundingClientRect();
+  const el = document.createElement('i');
+  el.className = `chip fly-chip ${tier}`;
+  el.setAttribute('aria-hidden', 'true');
+  el.style.left = `${a.left + a.width / 2 - 14}px`;
+  el.style.top = `${a.top + a.height / 2 - 14}px`;
+  document.body.appendChild(el);
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2);
+  const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  const anim = el.animate(
+    [
+      { transform: 'translate(0, 0) scale(1)' },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 28}px) scale(1.12)`, offset: 0.5 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.92)` },
+    ],
+    { duration: 280, easing: 'cubic-bezier(.2,.75,.25,1)' },
+  );
+  const done = () => el.remove();
+  anim.finished.then(() => (done(), play('bet')), done);
+  setTimeout(done, 700);
 }

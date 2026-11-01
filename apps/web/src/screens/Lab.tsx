@@ -1,6 +1,66 @@
 import type { PublicCard, PublicHand, RoomSnapshot } from '@table21/protocol';
 import { Table } from '../components/Table.tsx';
 import { ActionButtons, ResultPanel } from '../components/Table.tsx';
+import { renderTimeline, type Sfx } from '../sound.ts';
+
+/**
+ * Sound demo (lab builds only): ten rounds scheduled with the same timings as the table (bet, 4-card deal at the
+ * presentation stagger, turn chime after the deal, reveal, dealer draws, result after the last card). Rendered offline
+ * into a WAV so it can be listened to, and so overlap can be measured without a person listening.
+ */
+export function demoTimeline(): { events: { s: Sfx; t: number }[]; seconds: number } {
+  const outcomes: Sfx[] = ['win', 'lose', 'chip', 'blackjack', 'win', 'win', 'lose', 'chip', 'win', 'blackjack'];
+  const ev: { s: Sfx; t: number }[] = [];
+  let t = 0.3;
+  outcomes.forEach((result, r) => {
+    ev.push({ s: 'chip', t }, { s: 'bet', t: t + 0.28 });
+    const deal = t + 0.9;
+    for (let i = 0; i < 4; i++) ev.push({ s: 'deal', t: deal + i * 0.15 });
+    const afterDeal = deal + 3 * 0.15 + 0.23 + 0.06;
+    let x = afterDeal;
+    if (result !== 'blackjack') {
+      ev.push({ s: 'turn', t: x });
+      x += 1.1;
+      if (r % 3 === 1) {
+        ev.push({ s: 'tap', t: x }, { s: 'deal', t: x + 0.1 });
+        x += 0.8;
+      }
+      ev.push({ s: 'tap', t: x });
+      x += 0.35;
+    }
+    ev.push({ s: 'flip', t: x });
+    x += 0.5;
+    if (r % 2 === 0) {
+      ev.push({ s: 'deal', t: x });
+      x += 0.45;
+    }
+    ev.push({ s: result, t: x + 0.06 });
+    if (r === 4) ev.push({ s: 'gift', t: x + 1.2 });
+    t = x + 2.2;
+  });
+  return { events: ev, seconds: t + 0.5 };
+}
+
+function wav(buf: AudioBuffer): string {
+  const d = buf.getChannelData(0);
+  const out = new DataView(new ArrayBuffer(44 + d.length * 2));
+  const w = (o: number, s: string) => [...s].forEach((ch, i) => out.setUint8(o + i, ch.charCodeAt(0)));
+  w(0, 'RIFF'); out.setUint32(4, 36 + d.length * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true); out.setUint32(24, buf.sampleRate, true);
+  out.setUint32(28, buf.sampleRate * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); w(36, 'data'); out.setUint32(40, d.length * 2, true);
+  for (let i = 0; i < d.length; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 0x7fff, true);
+  let bin = '';
+  const bytes = new Uint8Array(out.buffer);
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+if (typeof window !== 'undefined')
+  (window as any).__t21RenderDemo = async () => {
+    const { events, seconds } = demoTimeline();
+    const { buffer, played } = await renderTimeline(events, seconds);
+    return { wav: wav(buffer), requested: events.length, played: played.length, seconds, timeline: played };
+  };
 
 /**
  * Design lab: static fixture snapshots for layout review and screenshots (1, 3 and 6 players, four split

@@ -67,3 +67,28 @@ Original SVG/CSS only in v1 (`apps/web/public/art`). Card faces, ranks, suits, c
 - Navigation: Home, Friends, Club, Profile. Club holds ranking, rewards and collection; settings open from Profile.
 - Home: one primary action (play with friends), inline room-code join, online friends strip, equal tiles for friends
   night, practice, one phone, rewards.
+
+
+## v4 Club Lounge (art direction A, chosen as the working direction on 2026-11-01)
+
+Three directions were drawn as phone-size mockups with the same game data (canvas "TABLE21 Art Direction"): A Club
+Lounge, B Clean Table, C Living Room Evening. A is implemented; B and C stay as references until Oz decides.
+
+| Role | Token | Value |
+|---|---|---|
+| Room and background | `--room-0`, `--room-1`, `--room-lamp` | #050b09, #0b1a14, #1d4434 (lamp from the top) |
+| Table rail | `--brass-hi/mid/lo` | #f3dc9e, #c9a35a, #6b5226 |
+| Felt light | `--felt-lamp` | warm pool at the top of the felt |
+| Main action | existing `.btn.primary` | brass gradient |
+| Turn state | `--turn` | #f0d595 (halo, timer ring, chip selected) |
+| Reward and progress | `--reward` | #e2c27a |
+| Net gain / push / net loss | `--win`, `--push`, `--loss-soft` | #7fe0b0, #d7dfdb, #f19a96 (always with words) |
+| Tap target | `--tap` | 48 px minimum for main actions |
+
+Layouts:
+- Portrait: the felt fills the height between header and actions; actions stay in the thumb zone; dealer top, friends in
+  an arc, own hand large at the bottom; the bet spot sits where the hand will land.
+- Landscape phone (height up to 560 px): tab bar becomes a side rail; home and profile use two columns; the felt takes the
+  full height on the start side and status, actions and reactions sit in a side column; card sizes follow the height
+  (`dvh`), friends' totals sit beside their cards.
+- Result wording: Stake, Total returned, Net win/loss; tags "Natural blackjack", "Doubled", "21 after split".

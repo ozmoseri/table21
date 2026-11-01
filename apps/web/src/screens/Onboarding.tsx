@@ -41,6 +41,7 @@ export function Onboarding() {
         pending = sessionStorage.getItem('t21:pending-route');
         sessionStorage.removeItem('t21:pending-route');
       } catch {}
+      scrollTo(0, 0);
       if (pending) go(pending);
       else if (/^#\/(onboard)?$/.test(location.hash) || !location.hash) go('home');
     } catch (e: any) {

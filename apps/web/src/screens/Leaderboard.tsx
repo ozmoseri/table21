@@ -26,7 +26,19 @@ export function Leaderboard({ embedded }: { embedded?: boolean } = {}) {
   return (
     <div className="pad stack">
       {!embedded && <h1 className="title">{t('navBoard')}</h1>}
-      {groups && groups.length === 0 && <p className="muted">{t('pickGroup')}</p>}
+      {groups && groups.length === 0 && (
+        <div className="panel empty-club" data-testid="club-empty">
+          <p>{t('pickGroup')}</p>
+          <div className="row">
+            <a className="btn primary" href="#/friends">
+              {t('createGroup')}
+            </a>
+            <a className="btn" href="#/friends">
+              {t('joinGroup')}
+            </a>
+          </div>
+        </div>
+      )}
       {groups && groups.length > 1 && (
         <select value={gid ?? ''} onChange={(e) => setGroupId(e.target.value)}>
           {groups.map((g) => (

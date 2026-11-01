@@ -302,3 +302,54 @@ of chance, not researched here) before any launch or monetization.
   TABLE21 should write its own equivalent notice in Hebrew, not copy this wording.
 - **Web sign-in hygiene** (DOCUMENTED [Google ID token](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)):
   CSRF cookie check, signature, `aud`, `iss`, `exp`; key by `sub`.
+
+## Oz's recordings (analyzed 2026-11-01)
+
+Two files from Oz's iPhone. They are kept outside the repository; no frame from them is committed. The Zynga recording
+shows a Facebook sign-in with an email address between 0:12 and 0:34: nothing from that span is quoted or stored.
+
+Tags: OBSERVED = seen in a frame at the timestamp. MEASURED = derived from frame stepping or from the audio signal
+(ffmpeg), with the method. HYPOTHESIS = inference. OURS = TABLE21 decision.
+
+### Recording Z: Zynga Poker, landscape 1112x512, 30 fps, 3:44, AAC stereo
+
+| Time | Tag | What | Note for TABLE21 |
+|---|---|---|---|
+| 0:00 to 0:02 | OBSERVED | App store page, then a "SORRY" loading error with two buttons | A failed load gets a plain retry path. OURS: our offline modes keep working without the server. |
+| 0:04 to 0:10, 0:36 to 0:46 | OBSERVED | Loading screen: a full-bleed illustrated host in front of a casino facade, rotating tip line at the bottom ("A SPLIT POT occurs...") | Loading doubles as a rules tip. OURS: short Hebrew tips while connecting, no mascot photo. |
+| 0:48 | OBSERVED | Tracking permission explainer with a host character before the system prompt | Not needed: TABLE21 has no ad tracking. |
+| 0:50 to 1:06 | OBSERVED | Lobby: horizontal carousel of large game tiles (Texas Hold'em, Blackjack 21, Omaha, events) under a top bar with BUY, chip balance; tutorial bubbles from a host point at items one at a time | Tutorial bubbles appear on each visit to new areas. OURS: at most one tip per screen, dismissible, never blocking play. |
+| 1:06 to 1:20 | OBSERVED | "Poker Suits" collection: a grid of 13 card slots per suit with progress "0/1", jackpot banner | Collections are shown as a grid of empty slots with a clear next target. |
+| 1:22 to 1:30 | OBSERVED | Stakes picker: cards per stake level with "NOT ENOUGH CHIPS" on unaffordable ones; Table Settings sheet (seats 5/9, Fast/Normal speed, auto buy-in toggles) | Unaffordable options are visible but labeled, not hidden. OURS: same for stake chips (disabled with the reason). |
+| 1:38 to 1:56 | OBSERVED | Daily slot-style "Lucky Bonus": a 7-day streak row (10%, 50%, 100%...) at the bottom, multiplier stages, chip-shower particles over the screen, then an upsell variant "MEGA LUCKY BONUS" with "USE GOLD" | The free reward flows straight into a paid upgrade. OURS: the daily bonus ends on its result, no paid continuation, streak never wiped. |
+| 1:58 to 2:14 | OBSERVED | Store: horizontal packs with large amounts, prices, "2X CHIPS" ribbons, a "PREMIUM PASS" card, VIP tier note "25% more chips on purchases" | Not built. Store stays a sandbox plan (docs/MONETIZATION_READINESS.md). |
+| 2:28 | OBSERVED | Full-screen seasonal event splash before the table | OURS: no interstitial between lobby and table. |
+| 2:32 to 3:42 | OBSERVED | Table (poker): dealer avatar top center, 5 seats around an oval red felt, own cards large at bottom center with own avatar, community cards center, action buttons bottom right (FOLD, CHECK/CALL, BET/RAISE), stats/challenges tray bottom left | Same zoning works for blackjack: dealer top, friends around, own hand large at the bottom, actions in one thumb row. |
+| 2:42 | OBSERVED | Gift menu as a side panel over the table (drinks and items with prices, "Send gift" / "Send to all") | The panel covers part of the table. OURS: gifts open in a bottom sheet from the friend's seat and never cost coins. |
+| 2:48 to 2:50 | OBSERVED | Emote quick list (Get lucky, Nice try, Awesome, Thanks, Cheers) and a free-text chat log panel covering the left third of the table | OURS: 8 fixed reactions, no free-text chat until reporting and moderation exist. |
+| 2:56 | OBSERVED | Hand result as a banner across the community cards ("THREE OF A KIND") | Result named in words on the table. OURS: outcome badges per hand plus the result panel. |
+| 3:16 to 3:18 | OBSERVED | Full-screen "WELCOME TO LEAGUES" promotion interrupts between hands | OURS: no full-screen interruptions during a session. |
+| 3:20 to 3:34 | OBSERVED | Turn: a ring timer drains around the active player's avatar; call amount shown on the button ("CALL $1.9M") | Timer on the avatar plus the amount on the button. OURS: timer ring on the seat, amounts on double/split buttons. |
+| 2:51.1 to 2:51.6 | MEASURED (frames at 0.1 s) | Showdown: an opponent's two cards appear face down at the seat and are face up about 0.4 to 0.5 s later | Our hole-card flip target is 320 ms. |
+| 2:51.0 to 2:51.2 | MEASURED (frames at 0.1 s) | A bet chip label moves from the seat toward the pot within about 0.2 s | Chip moves short and fast. OURS: chip flight 280 ms. |
+| 0:00 to 0:50 | MEASURED (audio) | Silence (no signal above -50 dBFS) during store page, loading and sign-in | |
+| 0:50 to 2:32 | MEASURED (audio) | Continuous broadband signal, integrated loudness of the whole file -16.4 LUFS | HYPOTHESIS: background music in the lobby and bonus screens. Not listened to. |
+| 2:32 to 3:44 | MEASURED (audio) | Discrete bursts 0.2 to 3 s long separated by silence (for example 2:57.9 to 2:58.5 and 3:22.0 to 3:22.8) | HYPOTHESIS: event sounds at the table without music. Not listened to; no claim about what they sound like. |
+
+### Recording T: TABLE21 on Oz's iPhone, landscape (stored portrait, rotation 90), 60 fps, 0:44, AAC stereo
+
+| Time | Tag | What | Fix in this stage |
+|---|---|---|---|
+| 0:00 to 0:05 | OBSERVED | Home in landscape is one narrow centered column; the hero felt is cropped and the bottom tab bar takes about a fifth of the height | Landscape home is two columns and the tab bar becomes a side rail (styles.css v4, `.home-col`). |
+| 0:08 to 0:23 | OBSERVED | Club and profile also stay a narrow column with wide empty sides | Profile uses two columns in landscape; club empty state kept short with actions. |
+| 0:26 to 0:43 | OBSERVED | Practice table in landscape uses under half of the width and about two thirds of the height; cards and avatars are small; actions sit beside the felt | Felt now spans the full height in landscape with the side panel for status and actions; cards grow with the height (`dvh`). |
+| 0:40 | OBSERVED | A finished soft hand still shows "8 / 18" next to the result | Fixed: finished hands show the final total (`totalLabel`). |
+| 0:00 to 0:27 | MEASURED (audio) | No sound in menus (no click or tap sounds) | Kept quiet by design; a sound check panel was added in Settings. |
+| 0:27.78 to 0:28.29 | MEASURED (audio onsets) | Four short bursts of about 70 ms, 140 to 150 ms apart, while four cards are dealt | Matches the presentation stagger (150 ms cap). |
+| 0:28.45, 0:31.45 to 0:31.70 | MEASURED (audio) | A short tone after the deal and a 250 ms event later | HYPOTHESIS: turn chime and result sound. Not listened to. |
+
+Sound note for Oz: Claude cannot listen. Everything above about audio is signal measurement (silence detection, loudness,
+spectrogram), not hearing. Whether a sound is pleasant or clear is NOT VERIFIED until Oz listens to
+`table21-sound-demo.m4a` and the Settings sound check.
+
+More footage of real play (Zynga Poker, Blackjackist, WSOP blackjack) with frame-stepped timings: docs/GAMEPLAY_REFERENCE.md.

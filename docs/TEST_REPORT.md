@@ -107,3 +107,15 @@ These are indicative only. Real-phone performance is NOT measured.
 | Typecheck (4 packages) | `pnpm typecheck` | PASS |
 
 Screenshots: docs/screenshots/stage-c-*.png. Not run: real Google/Facebook, real phones, HTTPS deployment.
+
+## Art direction and layout run (2026-11-01)
+
+| Suite | Result |
+|---|---|
+| Typecheck | PASS |
+| Unit | PASS 26/26 |
+| Integration (PostgreSQL 16) | PASS 34/34 |
+| E2E (Chromium, one worker) | PASS 17/17 (new: layout-v4.spec.ts 2) |
+| Sound demo (offline render) | 108 sounds, 0 dropped, peak -4.1 dBFS, max 1 at a time |
+
+Not run: real iPhone/Android, rotation on a device, listening tests, Higgsfield assets.

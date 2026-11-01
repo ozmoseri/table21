@@ -2,6 +2,7 @@ import { AccountCard } from './Profile.tsx';
 import { api, useMe } from '../api.ts';
 import { getLocale, setLocale, t, tl } from '../i18n.ts';
 import { setPrefs, usePrefs } from '../prefs.ts';
+import { SFX, play } from '../sound.ts';
 
 export function Settings() {
   const p = usePrefs();
@@ -28,6 +29,17 @@ export function Settings() {
               </button>
             ))}
           </div>
+      <section className="panel" data-testid="sound-test">
+        <h2 className="title sm">{t('soundTest')}</h2>
+        <p className="fine">{t('soundTestNote')}</p>
+        <div className="sound-grid" dir="ltr">
+          {SFX.map((s) => (
+            <button key={s} className="btn sm" disabled={!p.sound} onClick={() => play(s)}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </section>
         </div>
         <div className="row between">
           <span>{t('language')}</span>

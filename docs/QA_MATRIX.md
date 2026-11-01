@@ -98,3 +98,22 @@ emulation, one worker). Rows below override the "identity" part of the 6 to 9 ro
 | 7 | Migration 003 on an existing embedded (LAN) database keeps sessions valid | PASS | one-off PGlite upgrade check (not part of the suites) |
 | 7 | Real Google and Facebook sign-in | NOT_RUN | no provider app, no public HTTPS origin (docs/PROVIDER_SETUP.md) |
 | 7 | Recovery and invite flows on real phones, share sheet on iOS/Android | NOT_RUN | needs Oz's devices |
+
+## Update after the art direction and layout stage (2026-11-01, main after Stage C)
+
+Runs in Claude's cloud workspace: unit 26/26, integration 34/34, e2e 17/17 (Chromium emulation). Typecheck PASS.
+
+| Area | Check | Status | Evidence |
+|---|---|---|---|
+| 3 | Landscape phone 844x390: tab rail, two-column home, felt at least 85% of height and 55% of width, actions inside the viewport | PASS (emulation) | layout-v4.spec.ts, docs/screenshots/v4-landscape-*.png |
+| 3 | Landscape 3 and 6 players: my hand never overlaps a friend's seat, stays inside the felt | PASS (emulation) | layout-v4.spec.ts (bounding boxes) |
+| 3 | Portrait: felt fills the height, actions in the bottom 30% | PASS (emulation) | layout-v4.spec.ts |
+| 3 | Real iPhone Safari toolbars, safe areas, rotation during a deal | NOT_RUN | needs Oz's phone |
+| 2 | Bet spot shows the stack and amount; chip flight lands on it | PASS (stack and class); flight visual review only | layout-v4.spec.ts, v4-portrait-bet.png |
+| 2 | Finished soft hand shows the final total (no "8 / 18" after the result) | PASS (code); seen on Oz's recording before the fix | Table.tsx totalLabel |
+| 1 | Result wording: Stake, Total returned, Net win/loss; natural blackjack and doubled tags | PASS | layout-v4.spec.ts, account.spec.ts split21 |
+| 1 | Natural vs natural push, 3:2 with a half coin (1 coin natural returns 2.5) | PASS | engine.test.ts (existing tests) |
+| 8 | Ten-round sound demo: no clipping, no overlap above one sound | PASS (measured offline) | docs/SOUND_SPEC.md |
+| 8 | Sounds pleasant and balanced on a phone, ten real rounds with sound | NOT_RUN | Claude cannot listen; demo file and Settings sound check provided |
+| 8 | Sounds silenced on resync and background | PASS (code path); not automated | presentation.finishAll -> stopAll, visibilitychange |
+| 11 | Higgsfield assets in the game | NOT_RUN | waiting for Oz: browser sign-in or an approved credit package |

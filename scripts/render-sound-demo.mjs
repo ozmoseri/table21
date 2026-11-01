@@ -1,0 +1,12 @@
+import { chromium } from '@playwright/test';
+import { writeFileSync } from 'node:fs';
+const [base, out] = process.argv.slice(2);
+const b = await chromium.launch();
+const p = await (await b.newContext()).newPage();
+await p.goto(base + '/#/lab/three');
+await p.waitForFunction(() => typeof (window).__t21RenderDemo === 'function');
+const r = await p.evaluate(() => (window).__t21RenderDemo());
+writeFileSync(out + '/table21-sound-demo.wav', Buffer.from(r.wav, 'base64'));
+writeFileSync(out + '/sound-timeline.json', JSON.stringify({ requested: r.requested, played: r.played, seconds: r.seconds, timeline: r.timeline }, null, 1));
+console.log(r.requested, r.played, r.seconds);
+await b.close();
