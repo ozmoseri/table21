@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('PWA: manifest, icons, apple touch icon and service worker are served and valid', async ({ page, request }) => {
   const m = await (await request.get('/manifest.webmanifest')).json();
-  expect(m).toMatchObject({ short_name: 'TABLE21', display: 'standalone', start_url: '/', lang: 'he', dir: 'rtl' });
+  expect(m).toMatchObject({ short_name: 'TABLE21', display: 'fullscreen', display_override: ['fullscreen', 'standalone'], orientation: 'any', start_url: '/', lang: 'he', dir: 'rtl' });
   const sizes = m.icons.map((i: any) => `${i.sizes}:${i.purpose ?? 'any'}`);
   expect(sizes).toEqual(expect.arrayContaining(['192x192:any', '512x512:any', '512x512:maskable']));
   for (const icon of [...m.icons.map((i: any) => i.src), '/icons/apple-touch-icon.png']) {
@@ -16,6 +16,8 @@ test('PWA: manifest, icons, apple touch icon and service worker are served and v
   await page.goto('/');
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest');
   await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute('content', 'yes');
+  await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute('content', 'black-translucent');
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute('content', /viewport-fit=cover/);
   const scope = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
   expect(scope).toMatch(/\/$/);
 });

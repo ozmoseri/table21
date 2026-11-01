@@ -1,4 +1,6 @@
 import { AccountCard } from './Profile.tsx';
+import { DealSettings } from '../components/DealSettings.tsx';
+import { canFullscreen, enterFullscreen } from '../fullscreen.ts';
 import { PilotCard } from '../components/PilotCard.tsx';
 import { api, useMe } from '../api.ts';
 import { getLocale, setLocale, t, tl } from '../i18n.ts';
@@ -62,6 +64,21 @@ export function Settings() {
           </div>
         </div>
       </div>
+      <section className="panel" data-testid="table-settings">
+        <h2 className="title sm">{t('dealSpeed')}</h2>
+        <DealSettings />
+        {canFullscreen() && (
+          <div className="row wrap">
+            <button className="btn sm" onClick={() => void enterFullscreen()}>
+              {t('fullScreen')}
+            </button>
+            <button className="btn sm ghost" onClick={() => void enterFullscreen(true)} data-testid="lock-landscape">
+              {t('lockLandscape')}
+            </button>
+          </div>
+        )}
+        {canFullscreen() && <p className="fine">{t('lockLandscapeNote')}</p>}
+      </section>
       <section className="panel">
         <h2 className="title sm">{t('rules')}</h2>
         <ul className="rules">

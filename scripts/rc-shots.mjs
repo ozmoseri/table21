@@ -48,15 +48,20 @@ for (const s of sizes) {
 
   // Bet until a hand with a turn for the host is dealt (a natural ends the round at once).
   for (let i = 0; ; i++) {
-    await host.page.locator('.stake-chip', { hasText: /^50$/ }).click();
-    await friend.page.locator('.stake-chip', { hasText: /^25$/ }).click();
+    for (const [p, coins] of [[host.page, 50], [friend.page, 25]]) {
+      // Pick a chip (it sends nothing), then the gold Confirm places the bet.
+      const chip = p.locator('.stake-chip', { hasText: new RegExp(`^${coins}$`) });
+      if (!(await chip.isVisible().catch(() => false))) await p.getByTestId('stake-more').click();
+      await chip.click();
+      await p.getByTestId('bet-confirm').click();
+    }
     const turn = await host.page.locator('.act-stand').waitFor({ state: 'visible', timeout: 15_000 }).then(() => true, () => false);
     if (turn && (await usable(host.page.locator('.act-stand')))) break;
     if (turn) {
       // Friend's turn first: let the friend stand, then the host acts.
       const fs = friend.page.locator('.act-stand');
       if (await usable(fs)) await fs.click();
-      if (await host.page.locator('.act-stand').isEnabled({ timeout: 10_000 }).catch(() => false)) break;
+      if (await host.page.locator('.act-stand:not([disabled])').waitFor({ timeout: 10_000 }).then(() => true, () => false)) break;
     }
     if (i > 5) throw new Error('no playable hand after 6 deals');
     await host.page.waitForFunction(() => /waiting|betting/.test(document.querySelector('[data-testid=room]')?.getAttribute('data-phase') ?? ''), null, { timeout: 30_000 });

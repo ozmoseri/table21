@@ -162,6 +162,40 @@ Each key stores a fingerprint of its request:
 | 8.11 | FOUND: two e2e tests assumed a random shoe never deals a natural. The presenter-dealer test failed once (no turn), and the multiplayer test failed once (no hidden-card frame) | FAIL, fixed (test) | the tests now deal again after a natural (presenter, version mismatch) or accept a revealed dealer natural; multiplayer.spec 9/9 with `--repeat-each 3` |
 | 8.12 | Behaviour change: the same commandId sent with a different body used to replay the first result silently; it is now refused. The client always reuses the exact same command on a retry, so nothing it sends is affected | PASS | net.ts `send` (one command object per intent) |
 
+## 10. Premium design round, stages 1-3 (full screen, layout and HUD, card engine)
+
+Spec: DECISIONS.md (overrides DESIGN_BIBLE.md), details in docs/PREMIUM.md. Client presentation only: engine rules,
+odds, server authority and `PROTOCOL_VERSION` (1) are unchanged. **The deployment candidate is still c38b481**; this
+round is a design candidate until Oz has tried it on his phone.
+
+Suites on the premium commit: typecheck PASS (4 packages), unit PASS 37/37 (32 + 5 new in `motion.test.ts`),
+integration PASS 67/67, e2e PASS 42/42 (33 + 9 new in `premium.spec.ts`; `premium.spec` also 18/18 with
+`--repeat-each 2`), turn layout checker PASS 24/24.
+
+| # | Check | Result | Evidence |
+|---|---|---|---|
+| 10.1 | Manifest `display: fullscreen`, `display_override [fullscreen, standalone]`, `orientation: any`; `viewport-fit=cover` | PASS | pwa.spec |
+| 10.2 | Room is exactly 100dvh with no page scroll and no control off screen: 390x844, 844x390, 360x640 (bet and hand) | PASS | premium.spec |
+| 10.3 | FOUND: a 1 px page scroll from the screen-reader live region placed under the room | FAIL, fixed | `.sr-only` pinned to the top |
+| 10.4 | Install / full screen card shown once on Home, closing remembered | PASS | premium.spec |
+| 10.5 | Opening deal one card at a time, flights 260 ms, 200 ms beat (average 175-240 in the browser), no total before the card turns, hole reveal 770 ms | PASS | turn-fit.spec (browser-measured), motion.test |
+| 10.6 | Skip button 48x48, only while the queue plays, tap on the felt does not skip; after skip nothing is moving and totals show | PASS | premium.spec |
+| 10.7 | FOUND: after skip, cards mounted by the flush still flew from the shoe | FAIL, fixed | `presentation.settleNext()`: they appear in place; a result after a skip still celebrates |
+| 10.8 | Speeds: Elegant default, Turbo plays faster (rate above 2) and is remembered after reload | PASS | premium.spec |
+| 10.9 | Catch-up thresholds: my timer and queue over 1.5 s = Turbo; over 3 s = Turbo for anyone; over 6 s = snap; local games keep the rhythm | PASS | motion.test (`catchUpMode`) |
+| 10.10 | Actions in fixed order Double, Split, Stand, Hit; Hit and Stand same size and colors, wider than Double/Split, 56 px tall; left-handed mirrors | PASS | premium.spec at 360x640 |
+| 10.11 | Online bet: a chip only selects, gold Confirm places it, Clear removes the selection; 3 chips + More + Clear | PASS | premium.spec; helpers `pickAndConfirm` used by all online tests |
+| 10.12 | One menu, one invite, one social tray in the HUD; no reactions row; leave in the menu | PASS | premium.spec, social.spec |
+| 10.13 | FOUND: landscape bet chips cut off at the screen edge, controls column under the left thumb, my cards too large over friends' seats | FAIL, fixed | controls column under the right thumb (left when left-handed), 48 px chips, height-based card size in landscape; layout-v4 and turn-fit pass |
+| 10.14 | Server snapshots, money, idempotency and reconnect unaffected by the queue (reload mid-hand hydrates without replay) | PASS | multiplayer.spec, social.spec, updates.spec, integration |
+| 10.15 | Real iPhone / Android: full screen in installed mode, notch and home-indicator safe areas, orientation lock, 60 fps of the arc flights, how the pacing feels | NOT RUN | needs Oz's phones |
+| 10.16 | Sound of the new deal on a phone speaker | NOT RUN | Claude cannot listen |
+
+Screenshots (`docs/screenshots/premium/`, by `scripts/premium-shots.mjs`, two real players online):
+`{home,betting,dealing,turn,reveal,results,menu}-{portrait-390x844,landscape-844x390}.png`.
+Full hand: `full-hand-390x844.webm` (Playwright recordVideo, practice at Elegant) and `frames/f*.jpg` (one frame
+about every 100 ms of the same hand: bet, arc flights, turn, stand, hole card lift and flip, result).
+
 ## 9. NOT RUN (needs a person or a device)
 
 | # | Check | Why |

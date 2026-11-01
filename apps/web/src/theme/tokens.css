@@ -1,0 +1,87 @@
+/* =====================================================================================================
+   TABLE21 v5 tokens (DECISIONS.md 7-8, after the art-director review). Every colour on screen comes from here;
+   the older names used across styles.css are mapped onto the new palette so the whole app moves together.
+   ===================================================================================================== */
+:root {
+  /* palette */
+  --t-room: #0b1218;
+  --t-panel: #16222c;
+  --t-felt: #125743;
+  --t-felt-edge: #082f25;
+  --t-brass: #c9a24b;
+  --t-confirm: #e5c77e;
+  --t-confirm-ink: #14161a;
+  --t-ivory: #f6f1e4;
+  --t-win: #78c9a0;
+  --t-loss: #e5969c;
+  --t-push: #b6c1ca;
+  --t-suit-red: #b3202a;
+  --t-ink: #14161a;
+
+  /* type: Rubik for the interface, Frank Ruhl Libre for titles and card indices; numbers tabular, left to right */
+  --ui: 'Rubik', system-ui, sans-serif;
+  --nums: 'Rubik', system-ui, sans-serif;
+  --display: 'Frank Ruhl Libre', Georgia, serif;
+  --index: 'Frank Ruhl Libre', Georgia, serif;
+
+  /* older names, now on the v5 palette */
+  --bg: var(--t-room);
+  --bg-2: #0f1820;
+  --panel: var(--t-panel);
+  --panel-2: #1c2b37;
+  --line: #2a3a47;
+  --felt: var(--t-felt);
+  --felt-deep: var(--t-felt-edge);
+  --felt-a: #186a52;
+  --felt-b: var(--t-felt);
+  --felt-c: var(--t-felt-edge);
+  --gold: var(--t-brass);
+  --gold-hi: var(--t-confirm);
+  --gold-lo: #8a6a27;
+  --brass-hi: var(--t-confirm);
+  --brass-mid: var(--t-brass);
+  --brass-lo: #8a6a27;
+  --text: var(--t-ivory);
+  --muted: #a9b6bf;
+  --ivory: var(--t-ivory);
+  --ink: var(--t-ink);
+  --red: var(--t-suit-red);
+  --success: var(--t-win);
+  --win: var(--t-win);
+  --loss: var(--t-loss);
+  --loss-soft: var(--t-loss);
+  --push: var(--t-push);
+  --turn: var(--t-confirm);
+  --room-0: var(--t-room);
+  --room-1: #101b23;
+  --room-lamp: #1b2b2e;
+
+  /* safe areas (notch, home indicator, landscape side insets) */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+
+  /* v5 motion tokens (anim/timing.ts holds the queue timings) */
+  --dur-flip: 260ms;
+  --dur-card-travel: 260ms;
+  --dur-win: 600ms;
+  --dur-celebrate: 900ms;
+}
+
+/* ---------- full-screen shell: 100dvh, no rubber band, no double-tap zoom, no text selection on the table ---------- */
+html, body { height: 100%; overscroll-behavior: none; background: var(--t-room); }
+body {
+  min-height: 100dvh;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  font-family: var(--ui);
+}
+input, textarea, select, [contenteditable], .user-id, .link-box, .url, .code-grid li { -webkit-user-select: text; user-select: text; }
+#root { min-height: 100dvh; }
+.num, .coins, .total, .code-chip bdi { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+.screen { padding-top: var(--safe-t); padding-left: var(--safe-l); padding-right: var(--safe-r); }
+h1, .title, .brand-word, .result-head, .natural-tag { font-family: var(--display); font-weight: 700; letter-spacing: 0; }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, createWithRetry, isWaking, refreshMe, useMe, useNet } from '../api.ts';
 import { PilotCard } from '../components/PilotCard.tsx';
+import { InstallHint } from '../components/InstallHint.tsx';
 import { errorText, t } from '../i18n.ts';
 import { Avatar, Coins, Sheet, toast } from '../components/bits.tsx';
 import { go } from '../App.tsx';
@@ -168,13 +169,6 @@ export function Home() {
             {t('backToRoom')} <bdi dir="ltr">{user.activeRoom.code}</bdi>
           </a>
         )}
-        <section className="hero-table" aria-hidden="true">
-          <div className="hero-felt">
-            <span className="hero-card c1" />
-            <span className="hero-card c2" />
-            <span className="hero-arc" />
-          </div>
-        </section>
 
         <button className="play primary" onClick={() => setSheet('casual')} disabled={!user} data-testid="play-friends">
           <b>{t('playFriends')}</b>
@@ -205,6 +199,14 @@ export function Home() {
             {t('join')}
           </button>
         </form>
+        <InstallHint />
+        <section className="hero-table" aria-hidden="true">
+          <div className="hero-felt">
+            <span className="hero-card c1" />
+            <span className="hero-card c2" />
+            <span className="hero-arc" />
+          </div>
+        </section>
       </div>
       <div className="home-col home-side">
         {user?.account.kind === 'guest' && (

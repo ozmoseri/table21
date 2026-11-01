@@ -8,6 +8,7 @@ import { GiftIcon, REACTION_GLYPH } from './gifts.tsx';
 import { REACTION_TEXT, getLocale, t, type Key } from '../i18n.ts';
 import { buzz, play } from '../sound.ts';
 import { PresentationContext, TablePresentation } from '../presentation.ts';
+import type { ShownHand } from '../anim/timeline.ts';
 import { reducedMotion, subscribePrefs } from '../prefs.ts';
 
 export interface DealerInfo {
@@ -60,7 +61,7 @@ function HandView({ hand, back, size, active }: { hand: PublicHand; back: string
         ))}
       </div>
       <div className="hand-meta">
-        <span className="total num">{totalLabel(hand)}</span>
+        {!(hand as ShownHand).totalHidden && <span className="total num">{totalLabel(hand)}</span>}
         {size !== 'sm' && <ChipStack units={hand.stakeUnits} small />}
         {ok && ok !== 'blackjack' && <span className={`badge b-${ok}`}>{t(ok)}</span>}
         {hand.outcome === 'blackjack' || hand.status === 'blackjack' ? (
@@ -221,6 +222,9 @@ export function Table({
   overlay,
   reactions = [],
   muted,
+  presentation: external,
+  pending,
+  onSkip,
 }: {
   snap: RoomSnapshot;
   meId: string;
@@ -237,11 +241,17 @@ export function Table({
   overlay?: ReactNode;
   reactions?: ReactionEvent[];
   muted?: Set<string>;
+  /** From useTableTimeline: the same controller that plays the visual event queue. */
+  presentation?: TablePresentation;
+  /** The visual queue is still playing (shows the skip button). */
+  pending?: boolean;
+  onSkip?: () => void;
 }) {
-  const presentation = useMemo(() => new TablePresentation(), [sessionKey]);
-  useEffect(() => () => presentation.dispose(), [presentation]);
+  const own = useMemo(() => (external ? null : new TablePresentation()), [sessionKey, !!external]);
+  useEffect(() => () => own?.dispose(), [own]);
+  const presentation = (external ?? own)!;
   const lastResync = useRef(resyncKey);
-  if (lastResync.current !== resyncKey) {
+  if (!external && lastResync.current !== resyncKey) {
     lastResync.current = resyncKey;
     presentation.resync();
   }
@@ -255,6 +265,7 @@ export function Table({
 
   const feltRef = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
+    presentation.setRoot(feltRef.current);
     presentation.commit(document.getElementById('shoe')?.getBoundingClientRect() ?? null);
   });
 
@@ -323,12 +334,6 @@ export function Table({
     lastTurn.current = key;
   }, [myTurn, round?.roundId, round?.turn?.hand]);
 
-  const revealed = round?.dealer.revealed ?? false;
-  const lastRevealed = useRef(revealed);
-  useEffect(() => {
-    if (revealed && !lastRevealed.current) presentation.sound('flip');
-    lastRevealed.current = revealed;
-  }, [revealed, round?.roundId]);
 
   const settledKey = round && (round.phase === 'settled' || round.phase === 'voided') ? round.roundId : null;
   const lastSettled = useRef<string | null>(null);
@@ -370,7 +375,7 @@ export function Table({
             </span>
             <span className="dealer-text">
               <bdi className="dealer-name">{dealer.name}</bdi>
-              {round && round.dealer.total !== null && (
+              {round && round.dealer.total !== null && round.dealer.cards.length > 0 && (
                 <span className="total num">{round.dealer.revealed ? totalLabel({ total: round.dealer.total, soft: round.dealer.soft, cards: round.dealer.cards }, round.phase === 'settled' || snap.phase === 'dealer_turn') : round.dealer.total}</span>
               )}
             </span>
@@ -432,6 +437,13 @@ export function Table({
         {flights.map((f) => (
           <GiftFlightView key={f.id} f={f} track={(a) => presentation.track(a)} done={() => setFlights((x) => x.filter((y) => y.id !== f.id))} />
         ))}
+        {pending && onSkip && (
+          <button className="skip-anim" onClick={onSkip} aria-label={t('skipAnim')} title={t('skipAnim')} data-testid="skip-anim">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6l8 6-8 6zM12 6l8 6-8 6z" />
+            </svg>
+          </button>
+        )}
         {overlay}
       </section>
     </PresentationContext.Provider>
@@ -464,13 +476,14 @@ function GiftFlightView({ f, track, done }: { f: GiftFlight; track: (a: Animatio
 }
 
 /**
- * The four decisions always keep the same slots (hit, stand, double, split), so a button never moves under the thumb
+ * The four decisions always keep the same slots, left to right Double, Split, Stand, Hit (DECISIONS 4: Hit and Stand
+ * equal weight on the thumb edge; the left-handed setting mirrors the row), so a button never moves under the thumb
  * between turns; a decision that is not legal now stays visible but disabled. After one press every button locks until
  * the table answers (legal actions change) or 2.5 s pass, so a double tap cannot send two decisions. The server is
  * idempotent anyway (commandId + exact version).
  */
 export function ActionButtons({ legal, disabled, onAction }: { legal: PlayerAction[]; disabled?: boolean; onAction: (a: PlayerAction) => void }) {
-  const order: PlayerAction[] = ['hit', 'stand', 'double', 'split'];
+  const order: PlayerAction[] = ['double', 'split', 'stand', 'hit'];
   const [locked, setLocked] = useState(false);
   const legalKey = legal.join(',');
   useEffect(() => {
@@ -498,7 +511,7 @@ export function ActionButtons({ legal, disabled, onAction }: { legal: PlayerActi
     return () => removeEventListener('keydown', f);
   });
   return (
-    <div className="actions" data-locked={locked || undefined}>
+    <div className="actions" dir="ltr" data-locked={locked || undefined}>
       {order.map((a) => (
         <button key={a} className={`btn act act-${a}`} disabled={disabled || locked || !legal.includes(a)} aria-disabled={!legal.includes(a) || undefined} onClick={() => fire(a)}>
           {t(a)}
@@ -508,41 +521,90 @@ export function ActionButtons({ legal, disabled, onAction }: { legal: PlayerActi
   );
 }
 
+/**
+ * Bet chips (DECISIONS 5): three chips in view, "more" for the rest of the table's stakes, and clear. The chip in use
+ * (placed bet, or the one selected and not yet confirmed) is always among the three shown.
+ */
 export function StakePicker({
   stakes,
   available,
   current,
+  selected = null,
   onPick,
+  onClear,
   disabled,
 }: {
   stakes: number[];
   available: number;
+  /** placed bet in units */
   current: number;
+  /** chosen but not yet confirmed (online), in coins */
+  selected?: number | null;
   onPick: (coins: number) => void;
+  onClear?: () => void;
   disabled?: boolean;
 }) {
+  const VISIBLE = 3;
+  const [page2, setPage2] = useState(false);
+  const inUse = selected ?? (current ? current / 2 : null);
+  const idx = inUse != null ? stakes.indexOf(inUse) : -1;
+  const firstPage = stakes.slice(0, VISIBLE);
+  const showing = page2 ? stakes.slice(VISIBLE) : idx >= VISIBLE ? stakes.slice(idx - VISIBLE + 1, idx + 1) : firstPage;
   return (
     <div className="stakes" dir="ltr" role="group" aria-label={t('stake')}>
-      {stakes.map((c, i) => {
+      {showing.map((c) => {
+        const i = stakes.indexOf(c);
         const can = c * 2 <= available + current;
         return (
           <button
             key={c}
-            className={`stake-chip tier-${Math.min(i + 1, 5)} ${current === c * 2 ? 'on' : ''}`}
+            className={`stake-chip tier-${Math.min(i + 1, 5)} ${current === c * 2 ? 'on' : ''} ${selected === c ? 'sel' : ''}`}
             disabled={disabled || !can}
             onClick={(e) => {
               play('chip');
               buzz(6);
               flyChip(e.currentTarget, `t${Math.min(i + 1, 5)}`);
+              setPage2(false);
               onPick(c);
             }}
-            aria-pressed={current === c * 2}
+            aria-pressed={current === c * 2 || selected === c}
             aria-label={`${c}`}
           >
             <span className="num">{c}</span>
           </button>
         );
       })}
+      {stakes.length > VISIBLE && (
+        <button className="stake-more" onClick={() => setPage2((v) => !v)} aria-expanded={page2} data-testid="stake-more" aria-label={t(page2 ? 'fewerStakes' : 'moreStakes')}>
+          {page2 ? '‹' : '+'}
+          <span className="sr-only">{t(page2 ? 'fewerStakes' : 'moreStakes')}</span>
+        </button>
+      )}
+      {onClear && (
+        <button className="stake-clear" onClick={onClear} disabled={disabled || (!current && selected == null)} data-testid="stake-clear" aria-label={t('clearBet')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** The separate row under the chips: the amount, and the one gold button (confirm the bet, or deal). */
+export function BetConfirm({ units, label, onConfirm, disabled, testId, note }: { units: number; label: string; onConfirm?: () => void; disabled?: boolean; testId: string; note?: string }) {
+  return (
+    <div className="bet-confirm-row">
+      <span className="bet-amount">
+        <span className="muted">{t('stake')}</span> <Coins units={units} />
+      </span>
+      {onConfirm ? (
+        <button className="btn confirm" onClick={onConfirm} disabled={disabled} data-testid={testId}>
+          {label}
+        </button>
+      ) : (
+        note && <span className="bet-note">{note}</span>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { createRequire } from 'node:module';
 import { expect, test, type Page } from '@playwright/test';
-import { SHOTS, createRoom, onboard, player } from './helpers.ts';
+import { SHOTS, createRoom, onboard, pickAndConfirm, player } from './helpers.ts';
 
 const { PNG } = createRequire(import.meta.url)('pngjs');
 /**
@@ -151,7 +151,7 @@ for (const vp of [
     await page.getByTestId('sit').click();
     // Random shoe: a natural ends the round with no turn; then play the next one until there is a hand to act on.
     for (let i = 0; ; i++) {
-      await page.locator('.stake-chip', { hasText: /^25$/ }).click();
+      await pickAndConfirm(page, 25);
       const deal = page.getByTestId('deal');
       if (await deal.isVisible({ timeout: 3000 }).catch(() => false)) await deal.click().catch(() => {});
       await expect(page.getByTestId('room')).toHaveAttribute('data-phase', /player_turns|results/, { timeout: 15_000 });
@@ -225,7 +225,8 @@ test('background images that fail to load fall back to CSS without moving anythi
             const i = (png.width * Math.round(y) + Math.round(x)) * 4;
             return [png.data[i], png.data[i + 1], png.data[i + 2]];
           };
-          for (const [fx, fy] of [[0.5, 0.45], [0.2, 0.6], [0.8, 0.3]]) {
+          // Open cloth only (the shoe sits top right, the dealer top left).
+          for (const [fx, fy] of [[0.5, 0.45], [0.2, 0.6], [0.06, 0.5]]) {
             const [r, g, b] = at(png.width * fx, png.height * fy);
             expect(g, `felt pixel ${fx},${fy} = ${r},${g},${b}`).toBeGreaterThan(r + 15);
             expect(g).toBeGreaterThan(b);

@@ -46,7 +46,7 @@ body {
 button, input, select { font: inherit; color: inherit; }
 a { color: var(--gold); text-decoration: none; }
 :focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; border-radius: 6px; }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sr-only { position: absolute; top: 0; inset-inline-start: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .num, .coins { font-family: var(--nums); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }

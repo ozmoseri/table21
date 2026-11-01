@@ -1,0 +1,211 @@
+/* =====================================================================================================
+   TABLE21 v5 premium table (DECISIONS.md 4-6, 12; DESIGN_BIBLE.md 4). Loaded after styles.css.
+   - The whole screen is the table: felt bleeds to every edge, the HUD floats on it, safe areas respected.
+   - One menu, one invite, one social tray in the HUD; no utility row in the thumb band.
+   - Actions in a fixed order, left to right Double, Split, Stand, Hit; Hit and Stand equal weight.
+   - Gold only for Confirm bet / Deal / Continue.
+   ===================================================================================================== */
+
+/* ---------- the room is the table ---------- */
+.room {
+  --hud-h: 44px;
+  --felt-art: url(/art/club/felt-portrait.webp);
+  height: 100dvh;
+  max-width: none !important;
+  margin: 0 !important;
+  overflow: hidden;
+  padding: calc(var(--safe-t) + 6px) max(10px, var(--safe-r)) calc(var(--safe-b) + 8px) max(10px, var(--safe-l));
+  background:
+    radial-gradient(70% 34% at 50% 20%, rgba(255, 236, 190, 0.1), transparent 70%),
+    radial-gradient(150% 95% at 50% 32%, transparent 52%, rgba(3, 14, 10, 0.62) 100%),
+    var(--felt-art) center top / cover no-repeat,
+    radial-gradient(130% 95% at 50% 30%, var(--felt-a), var(--felt-b) 50%, var(--felt-c));
+}
+@media (orientation: landscape) { .room { --felt-art: url(/art/club/felt-landscape.webp); } }
+.room:has(> .felt.theme-sapphire) { --felt-a: #2a6aa0; --felt-b: #18456b; --felt-c: #0b2236; --felt-art: none; }
+.room:has(> .felt.theme-bordeaux) { --felt-a: #8a3043; --felt-b: #5e1c2b; --felt-c: #2e0c14; --felt-art: none; }
+/* results scroll on short screens; the table itself never does */
+.room[data-phase='results'] { height: auto; min-height: 100dvh; overflow: visible; }
+body:has(.room) { background: var(--felt-c); }
+body:has(.room)::before { display: none; }
+
+/* the table area is no longer a framed box: printed rail line and arc on the cloth */
+.room > .felt,
+.room > .felt.theme-emerald,
+.room > .felt.theme-sapphire,
+.room > .felt.theme-bordeaux {
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible;
+  padding-inline: 0;
+}
+.room > .felt::before {
+  content: 'BLACKJACK PAYS 3 TO 2';
+  position: absolute; left: 50%; top: 47%; transform: translateX(-50%);
+  font-family: var(--display); font-size: 11px; letter-spacing: 0.32em; white-space: nowrap;
+  color: rgba(229, 199, 126, 0.32); pointer-events: none;
+}
+.room > .felt::after {
+  left: 4%; right: 4%; bottom: 2%; height: 58%;
+  border: 1.5px solid rgba(229, 199, 126, 0.2); border-top: 0;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+}
+.room .felt-lip { display: none; }
+
+/* ---------- HUD (top): menu, balance, invite, social ---------- */
+.room-head.hud { min-height: var(--hud-h); gap: 8px; position: relative; z-index: 5; }
+.hud-spacer { flex: 1; }
+.hud-btn {
+  width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: rgba(11, 18, 24, 0.55); border: 1px solid rgba(246, 241, 228, 0.12); color: var(--t-ivory);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.hud-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.hud-btn.is-muted { color: var(--muted); }
+[dir='rtl'] .hud-back svg { transform: scaleX(-1); }
+.hud-balance {
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px;
+  background: rgba(11, 18, 24, 0.6); border: 1px solid rgba(201, 162, 75, 0.35); color: var(--t-ivory) !important; font-weight: 600; font-size: 15px;
+  margin-inline-start: 0 !important;
+}
+.room-head .hud-invite, .room-head .hud-mode {
+  margin-inline-start: 0; min-height: 44px; padding: 0 12px; gap: 6px;
+  background: rgba(11, 18, 24, 0.55); border: 1px solid rgba(246, 241, 228, 0.12); color: var(--t-ivory);
+}
+.hud-invite svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.hud-invite .num { font-weight: 600; }
+.hud-invite bdi { color: var(--t-confirm); letter-spacing: 0.12em; font-size: 14px; }
+.hud-mode { font-size: 14px; font-weight: 500; }
+
+/* turn and timer: one quiet line under the HUD */
+.room > .status-line { justify-content: center; min-height: 28px; position: relative; z-index: 4; }
+.room .phase-text { font-family: var(--ui); font-weight: 600; font-size: 15px; color: var(--t-ivory); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+.room > .status-line .pill { min-height: 26px; background: rgba(11, 18, 24, 0.55); border-color: rgba(246, 241, 228, 0.14); font-size: 13px; }
+.room .banners { position: relative; z-index: 4; }
+.room .banner { background: rgba(11, 18, 24, 0.82); }
+
+/* ---------- dealer, shoe, seats, my hand ---------- */
+.room .dealer-zone { padding-inline: 4px; }
+.room .dealer-name { color: rgba(246, 241, 228, 0.82); font-size: 13px; }
+.room .total { background: rgba(8, 20, 16, 0.78); color: var(--t-ivory); border: 1px solid rgba(246, 241, 228, 0.16); font-weight: 600; }
+.shoe {
+  width: 54px; height: 70px; border-radius: 10px 10px 8px 14px; transform: skewX(-6deg) rotate(-4deg);
+  background: linear-gradient(160deg, #3a2516, #1d120a 70%);
+  box-shadow: inset 0 0 0 2px #8a6a27, inset 0 0 0 4px rgba(0, 0, 0, 0.5), 0 10px 18px -6px rgba(0, 0, 0, 0.7);
+}
+.shoe::after { content: ''; position: absolute; left: 6px; right: 10px; bottom: 6px; height: 10px; border-radius: 3px; background: rgba(160, 200, 220, 0.12); border-top: 1px solid rgba(229, 199, 126, 0.5); }
+.shoe i { inset: 7px 8px 14px 12px; border-radius: 4px; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4); }
+
+.room .seat { background: none; border: 0; padding: 4px 2px; }
+.room .seat.is-active { box-shadow: none; animation: none; }
+.room .seat .avatar { box-shadow: 0 0 0 2px var(--t-brass), 0 6px 12px rgba(0, 0, 0, 0.5); }
+.room .seat.is-active .avatar { box-shadow: 0 0 0 3px var(--t-confirm), 0 0 18px rgba(229, 199, 126, 0.6); }
+.room .seat-name { color: var(--t-ivory); font-size: 13px; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
+
+/* my hand is the hero: 1.25x */
+/* portrait: my cards are the largest thing on the table; landscape keeps the height-based sizes from styles.css */
+@media not ((orientation: landscape) and (max-height: 560px)) {
+  .room .me-zone .card-lg { --w: clamp(80px, 24vw, 112px); }
+}
+.room .me-zone.is-active .my-hands { filter: drop-shadow(0 0 14px rgba(229, 199, 126, 0.35)); }
+
+/* skip the deal: 48 x 48, bottom centre of the table, only while the queue plays */
+.skip-anim {
+  position: absolute; z-index: 6; left: 50%; bottom: 8px; transform: translateX(-50%);
+  width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: rgba(11, 18, 24, 0.66); border: 1px solid rgba(246, 241, 228, 0.22); color: var(--t-ivory);
+  animation: skip-in 0.3s 0.4s ease-out backwards;
+}
+.skip-anim svg { width: 22px; height: 22px; fill: currentColor; }
+@keyframes skip-in { from { opacity: 0; } }
+.card.is-revealing { z-index: 3; }
+.card { will-change: transform; }
+.card-inner { will-change: transform; }
+
+/* ---------- bottom band: actions, bets, results ---------- */
+.room > .controls { position: relative; z-index: 5; }
+.room > .controls::before {
+  content: ''; position: absolute; inset: -18px calc(-1 * max(10px, var(--safe-l))) calc(-1 * (var(--safe-b) + 8px)); z-index: -1;
+  background: linear-gradient(180deg, transparent, rgba(6, 16, 12, 0.72) 38%, rgba(6, 14, 11, 0.9));
+  pointer-events: none;
+}
+
+/* actions: Double, Split, Stand, Hit; 68/68/88/88 at 360 px, 56 tall; Hit and Stand equal weight, no gold */
+.room .actions, .actions {
+  display: grid; grid-template-columns: 68fr 68fr 88fr 88fr; gap: 8px; direction: ltr;
+}
+[data-hand='left'] .actions { direction: rtl; }
+.room .actions .act, .actions .act { min-height: 56px; border-radius: 14px; font-family: var(--ui); font-weight: 600; font-size: 17px; padding: 0 4px; }
+.actions .act-hit, .actions .act-stand {
+  background: linear-gradient(180deg, #fbf8ef, var(--t-ivory)); color: var(--t-ink); border: 0;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 8px 18px -8px rgba(0, 0, 0, 0.8);
+}
+.actions .act-double, .actions .act-split {
+  background: rgba(11, 18, 24, 0.55); color: var(--t-ivory); border: 1.5px solid rgba(201, 162, 75, 0.75);
+}
+.actions .act:disabled { opacity: 0.32; box-shadow: none; }
+
+/* bets: three chips + more + clear, then a separate row with the amount and the gold confirm */
+.bet-bar, .room .bet-row { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.stakes { align-items: center; flex-wrap: nowrap; gap: 10px; }
+.stakes .stake-chip { width: 56px; height: 56px; flex: none; }
+.stake-chip.sel { transform: translateY(-4px); box-shadow: 0 0 0 3px var(--t-confirm), 0 8px 16px rgba(0, 0, 0, 0.5); }
+.stake-more, .stake-clear {
+  width: 48px; height: 48px; flex: none; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: rgba(11, 18, 24, 0.6); border: 1.5px solid rgba(246, 241, 228, 0.25); color: var(--t-ivory); font-size: 22px; font-weight: 500;
+}
+.stake-clear svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.stake-clear:disabled { opacity: 0.3; }
+.bet-confirm-row { display: flex; align-items: center; gap: 12px; min-height: 52px; }
+.bet-amount { display: inline-flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.bet-amount .muted { font-weight: 400; font-size: 14px; }
+.bet-note { margin-inline-start: auto; color: var(--muted); font-size: 14px; }
+.btn.confirm {
+  margin-inline-start: auto; min-height: 52px; min-width: 150px; padding: 0 22px; border-radius: 14px; border: 0;
+  background: linear-gradient(180deg, #f0d896, var(--t-confirm) 55%, #c9a24b); color: var(--t-confirm-ink);
+  font-family: var(--ui); font-weight: 600; font-size: 18px; box-shadow: 0 6px 18px -8px rgba(229, 199, 126, 0.8);
+}
+.btn.confirm:disabled { opacity: 0.4; box-shadow: none; }
+/* gold is reserved: other primary buttons inside the table become ivory */
+.room .controls .btn.primary:not(.confirm) { background: linear-gradient(180deg, #fbf8ef, var(--t-ivory)); color: var(--t-ink); border: 0; }
+.room .controls [data-testid='next-round'] { background: linear-gradient(180deg, #f0d896, var(--t-confirm) 55%, #c9a24b) !important; color: var(--t-confirm-ink) !important; }
+
+.room .result-panel { background: rgba(11, 18, 24, 0.86); border: 1px solid rgba(229, 199, 126, 0.25); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.room .result-head { font-size: 22px; }
+
+/* social tray (sheet) */
+.sheet .reactions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.sheet .reactions .pill { min-height: 44px; padding: 0 16px; font-size: 15px; }
+
+/* install hint */
+.install-hint { display: flex; flex-direction: column; gap: 6px; border-inline-start: 3px solid var(--t-brass); }
+.install-hint p { margin: 0; }
+
+/* ---------- landscape: 2 x 2 actions bottom right (mirrored for left-handed) ---------- */
+@media (orientation: landscape) and (max-height: 560px) {
+  .room { --hud-h: 40px; padding-top: calc(var(--safe-t) + 4px); }
+  /* the controls column sits under the right thumb (left thumb when left-handed), in both reading directions */
+  html[dir='rtl']:not([data-hand='left']) .room, html[dir='ltr'][data-hand='left'] .room {
+    grid-template-columns: clamp(210px, 31vw, 300px) minmax(0, 1fr);
+  }
+  html[dir='rtl']:not([data-hand='left']) .room > *, html[dir='ltr'][data-hand='left'] .room > * { grid-column: 1; }
+  html[dir='rtl']:not([data-hand='left']) .room > .felt, html[dir='ltr'][data-hand='left'] .room > .felt { grid-column: 2; }
+  .room-head.hud { flex-wrap: nowrap; gap: 6px; }
+  .hud-mode, .hud-invite bdi { display: none; }
+  .stakes { gap: 6px; }
+  .stakes .stake-chip { width: 48px; height: 48px; }
+  .hud-btn { width: 40px; height: 40px; }
+  .room-head .hud-invite, .room-head .hud-mode { min-height: 40px; }
+  .room .actions, .actions { grid-template-columns: 1fr 1fr; grid-template-rows: 52px 52px; gap: 8px; }
+  .room .actions .act { min-height: 52px; }
+  .room > .controls::before { display: none; }
+  .stake-more, .stake-clear { width: 48px; height: 48px; }
+  .btn.confirm { min-width: 120px; }
+  .room > .felt::before { top: 52%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-anim { animation: none; }
+}

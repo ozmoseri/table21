@@ -45,8 +45,19 @@ export async function sit(p: Player) {
   await expect(p.page.locator('.stake-chip').first()).toBeVisible();
 }
 
+/**
+ * Online bet: pick a chip (opening "more" when the stake is not among the three visible chips), then Confirm.
+ * Picking alone sends nothing; the confirm button is the one gold action of the bet bar.
+ */
+export async function pickAndConfirm(page: Page, coins?: number) {
+  const chip = coins === undefined ? page.locator('.stake-chip').first() : page.locator('.stake-chip', { hasText: new RegExp(`^${coins}$`) });
+  if (!(await chip.isVisible().catch(() => false))) await page.getByTestId('stake-more').click();
+  await chip.click();
+  await page.getByTestId('bet-confirm').click();
+}
+
 export async function bet(p: Player, coins: number) {
-  await p.page.locator('.stake-chip', { hasText: new RegExp(`^${coins}$`) }).click();
+  await pickAndConfirm(p.page, coins);
   await expect(p.page.locator('.stake-chip.on')).toHaveCount(1);
 }
 

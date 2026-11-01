@@ -1,5 +1,10 @@
 # Motion spec
 
+> Superseded for card timing by the premium round (DECISIONS.md): see docs/PREMIUM.md, stage 3. Cards now come from
+> a visual event queue (`anim/timeline.ts`): stagger 200 ms, arc flight 260 ms, flip 220 ms, hole reveal 770 ms
+> (lift 120, pause 250, flip 320, land 80), dealer beat 300 ms, speeds Elegant / Quick / Turbo, skip button, catch-up
+> on my turn. The tables below are the earlier v4 values, kept for history.
+
 תקציר לעוז: כל האנימציות בשולחן מנוהלות על ידי בקר תצוגה אחד לכל משחק. הוא מנפיש רק קלפים חדשים, לא מנגן מחדש מצב ישן אחרי ניתוק או רענון, וממתין לסוף החלוקה לפני צליל התוצאה. השרת לעולם לא מחכה לאנימציה. כל הזמנים כאן הם יעדי עיצוב לכוונון ולא ביצועים שנמדדו בטלפון.
 
 ## Controller

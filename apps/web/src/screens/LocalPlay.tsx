@@ -3,21 +3,27 @@ import { AVATARS, type AvatarId } from '@table21/protocol';
 import { LocalGame, type LocalPlayer } from '../local.ts';
 import { getLocal, saveLocal } from '../prefs.ts';
 import { t } from '../i18n.ts';
-import { ActionButtons, ResultPanel, StakePicker, Table, myTurnText } from '../components/Table.tsx';
-import { Avatar, Coins } from '../components/bits.tsx';
+import { ActionButtons, BetConfirm, ResultPanel, StakePicker, Table, myTurnText } from '../components/Table.tsx';
+import { DealSettings } from '../components/DealSettings.tsx';
+import { Avatar, Coins, Sheet } from '../components/bits.tsx';
 import { go } from '../App.tsx';
 import { useMe } from '../api.ts';
 import { useHandBusy } from '../update.ts';
+import { useTableTimeline } from '../anim/useTimeline.ts';
 
 function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
-  const snap = useSyncExternalStore(game.subscribe, game.getView);
+  const raw = useSyncExternalStore(game.subscribe, game.getView);
+  // The local game decides instantly; the table plays it in the dealer's rhythm (anim/timeline.ts).
+  const { view, pending, skip, presentation } = useTableTimeline(raw, game.sessionId, game.players[0]?.id ?? 'local');
+  const snap = view ?? raw;
   useEffect(() => () => game.destroy(), [game]);
   const me = useMe();
   const back = me.status === 'ready' ? me.me.cardBack : 'classic';
   const theme = me.status === 'ready' ? me.me.tableTheme : 'emerald';
   const solo = game.mode === 'solo';
   const viewer = snap.you.userId;
-  const handoffPlayer = game.handoff ? game.players.find((p) => p.id === game.handoff) : null;
+  const [menu, setMenu] = useState(false);
+  const handoffPlayer = game.handoff && !pending ? game.players.find((p) => p.id === game.handoff) : null;
   const anyBet = game.players.some((p) => p.betUnits > 0);
   // A local hand lives only in this page: an update must never reload it away. Busy from the first bet to the result.
   useHandBusy('local', (snap.phase === 'betting' && anyBet) || snap.phase === 'player_turns' || snap.phase === 'dealer_turn');
@@ -25,20 +31,28 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
 
   return (
     <div className="room local" data-phase={snap.phase} data-testid="local-game">
-      <header className="room-head">
-        <button className="btn ghost sm" onClick={onExit}>
-          {t('back')}
+      <header className="room-head hud">
+        <button className="hud-btn hud-back" onClick={onExit} aria-label={t('back')} data-testid="local-back">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </button>
-        <span className="code-chip static">{solo ? t('practice') : t('passPlay')}</span>
         {solo && (
-          <span className="wallet">
-            <Coins units={game.players[0].units} />
+          <span className="wallet hud-balance">
+            <Coins units={snap.you.availableUnits} />
           </span>
         )}
+        <span className="hud-spacer" />
+        <span className="code-chip static hud-mode">{solo ? t('practice') : t('passPlay')}</span>
+        <button className="hud-btn" onClick={() => setMenu(true)} aria-label={t('menu')} data-testid="room-menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
       </header>
       <div className="status-line">
         <span className="phase-text" data-testid="status">
-          {snap.phase === 'player_turns' ? (solo ? myTurnText(snap, viewer) : t('turnOf', { name: turnName ?? '' })) : snap.phase === 'dealer_turn' ? t('dealerTurn') : snap.phase === 'betting' ? t('waitingBets') : ''}
+          {pending && snap.phase === 'player_turns' && !snap.round?.turn ? t('dealing') : snap.phase === 'player_turns' ? (solo ? myTurnText(snap, viewer) : t('turnOf', { name: turnName ?? '' })) : snap.phase === 'dealer_turn' ? t('dealerTurn') : snap.phase === 'betting' ? t('waitingBets') : ''}
         </span>
       </div>
       <Table
@@ -49,6 +63,9 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
         offset={0}
         dealer={{ name: t('autoDealer'), presenter: false }}
         sessionKey={game.sessionId}
+        presentation={presentation}
+        pending={pending}
+        onSkip={skip}
         overlay={
           handoffPlayer ? (
             <div className="handoff" role="dialog" aria-modal="true" data-testid="handoff">
@@ -65,7 +82,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
         {snap.phase === 'betting' && (
           <div className="stack">
             {game.players.map((p) => (
-              <div key={p.id} className="bet-row">
+              <div key={p.id} className={`bet-row ${solo ? 'bet-bar' : ''}`}>
                 {!solo && (
                   <span className="bet-who">
                     <Avatar id={p.avatar} size={28} />
@@ -73,7 +90,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
                     <Coins units={p.units} />
                   </span>
                 )}
-                <StakePicker stakes={game.stakes} available={p.units} current={p.betUnits} onPick={(c) => game.setBet(p.id, c)} />
+                <StakePicker stakes={game.stakes} available={p.units} current={p.betUnits} onPick={(c) => game.setBet(p.id, c)} onClear={() => game.clearBet(p.id)} />
                 {p.units + p.betUnits < 20 && (
                   <button className="btn sm gold" onClick={() => game.refill(p.id)}>
                     {t('refill')}
@@ -81,9 +98,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
                 )}
               </div>
             ))}
-            <button className="btn primary wide big" disabled={!anyBet} onClick={() => game.deal()} data-testid="deal">
-              {t('deal')}
-            </button>
+            <BetConfirm units={game.players.reduce((a, p) => a + p.betUnits, 0)} label={t('deal')} testId="deal" disabled={!anyBet} onConfirm={() => game.deal()} />
           </div>
         )}
         {snap.phase === 'player_turns' && !handoffPlayer && <ActionButtons legal={snap.you.legalActions} onAction={(a) => game.act(a)} />}
@@ -118,6 +133,15 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
         )}
       </div>
       <p className="fine center">{t('practiceNote')}</p>
+      <Sheet open={menu} onClose={() => setMenu(false)} title={t('menu')}>
+        <div className="stack">
+          <DealSettings />
+          <button className="btn ghost wide" onClick={onExit}>
+            {t('back')}
+          </button>
+          <p className="fine">{t('practiceNote')}</p>
+        </div>
+      </Sheet>
     </div>
   );
 }

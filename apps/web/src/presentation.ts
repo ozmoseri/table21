@@ -1,24 +1,31 @@
 import { createContext, useContext } from 'react';
 import { reducedMotion } from './prefs.ts';
 import { play, stopAll, type Sfx } from './sound.ts';
+import { BASE } from './anim/timing.ts';
+import { EASING, arcKeyframes, flipAfterLanding, peekKeyframes, revealKeyframes } from './anim/flight.ts';
 
 /**
- * TablePresentationController: one per table session (online room or local game instance).
+ * TablePresentation: one per table session (online room or local game instance). It animates what the timeline
+ * (anim/timeline.ts) puts on the table: a card that mounts in live mode flies from the shoe on an arc, lands and
+ * turns face up; the hole card lifts, waits and turns; the dealer peeks.
  *
  * Modes
  * - hydrate: first render, reconnect, resume from background. Cards appear in place, no replay.
- * - live: new cards since the previous commit animate from the shoe, staggered by draw slot.
+ * - live: cards that mount fly in. When they mount is decided by the timeline, not here.
  *
- * The server never waits for animation. Every animation and delayed sound has a handle so a resync,
- * unmount, background/resume or a switch to reduced motion can finish or cancel it immediately.
+ * Every animation runs at the timeline's playback rate (Elegant 1, Quick, Turbo, catch-up), so changing speed or
+ * skipping affects cards already in the air too. The server never waits for any of this.
  */
 export class TablePresentation {
   private seen = new Set<string>();
-  private mode: 'hydrate' | 'live' = 'hydrate';
-  private batch: { el: HTMLElement; slot: number }[] = [];
+  private mode: 'hydrate' | 'live' | 'settle' = 'hydrate';
+  private batch: { el: HTMLElement; faceUp: boolean }[] = [];
   private anims = new Set<Animation>();
   private timers = new Set<ReturnType<typeof setTimeout>>();
-  private sequenceEndsAt = 0;
+  private pendingFx: { kind: 'reveal' | 'peek'; id: string }[] = [];
+  private root: HTMLElement | null = null;
+  /** Playback rate shared by all running animations (1 = Elegant). */
+  rate = 1;
   /** True when the latest commit only hydrated state (first render, reconnect, resume). Used to skip old celebrations. */
   hydratedLast = true;
   private onVisibility = () => {
@@ -35,49 +42,91 @@ export class TablePresentation {
     this.mode = 'hydrate';
   }
 
+  /** Skip: the cards the next commit mounts appear in place, but it still counts as live (a result may celebrate). */
+  settleNext() {
+    this.finishAll(false);
+    if (this.mode === 'live') this.mode = 'settle';
+  }
+
+  setRoot(el: HTMLElement | null) {
+    this.root = el;
+  }
+
   /** Called from a card's layout effect when it mounts. */
-  register(el: HTMLElement, cardId: string) {
+  register(el: HTMLElement, cardId: string, faceUp = true) {
     if (this.seen.has(cardId)) return;
     this.seen.add(cardId);
-    if (this.mode === 'live') this.batch.push({ el, slot: Number(cardId.split(':').pop() ?? 0) });
+    if (this.mode === 'live') this.batch.push({ el, faceUp });
+    // settle: seen, shown in place
+  }
+
+  /** Hole card reveal or dealer peek, run on the next commit (after the DOM shows the new face). */
+  queue(kind: 'reveal' | 'peek', cardId: string) {
+    this.pendingFx.push({ kind, id: cardId });
   }
 
   /** Called from the table's layout effect, after all cards of this commit registered. */
   commit(shoe: DOMRect | null) {
-    const items = this.batch.sort((a, b) => a.slot - b.slot);
+    const items = this.batch;
     this.batch = [];
+    const fx = this.pendingFx;
+    this.pendingFx = [];
     const wasHydrate = this.mode === 'hydrate';
+    const settle = this.mode === 'settle';
     this.hydratedLast = wasHydrate;
     this.mode = 'live';
-    if (wasHydrate || !items.length || reducedMotion()) return;
-    // Card travel 280 ms (target 240 to 320), next card 90 to 120 ms later, so a full six-player deal (14 cards) takes
-    // about 1.5 s and a solo deal (4 cards) about 0.6 s.
-    const stagger = Math.max(90, Math.min(120, 1700 / items.length));
-    const duration = 280;
-    const start = Math.max(0, this.sequenceEndsAt - performance.now());
-    items.forEach((it, i) => {
-      const r = it.el.getBoundingClientRect();
-      const dx = shoe ? shoe.left + shoe.width / 2 - (r.left + r.width / 2) : 0;
-      const dy = shoe ? shoe.top + shoe.height / 2 - (r.top + r.height / 2) : -120;
-      const delay = Math.min(start, 600) + i * stagger;
-      const a = it.el.animate(
-        [
-          { transform: `translate(${dx}px, ${dy}px) rotate(-14deg) scale(.82)`, opacity: 0.4 },
-          // a small settle at the end: the card lands, it does not stop dead
-          { transform: 'translate(0, -3px) rotate(0.6deg) scale(1.03)', opacity: 1, offset: 0.82 },
-          { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
-        ],
-        { duration, delay, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'backwards' },
-      );
-      this.track(a);
-      this.later(() => play('deal'), delay);
-    });
-    this.sequenceEndsAt = performance.now() + Math.min(start, 600) + (items.length - 1) * stagger + duration;
+    if (wasHydrate || settle || reducedMotion()) return;
+    for (const it of items) this.fly(it.el, it.faceUp, shoe);
+    for (const f of fx) {
+      const el = this.root?.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(f.id)}"]`);
+      if (el) (f.kind === 'reveal' ? this.reveal(el) : this.peek(el));
+    }
   }
 
-  /** Runs after the visual sequence in progress (for example the result sound after the last card lands). */
+  private fly(el: HTMLElement, faceUp: boolean, shoe: DOMRect | null) {
+    const r = el.getBoundingClientRect();
+    const dx = shoe ? shoe.left + shoe.width / 2 - (r.left + r.width / 2) : 0;
+    const dy = shoe ? shoe.top + shoe.height / 2 - (r.top + r.height / 2) : -160;
+    const a = el.animate(arcKeyframes(dx, dy), { duration: BASE.flight, easing: EASING.deal, fill: 'backwards' });
+    this.track(a);
+    const inner = el.querySelector<HTMLElement>('.card-inner');
+    if (inner && faceUp) {
+      const f = flipAfterLanding(BASE.flight, BASE.flip);
+      this.track(inner.animate(f.frames, { duration: f.duration, fill: 'backwards' }));
+    }
+    play('deal');
+  }
+
+  private reveal(el: HTMLElement) {
+    const k = revealKeyframes(BASE.revealLift, BASE.revealPause, BASE.revealFlip, BASE.revealLand);
+    el.classList.add('is-revealing');
+    const a = el.animate(k.outer, { duration: k.duration });
+    this.track(a);
+    a.finished.then(() => el.classList.remove('is-revealing')).catch(() => el.classList.remove('is-revealing'));
+    const inner = el.querySelector<HTMLElement>('.card-inner');
+    if (inner) this.track(inner.animate(k.inner, { duration: k.duration, fill: 'backwards' }));
+    this.later(() => play('flip'), (BASE.revealLift + BASE.revealPause) / this.rate);
+  }
+
+  private peek(el: HTMLElement) {
+    this.track(el.animate(peekKeyframes, { duration: BASE.peek, easing: EASING.flip }));
+  }
+
+  /** Change the speed of everything in flight (Quick, Turbo, catch-up when it is the player's turn). */
+  setRate(rate: number) {
+    this.rate = rate;
+    for (const a of this.anims) {
+      try {
+        a.updatePlaybackRate(rate);
+      } catch {
+        a.playbackRate = rate;
+      }
+    }
+  }
+
+  /** Kept for callers that used to wait for the deal: the timeline now runs them at the right moment. */
   afterSequence(fn: () => void, extra = 0) {
-    this.later(fn, Math.max(0, this.sequenceEndsAt - performance.now()) + extra);
+    this.later(fn, extra);
   }
 
   sound(s: Sfx, afterSequence = true) {
@@ -86,6 +135,7 @@ export class TablePresentation {
   }
 
   track(a: Animation) {
+    if (this.rate !== 1) a.playbackRate = this.rate;
     this.anims.add(a);
     a.finished.then(() => this.anims.delete(a)).catch(() => this.anims.delete(a));
   }
@@ -98,8 +148,13 @@ export class TablePresentation {
     this.timers.add(t);
   }
 
+  /** Number of card animations still running (tests and the skip button read this). */
+  get running() {
+    return this.anims.size;
+  }
+
   /** Jump every running animation to its end state and drop pending delayed effects. */
-  finishAll() {
+  finishAll(silence = true) {
     for (const a of this.anims) {
       try {
         a.finish();
@@ -111,9 +166,9 @@ export class TablePresentation {
     for (const t of this.timers) clearTimeout(t);
     this.timers.clear();
     // Sounds already handed to WebAudio for the old sequence are silenced too.
-    stopAll();
-    this.sequenceEndsAt = 0;
+    if (silence) stopAll();
     this.batch = [];
+    this.pendingFx = [];
   }
 
   dispose() {

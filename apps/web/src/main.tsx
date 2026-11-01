@@ -1,17 +1,18 @@
 import { createRoot } from 'react-dom/client';
+// DECISIONS 8: Rubik 400/500/600 for the interface, Frank Ruhl Libre 700 for titles and card indices.
 // Only the Hebrew and Latin subsets are bundled (smaller offline cache for phones).
-import '@fontsource/heebo/hebrew-400.css';
-import '@fontsource/heebo/latin-400.css';
-import '@fontsource/heebo/hebrew-500.css';
-import '@fontsource/heebo/latin-500.css';
-import '@fontsource/heebo/hebrew-700.css';
-import '@fontsource/heebo/latin-700.css';
-import '@fontsource/heebo/hebrew-800.css';
-import '@fontsource/heebo/latin-800.css';
-import '@fontsource/inter/latin-500.css';
-import '@fontsource/inter/latin-700.css';
-import '@fontsource/libre-bodoni/latin-600.css';
+import '@fontsource/rubik/hebrew-400.css';
+import '@fontsource/rubik/latin-400.css';
+import '@fontsource/rubik/hebrew-500.css';
+import '@fontsource/rubik/latin-500.css';
+import '@fontsource/rubik/hebrew-600.css';
+import '@fontsource/rubik/latin-600.css';
+import '@fontsource/frank-ruhl-libre/hebrew-700.css';
+import '@fontsource/frank-ruhl-libre/latin-700.css';
 import './styles.css';
+// After the base styles: the v5 palette, type and full-screen shell, then the premium table and HUD.
+import './theme/tokens.css';
+import './theme/premium.css';
 import { App } from './App.tsx';
 import { loadConfig, markBootSlow, refreshMe, retryUntilOnline } from './api.ts';
 import { initUpdates } from './update.ts';

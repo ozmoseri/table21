@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { SHOTS, createRoom, joinRoom, onboard, player, sit } from './helpers.ts';
+import { SHOTS, createRoom, joinRoom, onboard, pickAndConfirm, player, sit } from './helpers.ts';
 
 const runningCardAnimations = (page: Page) =>
   page.evaluate(() => [...document.querySelectorAll('.card')].reduce((n, el) => n + el.getAnimations().filter((a) => a.playState === 'running').length, 0));
@@ -29,6 +29,8 @@ test('gifts and reactions between friends: delivered once, rate limited, muteabl
   await a.page.keyboard.press('Escape');
 
   // Reaction bubble appears at the sender's seat for the other player.
+  // Reactions live in the one social tray (HUD), not in a row under the table.
+  await b.page.getByTestId('social').click();
   await b.page.getByTestId('react-card').click();
   await expect(a.page.locator('.others .seat .react-bubble')).toContainText('איזה קלף!');
   await a.page.screenshot({ path: `${SHOTS}/after-reaction.png` });
@@ -38,6 +40,7 @@ test('gifts and reactions between friends: delivered once, rate limited, muteabl
   await a.page.getByRole('button', { name: /השתקת מתנות ותגובות/ }).click();
   await a.page.keyboard.press('Escape');
   await b.page.waitForTimeout(2700);
+  await b.page.getByTestId('social').click();
   await b.page.getByTestId('react-wow').click();
   await expect(b.page.locator('.me-zone .react-bubble')).toContainText('וואו');
   await a.page.waitForTimeout(600);
@@ -84,7 +87,7 @@ test('online reload mid-round hydrates the table without replaying the deal', as
   await onboard(a, 1);
   await createRoom(a);
   await sit(a);
-  await a.page.locator('.stake-chip').first().click();
+  await pickAndConfirm(a.page);
   await expect(a.page.locator('.my-hands .card')).toHaveCount(2, { timeout: 10_000 });
   await a.page.reload();
   await expect(a.page.locator('.my-hands .card, .result-panel')).not.toHaveCount(0, { timeout: 10_000 });

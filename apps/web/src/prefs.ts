@@ -1,6 +1,7 @@
 import { get, set } from 'idb-keyval';
 import { useSyncExternalStore } from 'react';
 import type { Locale } from './i18n.ts';
+import type { DealSpeed } from './anim/timing.ts';
 
 export interface Prefs {
   sound: boolean;
@@ -8,10 +9,16 @@ export interface Prefs {
   motion: 'system' | 'full' | 'reduced';
   haptics: boolean;
   locale: Locale;
+  /** Dealing speed: Elegant (default for new players), Quick or Turbo. Remembered on this device. */
+  dealSpeed: DealSpeed;
+  /** Actions on the left thumb (mirrors the action row and the landscape grid). */
+  leftHanded: boolean;
+  /** The one-time "full screen / add to home screen" card was closed. */
+  installHintClosed: boolean;
 }
 
 const mq = typeof matchMedia !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
-let prefs: Prefs = { sound: true, motion: 'system', haptics: true, locale: 'he' };
+let prefs: Prefs = { sound: true, motion: 'system', haptics: true, locale: 'he', dealSpeed: 'elegant', leftHanded: false, installHintClosed: false };
 const subs = new Set<() => void>();
 mq?.addEventListener?.('change', () => {
   apply();
@@ -30,6 +37,7 @@ export async function loadPrefs(): Promise<Prefs> {
 
 function apply() {
   document.documentElement.dataset.motion = reducedMotion() ? 'reduced' : 'full';
+  document.documentElement.dataset.hand = prefs.leftHanded ? 'left' : 'right';
 }
 
 export function setPrefs(p: Partial<Prefs>) {

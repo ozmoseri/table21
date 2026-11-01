@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useTableTimeline } from '../anim/useTimeline.ts';
 import { useHandBusy } from '../update.ts';
 import { OutdatedNotice } from '../components/UpdateBanner.tsx';
 import QRCode from 'qrcode';
@@ -8,7 +9,8 @@ import type { PlayerAction } from '@table21/game-engine';
 import { RoomClient, type Intent } from '../net.ts';
 import { api, refreshMe } from '../api.ts';
 import { REACTION_TEXT, errorText, getLocale, t } from '../i18n.ts';
-import { ActionButtons, ResultPanel, StakePicker, Table, myTurnText, totalLabel, type DealerInfo } from '../components/Table.tsx';
+import { ActionButtons, BetConfirm, ResultPanel, StakePicker, Table, myTurnText, totalLabel, type DealerInfo } from '../components/Table.tsx';
+import { DealSettings } from '../components/DealSettings.tsx';
 import { Avatar, Coins, Seconds, Sheet, toast } from '../components/bits.tsx';
 import { go } from '../App.tsx';
 
@@ -20,7 +22,7 @@ function nextDealerStepLabel(s: RoomSnapshot) {
   return live && (d.total ?? 0) < 17 ? t('dealerStepDraw') : t('dealerStepSettle');
 }
 
-function ShareSheet({ snap, open, onClose }: { snap: RoomSnapshot; open: boolean; onClose: () => void }) {
+function ShareSheet({ snap, open, onClose, children }: { snap: RoomSnapshot; open: boolean; onClose: () => void; children?: ReactNode }) {
   const url = `${location.origin}/#/r/${snap.code}`;
   const [qr, setQr] = useState('');
   useEffect(() => {
@@ -63,6 +65,7 @@ function ShareSheet({ snap, open, onClose }: { snap: RoomSnapshot; open: boolean
           </button>
         )}
       </div>
+      {children}
     </Sheet>
   );
 }
@@ -90,9 +93,12 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
   const client = useMemo(() => new RoomClient(code), [code]);
   useEffect(() => () => client.close(), [client]);
   const st = useSyncExternalStore(client.subscribe, client.getState);
-  const snap = st.snapshot;
+  // What the table shows: the server state played through the dealer's rhythm (anim/timeline.ts).
+  const { view: snap, pending, skip, presentation } = useTableTimeline(st.snapshot, code, me.userId, st.resyncKey);
   const offsetRef = useRef(0);
-  const [sheet, setSheet] = useState<null | 'share' | 'members' | 'more' | 'settings'>(null);
+  const [sheet, setSheet] = useState<null | 'share' | 'more' | 'settings' | 'social'>(null);
+  // Chosen chip waiting for Confirm (DECISIONS 5). Cleared when the bet is placed or the betting phase ends.
+  const [picked, setPicked] = useState<number | null>(null);
   const [detail, setDetail] = useState<{ userId: string; name: string; avatar: AvatarId; betUnits?: number } | null>(null);
   const [muted, setMuted] = useState<Set<string>>(() => new Set());
   const toggleMute = (uid: string) =>
@@ -177,7 +183,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
   let status = '';
   if (snap.phase === 'waiting') status = t('waitingBets');
   else if (snap.phase === 'betting') status = t('dealingSoon');
-  else if (snap.phase === 'player_turns') status = myTurn ? myTurnText(snap, me.userId) : t('turnOf', { name: turnName });
+  else if (snap.phase === 'player_turns') status = pending && !round?.turn ? t('dealing') : myTurn ? myTurnText(snap, me.userId) : t('turnOf', { name: turnName });
   else if (snap.phase === 'dealer_turn') status = t('dealerTurn');
 
   const controls = () => {
@@ -263,21 +269,34 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
         </div>
       );
     }
+    const pick = picked !== null && picked * 2 !== mySeat.betUnits ? picked : null;
     return (
-      <div className="stack">
-        <StakePicker stakes={snap.settings.stakes} available={snap.you.availableUnits} current={mySeat.betUnits} onPick={(c) => send({ type: 'bet', coins: c })} disabled={st.pending} />
-        <div className="row">
-          {mySeat.betUnits > 0 && (
-            <button className="btn ghost" onClick={() => send({ type: 'clear_bet' })}>
-              {t('clearBet')}
-            </button>
-          )}
-          {canDeal && (
-            <button className="btn primary grow" onClick={() => send({ type: 'deal' })} data-testid="deal">
-              {t('deal')}
-            </button>
-          )}
-        </div>
+      <div className="bet-bar">
+        <StakePicker
+          stakes={snap.settings.stakes}
+          available={snap.you.availableUnits}
+          current={mySeat.betUnits}
+          selected={pick}
+          onPick={(c) => setPicked(c * 2 === mySeat.betUnits ? null : c)}
+          onClear={() => (pick !== null ? setPicked(null) : void send({ type: 'clear_bet' }))}
+          disabled={st.pending}
+        />
+        {pick !== null ? (
+          <BetConfirm
+            units={pick * 2}
+            label={t('confirmBet')}
+            testId="bet-confirm"
+            disabled={st.pending}
+            onConfirm={async () => {
+              const r = await send({ type: 'bet', coins: pick });
+              if (r.ok) setPicked(null);
+            }}
+          />
+        ) : mySeat.betUnits > 0 ? (
+          <BetConfirm units={mySeat.betUnits} label={t('deal')} testId="deal" disabled={st.pending} onConfirm={canDeal ? () => void send({ type: 'deal' }) : undefined} note={t('waitingOthers')} />
+        ) : (
+          <BetConfirm units={0} label="" testId="bet-confirm" note={t('pickChip')} />
+        )}
       </div>
     );
   };
@@ -286,20 +305,28 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
 
   return (
     <div className="room" data-phase={snap.phase} data-testid="room">
-      <header className="room-head">
-        <button className="btn ghost sm" onClick={() => (client.close(), go('home'))} aria-label={t('back')}>
-          {t('back')}
+      <header className="room-head hud">
+        <button className="hud-btn" onClick={() => setSheet('more')} aria-label={t('menu')} data-testid="room-menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
         </button>
-        <button className="code-chip" onClick={() => setSheet('share')} data-testid="share">
-          <bdi dir="ltr">{snap.code}</bdi>
-          <span>{t('share')}</span>
-        </button>
-        <button className="btn ghost sm" onClick={() => setSheet('members')}>
+        <span className="wallet hud-balance">
+          <Coins units={snap.you.availableUnits} />
+          {st.pending && <span className="sync-dot" title={t('syncing')} />}
+        </span>
+        <span className="hud-spacer" />
+        <button className="hud-invite code-chip" onClick={() => setSheet('share')} data-testid="share" aria-label={t('invitePlayers')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7 0a3 3 0 1 0 0-6M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6m1-6c2.8 0 5 2.2 5 5" />
+          </svg>
           <span className="num">{snap.members.filter((m) => m.connected).length}</span>
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" className="ico"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7 0a3 3 0 1 0 0-6M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6m1-6c2.8 0 5 2.2 5 5" /></svg>
+          <bdi dir="ltr">{snap.code}</bdi>
         </button>
-        <button className="btn ghost sm" onClick={() => setSheet('more')} aria-label="more">
-          ⋯
+        <button className={`hud-btn ${muted.has('*') ? 'is-muted' : ''}`} onClick={() => setSheet('social')} aria-label={t('socialTray')} data-testid="social">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 5h14v10H9l-4 4z" />
+          </svg>
         </button>
       </header>
       {handLive && <OutdatedNotice />}
@@ -319,10 +346,6 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
             <Seconds deadline={snap.deadline} offset={offset} />s
           </span>
         ) : null}
-        <span className="wallet">
-          <Coins units={snap.you.availableUnits} />
-          {st.pending && <span className="sync-dot" title={t('syncing')} />}
-        </span>
       </div>
 
       {banners.length > 0 && (
@@ -344,6 +367,9 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
         dealer={dealer}
         sessionKey={snap.roomId}
         resyncKey={st.resyncKey}
+        presentation={presentation}
+        pending={pending}
+        onSkip={skip}
         reactions={st.reactions}
         muted={muted}
         onSeatTap={(seat) => setDetail(seat)}
@@ -367,19 +393,6 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
         {controls()}
       </div>
 
-      <div className="reactions" role="group" aria-label="reactions">
-        {REACTIONS.map((r) => (
-          <button key={r} className="pill" onClick={() => client.react(r)} data-testid={`react-${r}`}>
-            {REACTION_TEXT[r][getLocale()]}
-          </button>
-        ))}
-        <button className={`pill ${muted.has('*') ? 'on' : ''}`} onClick={() => toggleMute('*')} aria-pressed={muted.has('*')} aria-label={t('muteAll')}>
-          <svg viewBox="0 0 24 24" width="18" height="18" className="ico" aria-hidden="true">
-            <path d="M6 9h3l5-4v14l-5-4H6z" />
-            {muted.has('*') && <path d="M17 9l4 6M21 9l-4 6" />}
-          </svg>
-        </button>
-      </div>
 
       {matchRunning && match && (
         <details className="panel match-panel">
@@ -388,8 +401,8 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
         </details>
       )}
 
-      <ShareSheet snap={snap} open={sheet === 'share'} onClose={() => setSheet(null)} />
-      <Sheet open={sheet === 'members'} onClose={() => setSheet(null)} title={t('players')}>
+      <ShareSheet snap={snap} open={sheet === 'share'} onClose={() => setSheet(null)}>
+        <h3 className="sub">{t('players')}</h3>
         <ul className="member-list">
           {snap.members.map((m) => (
             <li key={m.userId}>
@@ -401,8 +414,22 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
           ))}
         </ul>
         {spectators.length > 0 && <p className="muted small">{t('spectating')}: {spectators.length}</p>}
+      </ShareSheet>
+      <Sheet open={sheet === 'social'} onClose={() => setSheet(null)} title={t('socialTray')}>
+        <div className="reactions" role="group" aria-label="reactions">
+          {REACTIONS.map((r) => (
+            <button key={r} className="pill" onClick={() => (client.react(r), setSheet(null))} data-testid={`react-${r}`}>
+              {REACTION_TEXT[r][getLocale()]}
+            </button>
+          ))}
+        </div>
+        <button className={`btn ghost wide ${muted.has('*') ? 'on' : ''}`} onClick={() => toggleMute('*')} aria-pressed={muted.has('*')} data-testid="mute-all">
+          {muted.has('*') ? t('unmuteAll') : t('muteAll')}
+        </button>
+        <p className="fine">{t('giftFromAvatar')}</p>
       </Sheet>
-      <Sheet open={sheet === 'more'} onClose={() => setSheet(null)} title="TABLE21">
+
+      <Sheet open={sheet === 'more'} onClose={() => setSheet(null)} title={t('menu')}>
         <div className="stack">
           {mySeat && (
             <button className="btn wide" onClick={() => (setSheet(null), send({ type: 'leave_seat' }))} data-testid="leave-seat">
@@ -414,7 +441,8 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
               {t('settings')}
             </button>
           )}
-          <button className="btn ghost wide" onClick={() => (client.close(), go('home'))}>
+          <DealSettings />
+          <button className="btn ghost wide" onClick={() => (client.close(), go('home'))} data-testid="leave-room">
             {t('leaveRoom')}
           </button>
           <p className="fine">{t('coinsNote')}</p>

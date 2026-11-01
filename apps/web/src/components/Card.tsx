@@ -47,7 +47,7 @@ export function Card({ card, back = 'classic', size = 'md' }: { card: PublicCard
   const hidden = 'hidden' in card;
 
   useLayoutEffect(() => {
-    if (ref.current && presentation) presentation.register(ref.current, card.id);
+    if (ref.current && presentation) presentation.register(ref.current, card.id, !('hidden' in card));
   }, [card.id, presentation]);
 
   const red = !hidden && (card.suit === 'H' || card.suit === 'D');
