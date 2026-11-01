@@ -1,9 +1,15 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
+import { randomBytes } from 'node:crypto';
+
+/**
+ * One id per build, shared by the client bundle (__T21_BUILD__), the service worker and dist/version.json (read by the
+ * server and returned from /api/config). An open client that sees a different id knows a newer version is deployed.
+ */
+const BUILD = process.env.T21_BUILD ?? `${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomBytes(4).toString('hex')}`;
 
 /**
  * Writes .br and .gz next to every text file in dist (scripts, styles, HTML, SVG, manifest, sw.js). The server serves
@@ -22,6 +28,7 @@ function precompress(): Plugin {
       const walk = (d: string): string[] => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
       for (const f of walk(outDir)) {
         if (!/\.(js|css|html|svg|webmanifest|json)$/.test(f)) continue;
+        if (/(^|[\\/])(sw\.js|version\.json)$/.test(f)) continue; // tiny, and always fetched fresh
         const buf = readFileSync(f);
         if (buf.length < 1024) continue;
         writeFileSync(f + '.br', brotliCompressSync(buf, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }));
@@ -43,12 +50,22 @@ function serviceWorker(): Plugin {
       const publicDir = join(import.meta.dirname, 'public');
       const walk = (d: string): string[] =>
         readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [relative(publicDir, join(d, f))]));
-      const files = ['./', 'index.html', ...Object.keys(bundle), ...walk(publicDir)].filter((f) => f !== 'sw.js' && !f.endsWith('.map'));
-      const version = createHash('sha256').update(files.join('|') + Date.now()).digest('hex').slice(0, 12);
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD }) });
+      const files = ['./', 'index.html', ...Object.keys(bundle), ...walk(publicDir)].filter((f) => f !== 'sw.js' && f !== 'version.json' && !f.endsWith('.map'));
+      const version = BUILD;
       const source = `/* TABLE21 service worker ${version} */
+const VERSION = '${version}';
 const CACHE = 't21-${version}';
 const PRECACHE = ${JSON.stringify(files.map((f) => (f.startsWith('./') ? f : './' + f)))};
-self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting())); });
+// A new version installs in the background and then WAITS: it never takes over a page in the middle of a hand.
+// The page asks it to take over (SKIP_WAITING) only at a safe point, after the player taps "refresh"
+// (apps/web/src/update.ts). With no page open, it simply takes over on the next launch.
+// no-cache: revalidate each file with the server (a 304 is cheap) so a release never precaches a stale copy.
+self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE.map((u) => new Request(u, { cache: 'no-cache' }))))); });
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (e.data && e.data.type === 'GET_VERSION' && e.ports[0]) e.ports[0].postMessage(VERSION);
+});
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
@@ -74,6 +91,7 @@ self.addEventListener('fetch', (e) => {
 
 export default defineConfig({
   plugins: [react(), serviceWorker(), precompress()],
+  define: { __T21_BUILD__: JSON.stringify(BUILD) },
   base: '/',
   build: { target: 'es2022', sourcemap: false, assetsInlineLimit: 0 },
   server: {

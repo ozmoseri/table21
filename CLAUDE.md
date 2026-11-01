@@ -37,6 +37,8 @@ pnpm perf <baseUrl> <label> [out.json]   # page weight + LCP (needs a VITE_LAB=1
 - Wallet changes lock the wallet row (`select ... for update`) inside the same transaction as the
   rule check. Settlement and voids are exactly once (`finished_at` guard + ledger `idem_key`).
 - Emit only after commit. Clients recover with a full snapshot.
+- Updates never interrupt a hand: the service worker waits, the page reloads only on the player's tap at a safe
+  point (`apps/web/src/update.ts`). Bump `PROTOCOL_VERSION` only for wire changes an older client cannot handle.
 - Shoe factories / seeded RNG are test-only. No debug seed, fixed deck or admin wallet route in production.
 - A presenter dealer only triggers mandatory steps; payouts use the system bank.
 

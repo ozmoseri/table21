@@ -1,4 +1,5 @@
-import type { MeResponse } from '@table21/protocol';
+import { PROTOCOL_HEADER, type MeResponse } from '@table21/protocol';
+import { clientProtocol, markOutdated, noteServer } from './update.ts';
 import { useSyncExternalStore } from 'react';
 
 export class ApiError extends Error {
@@ -16,7 +17,9 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
     res = await fetch(path, {
       method: opts.method ?? 'GET',
       credentials: 'same-origin',
-      headers: write ? { 'content-type': 'application/json', 'x-t21': '1', ...(opts.idem ? { 'idempotency-key': opts.idem } : {}) } : {},
+      headers: write
+        ? { 'content-type': 'application/json', 'x-t21': '1', [PROTOCOL_HEADER]: String(clientProtocol()), ...(opts.idem ? { 'idempotency-key': opts.idem } : {}) }
+        : {},
       body: opts.body !== undefined ? JSON.stringify(opts.body) : write ? '{}' : undefined,
       signal: ctl?.signal,
     });
@@ -26,6 +29,7 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
     if (timer) clearTimeout(timer);
   }
   const data = await res.json().catch(() => ({}));
+  if (res.status === 426 || data?.error === 'client_outdated') markOutdated(); // nothing was changed on the server
   if (!res.ok) throw new ApiError(res.status, res.status === 429 ? 'rate_limited' : (data?.error ?? 'error'), data);
   return data as T;
 }
@@ -156,9 +160,13 @@ export const useMe = () =>
     () => me,
   );
 
-export let serverConfig: { deployment: 'online' | 'lan'; leaderboardMinHands: number } = { deployment: 'online', leaderboardMinHands: 20 };
+export let serverConfig: { deployment: 'online' | 'lan'; leaderboardMinHands: number; build?: string | null; protocol?: number } = {
+  deployment: 'online',
+  leaderboardMinHands: 20,
+};
 export async function loadConfig() {
   try {
     serverConfig = await api('/api/config');
+    noteServer(serverConfig);
   } catch {}
 }

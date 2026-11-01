@@ -1,12 +1,12 @@
-PASS cold start to healthy (Postgres, includes migrations) (1264 ms)
+PASS cold start to healthy (Postgres, includes migrations) (1268 ms)
 PASS health check /api/health ({"ok":true,"db":"postgres","deployment":"online"})
 PASS listens on all interfaces on the platform ([table21] online server on http://0.0.0.0:10000 (db: postgres, resumed rooms: 0))
 PASS session cookie is Secure, HttpOnly, SameSite=Lax behind the proxy
 PASS CSP allows only this origin and wss
 PASS realtime runs over WSS through the proxy (wss://localhost:8443/socket.io/?EIO=4&transport=websocket)
 PASS a hand reaches my turn
-PASS hard restart in the middle of a hand: back up (1030 ms)
-PASS after the restart the player gets the same hand back (resync) and can act (2 of spades,J of hearts -> 2 of spades,J of hearts)
+PASS hard restart in the middle of a hand: back up (1038 ms)
+PASS after the restart the player gets the same hand back (resync) and can act (7 of clubs,2 of spades -> 7 of clubs,2 of spades)
 PASS the interrupted hand settles normally
 PASS without a database a restart forgets accounts; the app falls back to a clean start
 PASS while the server sleeps the page loads from cache, shows "waking up" and offers offline play

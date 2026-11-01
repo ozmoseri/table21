@@ -27,15 +27,16 @@
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
-    "@types/node": "26.6.6",
-    "fast-check": "4.10.2",
-    "tsx": "4.23.15",
-    "typescript": "5.9.3",
-    "vitest": "5.0.5",
     "@table21/game-engine": "workspace:*",
     "@table21/protocol": "workspace:*",
     "@table21/server": "workspace:*",
+    "@types/node": "26.6.6",
+    "fast-check": "4.10.2",
+    "pg": "8.23.1",
+    "pngjs": "5.0.0",
     "socket.io-client": "4.8.4",
-    "pg": "8.23.1"
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import { useMe, useNet } from './api.ts';
 import { Waking } from './screens/Waking.tsx';
+import { UpdateBanner } from './components/UpdateBanner.tsx';
 import { t } from './i18n.ts';
 import { usePrefs } from './prefs.ts';
 import { Announcer, Toaster } from './components/bits.tsx';
@@ -106,6 +107,7 @@ export function App() {
       <Shell route={head} nav={nav}>
         {content}
       </Shell>
+      <UpdateBanner />
       <Toaster />
       <Announcer />
     </>

@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
+import { clientProtocol, markOutdated, CLIENT_BUILD } from './update.ts';
 import type { Command, CommandResult, GiftEvent, GiftId, ReactionEvent, ReactionId, RoomSnapshot } from '@table21/protocol';
 
 type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never;
@@ -31,7 +32,8 @@ export class RoomClient {
   private bc: BroadcastChannel | null = null;
 
   constructor(public code: string) {
-    this.socket = io({ path: '/socket.io', transports: ['websocket', 'polling'], withCredentials: true, reconnectionDelayMax: 4000 });
+    // The protocol travels in the handshake: an outdated client can watch and resync, but the server refuses its actions.
+    this.socket = io({ path: '/socket.io', transports: ['websocket', 'polling'], withCredentials: true, reconnectionDelayMax: 4000, auth: { protocol: clientProtocol(), build: CLIENT_BUILD } });
     this.socket.on('connect', () => void this.join());
     this.socket.on('disconnect', () => this.set({ connection: 'reconnecting' }));
     this.socket.on('connect_error', () => this.set({ connection: this.wasOnline ? 'reconnecting' : 'connecting' }));
@@ -96,6 +98,7 @@ export class RoomClient {
         const res: CommandResult | null = await this.socket.timeout(4000).emitWithAck('cmd', cmd).catch(() => null);
         if (res) {
           if (!res.ok && res.error === 'stale_version') await this.resync();
+          if (!res.ok && res.error === 'client_outdated') markOutdated();
           return res;
         }
       }
@@ -117,6 +120,7 @@ export class RoomClient {
     const payload = { roomId: snap.roomId, recipientId, giftId, eventId: newCommandId() };
     for (let attempt = 0; attempt < 3; attempt++) {
       const res = await this.socket.timeout(4000).emitWithAck('gift', payload).catch(() => null);
+      if (res?.error === 'client_outdated') markOutdated();
       if (res) return res;
     }
     return { ok: false, error: 'timeout' };

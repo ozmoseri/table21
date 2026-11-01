@@ -7,6 +7,7 @@ import { ActionButtons, ResultPanel, StakePicker, Table, myTurnText } from '../c
 import { Avatar, Coins } from '../components/bits.tsx';
 import { go } from '../App.tsx';
 import { useMe } from '../api.ts';
+import { useHandBusy } from '../update.ts';
 
 function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
   const snap = useSyncExternalStore(game.subscribe, game.getView);
@@ -18,6 +19,8 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
   const viewer = snap.you.userId;
   const handoffPlayer = game.handoff ? game.players.find((p) => p.id === game.handoff) : null;
   const anyBet = game.players.some((p) => p.betUnits > 0);
+  // A local hand lives only in this page: an update must never reload it away. Busy from the first bet to the result.
+  useHandBusy('local', (snap.phase === 'betting' && anyBet) || snap.phase === 'player_turns' || snap.phase === 'dealer_turn');
   const turnName = snap.round?.turn ? game.players.find((p) => p.id === snap.round!.seats[snap.round!.turn!.seat].playerId)?.name : '';
 
   return (

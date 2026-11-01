@@ -944,3 +944,23 @@ body::before {
 .pilot-expired { border-inline-start-color: var(--loss-soft); }
 .pilot .btn { min-height: var(--tap); display: inline-grid; place-items: center; margin-block: 6px; }
 .user-id { font-family: var(--index, monospace); user-select: all; }
+
+/* ---------- new version available (only between hands) ---------- */
+.update-banner {
+  position: fixed; z-index: 70; inset-inline: 12px; top: calc(env(safe-area-inset-top, 0px) + 10px); margin-inline: auto; max-width: 560px;
+  display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 10px 12px 10px 14px;
+  border-radius: 16px; background: rgba(9, 22, 17, 0.96); border: 1px solid rgba(243, 220, 158, 0.45);
+  box-shadow: 0 16px 34px -12px rgba(0, 0, 0, 0.85); animation: update-in 0.28s cubic-bezier(.2, .8, .3, 1) both;
+}
+.update-banner.is-outdated { border-color: var(--turn); }
+.update-banner.in-hand { position: static; animation: none; margin: 0 0 6px; max-width: none; inset-inline: auto; }
+.update-text { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.update-text b { color: var(--brass-hi); font-size: 15px; }
+.update-text span { font-size: 13px; color: var(--text-dim, #c9d3cf); line-height: 1.35; }
+.update-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.update-actions .btn { min-height: var(--tap); height: var(--tap); min-width: 88px; padding-block: 0; }
+@keyframes update-in { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (orientation: landscape) and (max-height: 560px) {
+  .update-banner { top: 8px; padding-block: 6px; max-width: 640px; flex-wrap: nowrap; }
+  .update-text span { font-size: 12.5px; }
+}

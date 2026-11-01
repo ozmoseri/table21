@@ -99,6 +99,12 @@ const he = {
   natural: 'בלאקג׳ק טבעי',
   serverWaking: 'אם השרת היה במנוחה הוא מתעורר תוך כדקה, וננסה להתחבר שוב לבד.',
   wakingTitle: 'השרת מתעורר',
+  updateReady: 'גרסה חדשה של TABLE21 זמינה',
+  updateReadyBody: 'מעדכנים רק בין ידיים, אף פעם לא באמצע יד. הרענון לוקח שנייה.',
+  updateApply: 'רענון',
+  updateLater: 'אחר כך',
+  outdatedTitle: 'צריך לעבור לגרסה החדשה',
+  outdatedBody: 'השרת עודכן, ופעולות מהגרסה הזו חסומות כדי שלא ייגעו בקוינס. רענון מחזיר אותך לאותה יד עם אותם קוינס.',
   userIdLabel: 'מזהה משתמש (לתמיכה ולהגדרת מנהל השרת):',
   wakingBody: 'השרת החינמי נרדם אחרי רבע שעה בלי משחק. ההתעוררות לוקחת עד כדקה, ואנחנו ממשיכים לנסות לבד.',
   wakingElapsed: 'עברו {n} שניות',
@@ -459,6 +465,12 @@ const en: Record<Key, string | string[]> = {
   natural: 'Natural blackjack',
   serverWaking: 'If the server was asleep it wakes up within about a minute; we keep trying to connect.',
   wakingTitle: 'The server is waking up',
+  updateReady: 'A new version of TABLE21 is available',
+  updateReadyBody: 'Updates happen only between hands, never during one. Refreshing takes a second.',
+  updateApply: 'Refresh',
+  updateLater: 'Later',
+  outdatedTitle: 'Switch to the new version',
+  outdatedBody: 'The server was updated, so actions from this version are blocked and cannot touch your coins. Refreshing brings you back to the same hand with the same coins.',
   userIdLabel: 'User id (for support and for setting the server operator):',
   wakingBody: 'The free server sleeps after 15 quiet minutes. Waking takes up to about a minute; we keep trying on our own.',
   wakingElapsed: '{n} seconds so far',
@@ -727,6 +739,7 @@ export function t(key: Key, vars?: Record<string, string | number>): string {
 export const tl = (key: Key): string[] => dicts[current][key] as string[];
 
 export const ERROR_TEXT: Record<string, Record<Locale, string>> = {
+  client_outdated: { he: 'צריך לרענן לגרסה החדשה כדי להמשיך. הקוינס לא השתנו.', en: 'Refresh to the new version to continue. Your coins did not change.' },
   insufficient_funds: { he: 'אין מספיק קוינס לפעולה הזו', en: 'Not enough coins for this' },
   not_your_turn: { he: 'זה לא התור שלך', en: 'It is not your turn' },
   stale_version: { he: 'השולחן התעדכן. בדקו את המצב ונסו שוב.', en: 'The table changed. Check and try again.' },

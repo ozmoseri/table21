@@ -76,7 +76,17 @@ export interface GiftEvent {
   expiresAt: number;
 }
 
+/**
+ * Wire compatibility between a running client and the server. Bump it only when an older client would send or read
+ * something the server no longer understands; the server then refuses that client's game and money actions with
+ * `client_outdated` (no state or wallet change) until it reloads the new version. A new build alone does not bump it:
+ * that only offers "new version available" at a safe point. Clients from before this field send nothing and count as 1.
+ */
+export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_HEADER = 'x-t21-protocol';
+
 export type ErrorCode =
+  | 'client_outdated'
   | 'bad_request'
   | 'unauthorized'
   | 'not_found'

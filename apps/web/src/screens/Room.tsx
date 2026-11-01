@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useHandBusy } from '../update.ts';
+import { OutdatedNotice } from '../components/UpdateBanner.tsx';
 import QRCode from 'qrcode';
 import { GIFTS, REACTIONS, type AvatarId, type GiftId, type MeResponse, type RoomSnapshot } from '@table21/protocol';
 import { GIFT_LABEL, GiftIcon } from '../components/gifts.tsx';
@@ -114,6 +116,13 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
   useEffect(() => {
     if (snap?.phase === 'results' || snap?.phase === 'waiting') void refreshMe();
   }, [snap?.phase]);
+  // A hand of mine is in progress (my bet is down, or I am in the round being played): no update offer now.
+  const myBet = !!snap?.seats.some((s) => s.userId === me.userId && s.betUnits > 0);
+  const handLive =
+    !!snap &&
+    ((snap.phase === 'betting' && myBet) ||
+      ((snap.phase === 'player_turns' || snap.phase === 'dealer_turn') && !!snap.round?.seats.some((s) => s.playerId === me.userId)));
+  useHandBusy('room', handLive);
 
   const send = async (intent: Intent) => {
     const r = await client.send(intent);
@@ -293,6 +302,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
           ⋯
         </button>
       </header>
+      {handLive && <OutdatedNotice />}
 
       <div className="status-line" aria-live="polite">
         <span className="phase-text" data-testid="status">

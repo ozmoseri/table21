@@ -209,3 +209,34 @@ What happens while the server is asleep:
   - Before this change, a database error in a timed step left the room stuck until the next command or restart.
   - A connection dropped while checked out crashed the process (an unhandled `error` event in `pg`). Both are fixed
     and tested with a real connection kill (`pg_terminate_backend`).
+
+## 10. Releasing while people play (safe updates)
+
+Every push to `main` redeploys. A player who has the app open gets the new version like this:
+
+1. **The new service worker installs in the background and waits.** It has no `skipWaiting` on install, so it never
+   takes over a page by itself. It precaches with `cache: 'no-cache'` (a 304 when unchanged), so it never stores a
+   stale copy.
+2. **The page notices the release.**
+   - When: on focus, every 15 minutes, and at start.
+   - How: `/api/config` returns the server's `build` (read from `dist/version.json` on each request). If it differs
+     from the page's `__T21_BUILD__`, the page knows it is behind.
+3. **"New version available" appears only at a safe point:** in the lobby, or in a room before your bet or after
+   the result. It never appears while you have a bet down or a hand in play, online or in local practice or
+   pass-and-play. "Later" hides it until the next hand ends.
+4. **Nothing reloads until the player taps "Refresh".** Then the waiting worker takes over (`SKIP_WAITING`) and the
+   page reloads into the new version. Without a tap, the new version starts on the next launch.
+
+**Protocol changes (`PROTOCOL_VERSION` in `packages/protocol`):**
+- Bump it only when an older client would send or read something the new server does not understand. A normal
+  release does not bump it.
+- When it differs, the server refuses that client's writes before any handler runs:
+  - HTTP writes get `426 client_outdated`;
+  - socket `cmd` and `gift` get `client_outdated`;
+  - reactions are ignored.
+
+  No state and no wallet changes. Clients built before this field existed send nothing and count as protocol 1.
+- The outdated client can still watch and resync its hand. It shows "Switch to the new version" with "Refresh";
+  in an online hand the notice appears even mid-hand, because its actions are blocked anyway. Reloading is safe
+  there: the server holds the hand and the coins, and the page comes back to the same hand.
+- Local practice never talks to the server, so it is never blocked or reloaded.

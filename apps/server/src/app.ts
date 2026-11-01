@@ -7,11 +7,12 @@ import { Pilot, pilotConfigFromEnv, type PilotConfig } from './pilot.ts';
 import { exportDb } from './backup.ts';
 import { gzipSync } from 'node:zlib';
 import { Server as IOServer } from 'socket.io';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { z } from 'zod';
 import type { Card } from '@table21/game-engine';
-import { AVATARS, AUTH_PROVIDERS, CodeInput, Command, DisplayName, GiftInput, InviteCreate, ProviderAuthInput, ReactionInput, RoomCreate, SessionCreate, UserRef } from '@table21/protocol';
+import { AVATARS, AUTH_PROVIDERS, PROTOCOL_HEADER, PROTOCOL_VERSION, CodeInput, Command, DisplayName, GiftInput, InviteCreate, ProviderAuthInput, ReactionInput, RoomCreate, SessionCreate, UserRef } from '@table21/protocol';
 import { sendGift } from './gifts.ts';
 import type { Db } from './db.ts';
 import { DEFAULT_ECONOMY, SESSION_COOKIE, SESSION_DAYS, createGuest, deviceLabel, userFromToken, type Economy, type SessionUser } from './auth.ts';
@@ -40,6 +41,23 @@ export interface AppOptions {
   providers?: ProviderConfig;
   /** Free-tier pilot card and backups for the operator. Defaults to the environment (T21_PILOT_PLAN, RENDER, ...). */
   pilot?: PilotConfig;
+  /** Wire protocol this server speaks (tests only override it). Defaults to PROTOCOL_VERSION. */
+  protocolVersion?: number;
+}
+
+/** A client's protocol from a header or handshake value. Clients from before the field existed send nothing: 1. */
+export const clientProtocol = (v: unknown) => {
+  const n = Number(Array.isArray(v) ? v[0] : v);
+  return Number.isInteger(n) && n > 0 && n < 1000 ? n : 1;
+};
+
+/** The build id of the client this server serves (written by the web build), so open clients can see a newer one. */
+function servedBuild(webDist?: string): string | null {
+  try {
+    return webDist ? (JSON.parse(readFileSync(join(webDist, 'version.json'), 'utf8')).build ?? null) : null;
+  } catch {
+    return null;
+  }
 }
 
 const NONCE_COOKIE = 't21n';
@@ -52,6 +70,7 @@ declare module 'fastify' {
 
 export async function buildApp(opts: AppOptions) {
   const deployment = opts.deployment ?? 'online';
+  const protocol = opts.protocolVersion ?? PROTOCOL_VERSION;
   const pilot = new Pilot(opts.db, opts.pilot ?? (deployment === 'lan' ? {} : pilotConfigFromEnv(process.env)), opts.now ?? Date.now);
   const eco: Economy = { ...DEFAULT_ECONOMY, ...opts.economy };
   const now = opts.now ?? Date.now;
@@ -145,6 +164,8 @@ export async function buildApp(opts: AppOptions) {
     const origin = req.headers.origin;
     if (req.headers['x-t21'] !== '1') return reply.code(403).send({ error: 'csrf' });
     if (origin && new URL(origin).host !== req.headers.host) return reply.code(403).send({ error: 'origin' });
+    // An older client must not change anything it may no longer understand: refuse before any handler runs.
+    if (clientProtocol(req.headers[PROTOCOL_HEADER]) !== protocol) return reply.code(426).send({ error: 'client_outdated', protocol });
   };
   const needUser = async (req: FastifyRequest, reply: FastifyReply) => {
     if (!req.user) return reply.code(401).send({ error: 'unauthorized' });
@@ -153,7 +174,11 @@ export async function buildApp(opts: AppOptions) {
   const authed = { preHandler: [guard, needUser] };
 
   app.get('/api/health', async () => ({ ok: true, db: opts.db.kind, deployment }));
-  app.get('/api/config', async () => ({ deployment, ads: adsStatus(), avatars: AVATARS, leaderboardMinHands: opts.leaderboardMinHands ?? 20 }));
+  app.get('/api/config', async (_req, reply) => {
+    reply.header('cache-control', 'no-store');
+    // Read per request (tiny file): a deploy that swaps the files is reported without a restart.
+    return { deployment, ads: adsStatus(), avatars: AVATARS, leaderboardMinHands: opts.leaderboardMinHands ?? 20, build: servedBuild(opts.webDist), protocol };
+  });
   app.get('/api/lan-info', async () => {
     if (deployment !== 'lan') return { addresses: [] };
     const addrs = Object.values(networkInterfaces())
@@ -425,6 +450,7 @@ export async function buildApp(opts: AppOptions) {
       if (!user) return next(new Error('unauthorized'));
       socket.data.user = user;
       socket.data.sessionId = user.session_id;
+      socket.data.protocol = clientProtocol(socket.handshake.auth?.protocol);
       next();
     } catch {
       next(new Error('unauthorized'));
@@ -474,8 +500,12 @@ export async function buildApp(opts: AppOptions) {
       if (typeof ack === 'function') ack({ ok: true });
     });
 
+    // Watching and resyncing stay open to an outdated client (it can see its hand); acting does not.
+    const outdated = () => socket.data.protocol !== protocol;
+
     socket.on('cmd', async (raw, ack) => {
       if (typeof ack !== 'function') return;
+      if (outdated()) return ack({ ok: false, error: 'client_outdated', version: 0, protocol });
       if (!cmdLimiter.take(socket.id)) return ack({ ok: false, error: 'rate_limited', version: 0 });
       const parsed = Command.safeParse(raw);
       if (!parsed.success) return ack({ ok: false, error: 'bad_request', version: 0 });
@@ -485,6 +515,7 @@ export async function buildApp(opts: AppOptions) {
 
     socket.on('gift', async (raw, ack) => {
       const reply = typeof ack === 'function' ? ack : () => {};
+      if (outdated()) return reply({ ok: false, error: 'client_outdated', protocol });
       const p = GiftInput.safeParse(raw);
       if (!p.success || p.data.roomId !== roomId) return reply({ ok: false, error: 'bad_request' });
       const member = await opts.db.query(
@@ -500,6 +531,7 @@ export async function buildApp(opts: AppOptions) {
     });
 
     socket.on('react', (raw) => {
+      if (outdated()) return;
       const p = ReactionInput.safeParse(raw);
       if (!p.success || p.data.roomId !== roomId) return;
       const t = now();
