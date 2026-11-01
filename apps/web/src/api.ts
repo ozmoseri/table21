@@ -2,7 +2,7 @@ import type { MeResponse } from '@table21/protocol';
 import { useSyncExternalStore } from 'react';
 
 export class ApiError extends Error {
-  constructor(public status: number, public code: string) {
+  constructor(public status: number, public code: string, public data: any = null) {
     super(code);
   }
 }
@@ -15,7 +15,7 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
     body: opts.body !== undefined ? JSON.stringify(opts.body) : opts.method && opts.method !== 'GET' ? '{}' : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, res.status === 429 ? 'rate_limited' : (data?.error ?? 'error'));
+  if (!res.ok) throw new ApiError(res.status, res.status === 429 ? 'rate_limited' : (data?.error ?? 'error'), data);
   return data as T;
 }
 

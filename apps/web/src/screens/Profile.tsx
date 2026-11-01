@@ -7,6 +7,16 @@ import { go } from '../App.tsx';
 
 type HistoryRow = { roundId: string; hand: number; stakeUnits: number; returnUnits: number; netUnits: number; outcome: string; natural: boolean; mode: string; at: string; roomCode: string };
 
+export function AccountCard({ kind }: { kind: 'guest' | 'saved' }) {
+  return (
+    <a className={`panel account-card ${kind}`} href="#/account" data-testid="account-card">
+      <span className={`badge ${kind === 'saved' ? 'b-win' : 'b-push'}`}>{t(kind === 'saved' ? 'accountSaved' : 'accountGuest')}</span>
+      <span className="fine">{t(kind === 'saved' ? 'accountSavedText' : 'accountGuestText')}</span>
+      <b className="account-cta">{kind === 'saved' ? t('accountTitle') : t('saveAccount')}</b>
+    </a>
+  );
+}
+
 export function Profile() {
   const me = useMe();
   const [stats, setStats] = useState<StatsResponse | null>(null);
@@ -131,7 +141,7 @@ export function Profile() {
           ))}
         </ul>
       </section>
-      <p className="fine">{t('recoveryOff')}</p>
+      <AccountCard kind={u.account.kind} />
     </div>
   );
 }

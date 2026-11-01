@@ -71,3 +71,30 @@ emulation). Rows below override the matching NOT_RUN entries above.
 | 6 to 9 | Wheel, scratch, missions, identity, purchases | NOT_RUN | not built (Stage C to E) |
 | 10 | Real iPhone and Android, two devices in one room, router WAN off | NOT_RUN | Oz reported the LAN host working with an iPhone on 2026-11-01 (not verified by Claude) |
 | 12 | 60 fps and 100 ms visual response on target devices | NOT_RUN | headless Chromium only: 58.5 fps average during a deal, 78 to 82 ms local command round trip |
+
+## Update after Stage C (branch upgrade/stage-c, 2026-11-01)
+
+Runs in Claude's cloud workspace: unit 26/26 PASS, integration 34/34 PASS (PostgreSQL 16), e2e 15/15 PASS (Chromium
+emulation, one worker). Rows below override the "identity" part of the 6 to 9 row above.
+
+| Area | Check | Status | Evidence |
+|---|---|---|---|
+| 1 | Split aces A+Q vs dealer 6+5+10 is a 21 push, not a natural; totals 100 staked, 50 back (Oz screenshot) | PASS | engine.test.ts regression; label "21 אחרי פיצול" in account.spec.ts and docs/screenshots/stage-c-split21.png |
+| 1 | The same A+Q as the original two cards is a natural and beats a three-card dealer 21 at 3:2 | PASS | engine.test.ts |
+| 7 | Guest saves the account with recovery codes and restores it on another browser | PASS | identity.test.ts, account.spec.ts |
+| 7 | Device pairing code: single use, 10 minutes | PASS | identity.test.ts, account.spec.ts |
+| 7 | Leaving an unsaved guest needs explicit confirmation; nothing merged; wallets and ledger unchanged | PASS | identity.test.ts, account.spec.ts |
+| 7 | Provider link keeps wallet, rotates session; sign-in on a second device | PASS (test key / test provider) | identity.test.ts (local RSA key as Google), account.spec.ts (test provider) |
+| 7 | Token checks: aud, iss, exp, signature, alg, kid, nonce, nonce reuse, nonce bound to the browser | PASS | identity.test.ts |
+| 7 | Same email, different subject: no merge; identity owned by another user cannot be linked | PASS | identity.test.ts |
+| 7 | Facebook token for another app, expired or invalid is refused; secret never in responses | PASS (stubbed Graph) | identity.test.ts |
+| 7 | Unconfigured Google/Facebook shown as "not set up", no active button, no provider host in CSP | PASS | identity.test.ts, account.spec.ts |
+| 7 | Test provider refused in production, LAN, public origin | PASS | identity.test.ts |
+| 7 | Sign out other devices closes their HTTP session and live socket | PASS | identity.test.ts, friends.test.ts |
+| 7 | Account deletion: confirmation, refused while seated, data removed, history kept anonymously | PASS | identity.test.ts |
+| 7 | Local practice coins never imported; shown separately from the online wallet | PASS | identity.test.ts (extra field ignored, ledger unchanged), account.spec.ts (IndexedDB value unchanged) |
+| 7 | Invite link: preview without session, accept once, max uses under concurrency, expiry, revoke, self | PASS | friends.test.ts, account.spec.ts |
+| 7 | Blocks: friend code, invite, gift, reaction, room by code, both directions | PASS | friends.test.ts, account.spec.ts |
+| 7 | Migration 003 on an existing embedded (LAN) database keeps sessions valid | PASS | one-off PGlite upgrade check (not part of the suites) |
+| 7 | Real Google and Facebook sign-in | NOT_RUN | no provider app, no public HTTPS origin (docs/PROVIDER_SETUP.md) |
+| 7 | Recovery and invite flows on real phones, share sheet on iOS/Android | NOT_RUN | needs Oz's devices |

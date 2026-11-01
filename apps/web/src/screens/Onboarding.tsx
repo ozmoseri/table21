@@ -35,7 +35,14 @@ export function Onboarding() {
     try {
       await api('/api/session', { method: 'POST', body: { name: name.trim(), avatar, locale: getLocale() } });
       await refreshMe();
-      go('home');
+      // Keep deep links (room link, invite) that brought the visitor here.
+      let pending: string | null = null;
+      try {
+        pending = sessionStorage.getItem('t21:pending-route');
+        sessionStorage.removeItem('t21:pending-route');
+      } catch {}
+      if (pending) go(pending);
+      else if (/^#\/(onboard)?$/.test(location.hash) || !location.hash) go('home');
     } catch (e: any) {
       toast(errorText(e?.code));
     } finally {
@@ -101,6 +108,11 @@ export function Onboarding() {
           </button>
         )}
         <p className="fine">{t('guestNote')}</p>
+        {!offline && (
+          <a className="btn ghost wide" href="#/signin" data-testid="have-account">
+            {t('haveAccount')}
+          </a>
+        )}
         <p className="fine">{t('coinsNote')}</p>
       </form>
     </div>

@@ -51,7 +51,7 @@ export function providerConfigFromEnv(env: NodeJS.ProcessEnv): ProviderConfig {
 /** The test provider can sign anyone in. Startup must fail if it is switched on outside automated tests. */
 export function assertSafeAuthConfig(env: NodeJS.ProcessEnv, deployment: 'online' | 'lan') {
   if (env.T21_TEST_AUTH !== '1') return;
-  if (env.NODE_ENV === 'production' || deployment === 'lan' || env.T21_PUBLIC_ORIGIN)
+  if (env.NODE_ENV === 'production' || deployment === 'lan' || !!env.T21_PUBLIC_ORIGIN)
     throw new Error('T21_TEST_AUTH=1 is for automated tests only and cannot be used with NODE_ENV=production, LAN mode or a public origin.');
 }
 

@@ -18,7 +18,7 @@ const avatars = ['amber', 'cobalt', 'sage', 'coral', 'plum', 'rose'] as const;
 
 function fixture(kind: string): RoomSnapshot {
   slot = 0;
-  const n = kind === 'solo' ? 1 : kind === 'three' ? 3 : 6;
+  const n = kind === 'solo' || kind === 'split21' ? 1 : kind === 'three' ? 3 : 6;
   const ids = Array.from({ length: n }, (_, i) => `user_lab_${i}`);
   const seatsHands: PublicHand[][] = ids.map((_, i) => {
     if (i === 0 && kind === 'split')
@@ -27,6 +27,12 @@ function fixture(kind: string): RoomSnapshot {
         hand([c('8', 'H'), c('9', 'C')], 17, { status: 'stood', fromSplit: true }),
         hand([c('8', 'D'), c('A', 'S')], 19, { status: 'active', fromSplit: true, soft: true }),
         hand([c('8', 'C')], 8, { status: 'waiting', fromSplit: true }),
+      ];
+    if (i === 0 && kind === 'split21')
+      // The hand from Oz's phone screenshot: split aces, A+Q is 21 (not a natural) and pushes the dealer's 6+5+10.
+      return [
+        hand([c('A', 'C'), c('Q', 'D')], 21, { status: 'stood', fromSplit: true, stakeUnits: 100 }),
+        hand([c('A', 'S'), c('4', 'H')], 15, { status: 'stood', fromSplit: true, soft: true, stakeUnits: 100 }),
       ];
     if (i === 0) return [hand([c('K', 'H'), c('7', 'S')], 17)];
     const pairs: [string, string][][] = [
@@ -77,7 +83,22 @@ function fixture(kind: string): RoomSnapshot {
 export function Lab({ kind }: { kind: string }) {
   const snap = fixture(kind === 'split' ? 'split' : kind);
   const settled: RoomSnapshot | null =
-    kind === 'result'
+    kind === 'split21'
+      ? {
+          ...snap,
+          phase: 'results',
+          round: {
+            ...snap.round!,
+            phase: 'settled',
+            turn: null,
+            dealer: { cards: [c('6', 'D'), c('5', 'D'), c('10', 'C')], total: 21, soft: false, revealed: true },
+            seats: snap.round!.seats.map((s) => ({
+              ...s,
+              hands: s.hands.map((h, j) => ({ ...h, outcome: j === 0 ? ('push' as const) : ('lose' as const), returnedUnits: j === 0 ? 100 : 0 })),
+            })),
+          },
+        }
+      : kind === 'result'
       ? {
           ...snap,
           phase: 'results',

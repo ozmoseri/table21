@@ -1,9 +1,11 @@
-import { api } from '../api.ts';
+import { AccountCard } from './Profile.tsx';
+import { api, useMe } from '../api.ts';
 import { getLocale, setLocale, t, tl } from '../i18n.ts';
 import { setPrefs, usePrefs } from '../prefs.ts';
 
 export function Settings() {
   const p = usePrefs();
+  const me = useMe();
   const toggle = (k: 'sound' | 'haptics') => setPrefs({ [k]: !p[k] });
   return (
     <div className="pad stack">
@@ -70,7 +72,7 @@ export function Settings() {
       </section>
       <section className="panel">
         <h2 className="title sm">{t('account')}</h2>
-        <p className="fine">{t('recoveryOff')}</p>
+        {me.status === 'ready' ? <AccountCard kind={me.me.account.kind} /> : <p className="fine">{t('guestNote')}</p>}
       </section>
     </div>
   );

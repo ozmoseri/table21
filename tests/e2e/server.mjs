@@ -13,7 +13,7 @@ await c.end();
 const p = spawn('pnpm', ['--filter', '@table21/server', 'start'], {
   cwd: root,
   stdio: 'inherit',
-  env: { ...process.env, DATABASE_URL: url, PORT: '3121', T21_FAST: '1', T21_SESSION_RATE: '500' },
+  env: { ...process.env, DATABASE_URL: url, PORT: '3121', T21_FAST: '1', T21_SESSION_RATE: '500', T21_TEST_AUTH: '1' },
 });
 process.on('SIGTERM', () => p.kill('SIGTERM'));
 process.on('SIGINT', () => p.kill('SIGTERM'));

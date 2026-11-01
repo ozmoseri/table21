@@ -1,13 +1,32 @@
-# Auth and friends (Stage C plan)
+# Auth and friends (Stage C)
 
-> **סיכום לעוז:** היום כל שחקן הוא אורח שנשמר בדפדפן אחד. התוכנית מוסיפה זהות קבועה עם התחברות דרך Google או Apple, ובהמשך גם Facebook.
-> חיבור חשבונות יהיה רק בפעולה מפורשת שלך, ולעולם לא איחוד אוטומטי לפי כתובת מייל.
-> יתרות מקומיות מתרגול או מ-LAN לא עוברות לחשבון.
-> החברים עובדים קודם כל דרך קוד וקישור שלנו, בלי תלות ב-Facebook.
-> כל זה מתוכנן בלבד, ודורש ממך חשבונות ספקים וכתובת HTTPS ציבורית.
+> **סיכום לעוז:** שלב C בנוי ועובד בלי שום שירות חיצוני.
+> - **שמירת אורח:** משתמש אורח יכול לשמור את החשבון עם 8 קודי שחזור, או לחבר מכשיר נוסף עם קוד חד-פעמי לעשר דקות.
+> - **מכשירים וחשבון:** אפשר לראות את המכשירים המחוברים, לנתק אותם ולמחוק את החשבון.
+> - **חברים:** קישורי הזמנה שלנו לחברים ולקבוצות, חסימה והסרת חבר.
+> - **יתרות:** קוינס תרגול נשארים במכשיר, ושום התחברות לא מעבירה או מאחדת יתרות.
+> - **Google ו-Facebook:** הקוד קיים, אבל הם יוצגו כ"לא הוגדר" עד שיהיו דומיין עם HTTPS והגדרות אצל הספקים. הפירוט ב-`docs/PROVIDER_SETUP.md`.
 
-Status: planned. Today: server-created guest identity, httpOnly session cookie, friend codes, groups.
-Cross-device recovery is shown as unavailable in the UI and stays that way until this stage ships.
+Status: built (server, client, tests). Google and Facebook are implemented but `not_configured` until the owner supplies
+the provider settings and a public HTTPS origin. Apple is planned. LAN accounts live on the host computer only.
+
+## What shipped
+
+| Area | Endpoints | Notes |
+|---|---|---|
+| Sessions | `GET /api/auth/sessions`, `POST /api/auth/sessions/revoke`, `/revoke-others`, `/signout` | Public session id, 400-day expiry, revocation reason, `rotated_from`, device label (no full user agent). Revoked sessions lose their live socket. |
+| Recovery codes | `POST /api/auth/recovery-codes`, `POST /api/auth/recover` | 8 codes `XXXX-XXXX-XXXX` (about 59 bits each), stored as SHA-256, single use, regenerating invalidates the old set, rate limited. |
+| Device pairing | `POST /api/auth/pair`, `POST /api/auth/pair/redeem`, route `#/link/<code>` | One active code per account, 10 minutes, single use. |
+| Providers | `GET /api/auth/providers`, `POST /api/auth/nonce`, `POST /api/auth/provider`, `POST /api/auth/unlink` | `intent: link` (guest upgrade, rotates the session) or `signin`. Nonce: httpOnly cookie + token claim, consumed only when the request completes. |
+| Switch guard | 409 `confirm_switch` | Moving a device away from an unsaved guest with no other session needs `confirmSwitch: true`. The guest is never merged. |
+| Sign-out guard | 409 `confirm_loss` | Signing out an unsaved guest on its only device needs `confirmLoss: true`. |
+| Deletion | `POST /api/auth/delete` (confirm with the display name) | Refused while seated or dealing. Removes identities, codes, sessions, friendships, memberships, blocks, invites; anonymizes the profile; keeps ledger and hand results. |
+| Invites | `POST/GET /api/invites`, `GET /api/invites/:token`, `POST /api/invites/:token/accept`, `POST /api/invites/:id/revoke`, route `#/i/<token>` | Token shown once, stored hashed; max uses, expiry, revocation; row lock so concurrent accepts never exceed `max_uses`; a user is counted once. |
+| Blocks | `GET/POST /api/blocks`, `POST /api/blocks/remove`, `POST /api/friends/remove` | Both directions: friend codes, invites, gifts, reactions (filtered per recipient) and opening each other's rooms by code. Blocking removes the friendship. |
+| Clubs | `POST /api/groups/:id/leave` | Owner leaving hands ownership to the longest-standing member. |
+
+Schema: `apps/server/migrations/003_identity.sql` (runs automatically on start, also on an existing LAN database; existing
+sessions keep working).
 
 ## Identity model
 
@@ -73,8 +92,13 @@ Cross-device recovery is shown as unavailable in the UI and stays that way until
   script refuses (startup fails if both production mode and the test flag are set).
 - No UI button may simulate a successful provider login in production builds.
 
-## Acceptance tests (planned)
+## Acceptance tests
 
-Linking two providers; same email with a different `sub` stays a different identity; wrong `aud`/`iss`/expired token
-rejected; deletion removes identities and sessions; session rotation; local wallet never imported; blocked user cannot
-gift, react or join; invite token expiry and revocation.
+Automated, all passing (see docs/TEST_REPORT.md): same email with a different `sub` stays a different identity; wrong
+`aud`/`iss`/expired/bad signature/`alg`/`kid`/nonce rejected; nonce single use and bound to the browser cookie; session
+rotation on link; switch and sign-out guards; recovery code single use and regeneration; pairing expiry; revoke other
+devices (HTTP and socket); deletion; local practice coins never imported (extra fields ignored, ledger unchanged);
+blocked user cannot gift, react, befriend, accept an invite or open the blocker's room; invite expiry, revocation and
+concurrent max-use; test provider refused in production and LAN.
+
+Not run: real Google or Facebook sign-in (no provider app exists), real phones, HTTPS deployment.

@@ -144,6 +144,12 @@ export function Home() {
         )}
       </header>
 
+      {user?.account.kind === 'guest' && (
+        <a className="home-save" href="#/account" data-testid="home-save">
+          {t('saveAccount')}
+        </a>
+      )}
+
       {user?.activeRoom && (
         <a className="resume" href={`#/r/${user.activeRoom.code}`}>
           {t('backToRoom')} <bdi dir="ltr">{user.activeRoom.code}</bdi>

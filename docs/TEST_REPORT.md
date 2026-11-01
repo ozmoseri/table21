@@ -95,3 +95,15 @@ These are indicative only. Real-phone performance is NOT measured.
 5. Try the friend-dealer mode and a friends night.
 6. Unplug the router's internet (keep Wi-Fi on) and play another round.
 7. Note anything that looks wrong on iPhone (safe areas, fonts, sounds, haptics) and send screenshots.
+
+
+## Stage C run (2026-11-01, branch upgrade/stage-c)
+
+| Suite | Command | Result |
+|---|---|---|
+| Unit | `pnpm test:unit` | PASS 26/26 (2 new: split-aces regression from Oz's screenshot, natural vs three-card 21) |
+| Integration (PostgreSQL 16) | `pnpm test:integration` | PASS 34/34 (new: identity.test.ts 12, friends.test.ts 6) |
+| E2E (Chromium, one worker) | `pnpm test:e2e` | PASS 15/15 (new: account.spec.ts 5) |
+| Typecheck (4 packages) | `pnpm typecheck` | PASS |
+
+Screenshots: docs/screenshots/stage-c-*.png. Not run: real Google/Facebook, real phones, HTTPS deployment.

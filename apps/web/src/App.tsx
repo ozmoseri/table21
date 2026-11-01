@@ -13,6 +13,9 @@ import { Settings } from './screens/Settings.tsx';
 import { Lan } from './screens/Lan.tsx';
 import { Lab } from './screens/Lab.tsx';
 import { Club } from './screens/Club.tsx';
+import { Account } from './screens/Account.tsx';
+import { SignIn } from './screens/SignIn.tsx';
+import { Invite } from './screens/Invite.tsx';
 
 const subscribeHash = (f: () => void) => {
   addEventListener('hashchange', f);
@@ -72,6 +75,13 @@ export function App() {
     content = <Lab kind={rest[0] ?? 'three'} />;
     nav = false;
   } else if (head === 'settings' || head === 'help') content = <Settings />;
+  else if (head === 'signin' || head === 'link') {
+    content = <SignIn key={route} pairCode={head === 'link' ? rest[0] : undefined} />;
+    nav = false;
+  } else if (head === 'i' && rest[0] && me.status !== 'loading') {
+    content = <Invite token={rest[0]} />;
+    nav = me.status === 'ready';
+  }
   else if (head === 'lan') content = <Lan />;
   else if (me.status === 'loading') content = <p className="muted center pad">{t('loading')}</p>;
   else if (me.status === 'guest-needed' || head === 'onboard') content = <Onboarding />;
@@ -81,6 +91,7 @@ export function App() {
   } else if (head === 'friends') content = <Friends />;
   else if (head === 'club' || head === 'leaderboard') content = <Club key="rank" />;
   else if (head === 'profile') content = <Profile />;
+  else if (head === 'account') content = <Account />;
   else if (head === 'rewards') content = <Club key="rewards" initial="rewards" />;
   else content = <Home />;
 

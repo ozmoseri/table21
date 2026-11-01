@@ -550,6 +550,40 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
 .felt.no-round .felt-lip, .felt.no-round::after { display: none; }
 
 /* ---------- 21 after split (not a natural) ---------- */
-.split21-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: .74rem; font-weight: 600; color: var(--gold-100, #f3e3b5); background: rgba(212, 175, 95, .16); border: 1px solid rgba(212, 175, 95, .45); white-space: nowrap; }
-.split21-note { margin: 6px 0 0; font-size: .82rem; line-height: 1.45; color: var(--ink-2, #c9d3cf); text-align: center; }
-.split21-note b { color: var(--gold-100, #f3e3b5); }
+.split21-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: .74rem; font-weight: 600; color: var(--gold-hi); background: rgba(212, 175, 95, .16); border: 1px solid rgba(212, 175, 95, .45); white-space: nowrap; }
+.split21-note { margin: 6px 0 0; font-size: .82rem; line-height: 1.45; color: var(--muted); text-align: center; }
+.split21-note b { color: var(--gold-hi); }
+
+/* ---------- Stage C: account, sign-in, invites ---------- */
+.btn.danger { border-color: rgba(240, 138, 135, 0.55); color: var(--loss); background: rgba(240, 138, 135, 0.06); }
+.acct h2 { margin-bottom: 4px; }
+.acct-status { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.acct-status.guest { border-color: rgba(216, 180, 106, 0.45); }
+.acct-status p { margin: 0; }
+.code-grid { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.code-grid li { font-family: var(--nums); font-size: clamp(13px, 3.8vw, 15px); letter-spacing: 0.02em; white-space: nowrap; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 6px; text-align: center; }
+.pair-box { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.provider-list, .device-list, .invite-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.provider-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-2); flex-wrap: wrap; }
+.provider-row.off { opacity: 0.85; }
+.provider-row .grow { flex: 1; }
+.prov-mark { width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--line); flex: none; }
+.prov-google { background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); }
+.prov-facebook { background: #1877f2; }
+.prov-apple { background: #e9e9e9; }
+.gsi-box { min-height: 40px; }
+.sm-input { width: 120px; min-height: 40px; }
+.device-list li, .invite-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.device-list .badge { margin-inline-start: 6px; }
+.coins-split .row { padding: 2px 0; }
+.danger details { margin-top: 12px; }
+.danger summary { cursor: pointer; color: var(--loss); min-height: 44px; display: flex; align-items: center; }
+.account-card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-decoration: none; color: inherit; }
+.account-card.guest { border-color: rgba(216, 180, 106, 0.45); }
+.account-cta { color: var(--gold-hi); }
+.invite-card { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.invite-card .title { margin: 0; }
+.link-box { display: block; font-family: var(--nums); font-size: 13px; word-break: break-all; padding: 8px 10px; border-radius: var(--r-sm); background: var(--bg-2); border: 1px dashed var(--line); }
+.seg { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.btn.more { min-width: 44px; font-size: 20px; line-height: 1; }
+.home-save { align-self: center; font-size: 14px; color: var(--gold-hi); text-decoration: none; border: 1px solid rgba(216, 180, 106, 0.4); border-radius: 999px; padding: 6px 14px; min-height: 36px; display: inline-flex; align-items: center; }
