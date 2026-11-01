@@ -78,7 +78,7 @@ const avatars = ['amber', 'cobalt', 'sage', 'coral', 'plum', 'rose'] as const;
 
 function fixture(kind: string): RoomSnapshot {
   slot = 0;
-  const n = kind === 'solo' || kind === 'split21' ? 1 : kind === 'three' ? 3 : 6;
+  const n = kind === 'solo' || kind === 'split21' || kind === 'natural' ? 1 : kind === 'three' ? 3 : 6;
   const ids = Array.from({ length: n }, (_, i) => `user_lab_${i}`);
   const seatsHands: PublicHand[][] = ids.map((_, i) => {
     if (i === 0 && kind === 'split')
@@ -88,6 +88,9 @@ function fixture(kind: string): RoomSnapshot {
         hand([c('8', 'D'), c('A', 'S')], 19, { status: 'active', fromSplit: true, soft: true }),
         hand([c('8', 'C')], 8, { status: 'waiting', fromSplit: true }),
       ];
+    if (i === 0 && kind === 'natural')
+      // A natural (the original two cards) against a dealer 21 made with three cards: the natural wins 3:2.
+      return [hand([c('A', 'H'), c('K', 'S')], 21, { status: 'blackjack', stakeUnits: 50 })];
     if (i === 0 && kind === 'split21')
       // The hand from Oz's phone screenshot: split aces, A+Q is 21 (not a natural) and pushes the dealer's 6+5+10.
       return [
@@ -143,7 +146,19 @@ function fixture(kind: string): RoomSnapshot {
 export function Lab({ kind }: { kind: string }) {
   const snap = fixture(kind === 'split' ? 'split' : kind);
   const settled: RoomSnapshot | null =
-    kind === 'split21'
+    kind === 'natural'
+      ? {
+          ...snap,
+          phase: 'results',
+          round: {
+            ...snap.round!,
+            phase: 'settled',
+            turn: null,
+            dealer: { cards: [c('6', 'C'), c('5', 'H'), c('10', 'D')], total: 21, soft: false, revealed: true },
+            seats: snap.round!.seats.map((s) => ({ ...s, hands: s.hands.map((h) => ({ ...h, outcome: 'blackjack' as const, returnedUnits: 125 })) })),
+          },
+        }
+      : kind === 'split21'
       ? {
           ...snap,
           phase: 'results',

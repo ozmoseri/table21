@@ -195,7 +195,13 @@ export function useSwitchFlow(canLink = true) {
   const handle = async (o: Awaited<ReturnType<typeof authCall>>, retry: (extra: Record<string, unknown>) => Promise<void>): Promise<void> => {
     if (o.kind === 'done') {
       if (o.status === 'same_account') return void toast(t('sameAccount'));
-      toast(o.status === 'linked' || o.status === 'already_linked' ? t('providerLinked') : t('signedIn'));
+      if (o.status === 'linked' || o.status === 'already_linked') {
+        // Same account, new session cookie: refresh in place (no reload, so nothing races with navigation).
+        toast(t('providerLinked'));
+        await refreshMe();
+        return;
+      }
+      toast(t('signedIn'));
       return reloadHome();
     }
     if (o.kind === 'confirm_switch')

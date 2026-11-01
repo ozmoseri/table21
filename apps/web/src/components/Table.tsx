@@ -61,7 +61,7 @@ function HandView({ hand, back, size, active }: { hand: PublicHand; back: string
       <div className="hand-meta">
         <span className="total num">{totalLabel(hand)}</span>
         {size !== 'sm' && <ChipStack units={hand.stakeUnits} small />}
-        {ok && <span className={`badge b-${ok}`}>{t(ok)}</span>}
+        {ok && ok !== 'blackjack' && <span className={`badge b-${ok}`}>{t(ok)}</span>}
         {hand.outcome === 'blackjack' || hand.status === 'blackjack' ? (
           <span className="natural-tag" data-testid="natural">
             {t('natural')}

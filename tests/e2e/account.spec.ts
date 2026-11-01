@@ -114,9 +114,7 @@ test('provider link and sign-in on another device (test provider, automated buil
   const sub = `e2e-${Date.now()}`;
   await a.page.getByTestId('test-sub').fill(sub);
   await a.page.getByTestId('test-go').click();
-  await expect(a.page.locator('.me-name')).toHaveText('Linker', { timeout: 10_000 });
-  await a.page.goto('/#/account');
-  await expect(a.page.getByTestId('provider-test')).toHaveAttribute('data-state', 'linked');
+  await expect(a.page.getByTestId('provider-test')).toHaveAttribute('data-state', 'linked', { timeout: 10_000 });
   await expect(a.page.getByTestId('account-status')).toHaveAttribute('data-kind', 'saved');
 
   const b = await player(browser, 'Other');
