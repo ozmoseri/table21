@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { Db, Q } from './db.ts';
 
 /**
@@ -13,22 +14,45 @@ export const KEY_TTL_HOURS = 24;
 export interface Idem {
   scope: string;
   key: string;
+  /** Fingerprint of the request the key was first used for. */
+  hash?: string;
 }
 
+/** The same key used for a different request. Nothing was changed; HTTP answers 409, sockets `idempotency_conflict`. */
+export class IdempotencyConflict extends Error {
+  constructor(public where: string) {
+    super('idempotency_conflict');
+  }
+}
+
+/** Stable JSON (sorted keys) so the same request always gives the same fingerprint. */
+function canonical(v: unknown): string {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v ?? null);
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`;
+  return `{${Object.keys(v as object)
+    .sort()
+    .filter((k) => (v as Record<string, unknown>)[k] !== undefined)
+    .map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`)
+    .join(',')}}`;
+}
+export const requestHash = (body: unknown) => createHash('sha256').update(canonical(body)).digest('hex').slice(0, 32);
+
 /** Reads and validates the header. A malformed key is ignored (the request still works, without replay). */
-export function idemFrom(headers: Record<string, unknown>, scope: string): Idem | undefined {
+export function idemFrom(headers: Record<string, unknown>, scope: string, body: unknown = {}): Idem | undefined {
   const v = headers[IDEM_HEADER];
-  return typeof v === 'string' && KEY.test(v) ? { scope, key: v } : undefined;
+  return typeof v === 'string' && KEY.test(v) ? { scope, key: v, hash: requestHash(body ?? {}) } : undefined;
 }
 
 /** Returns the stored result of an earlier attempt, or null when this transaction is the first. */
 export async function idemReplay<T>(q: Q, idem: Idem | undefined): Promise<{ response: T; userId: string | null } | null> {
   if (!idem) return null;
-  const rows = await q.query<{ response: T; user_id: string | null }>(
-    `select response, user_id from idempotency_keys where scope = $1 and key = $2 and created_at > now() - make_interval(hours => $3)`,
+  const rows = await q.query<{ response: T; user_id: string | null; request_hash: string | null }>(
+    `select response, user_id, request_hash from idempotency_keys where scope = $1 and key = $2 and created_at > now() - make_interval(hours => $3)`,
     [idem.scope, idem.key, KEY_TTL_HOURS],
   );
-  return rows[0] ? { response: rows[0].response, userId: rows[0].user_id } : null;
+  if (!rows[0]) return null;
+  if (rows[0].request_hash && idem.hash && rows[0].request_hash !== idem.hash) throw new IdempotencyConflict(idem.scope);
+  return { response: rows[0].response, userId: rows[0].user_id };
 }
 
 /**
@@ -38,7 +62,13 @@ export async function idemReplay<T>(q: Q, idem: Idem | undefined): Promise<{ res
 export async function idemSave(q: Q, idem: Idem | undefined, response: unknown, userId: string | null): Promise<void> {
   if (!idem) return;
   await q.query(`delete from idempotency_keys where scope = $1 and key = $2 and created_at <= now() - make_interval(hours => $3)`, [idem.scope, idem.key, KEY_TTL_HOURS]);
-  await q.query(`insert into idempotency_keys(scope, key, user_id, response) values ($1,$2,$3,$4)`, [idem.scope, idem.key, userId, JSON.stringify(response)]);
+  await q.query(`insert into idempotency_keys(scope, key, user_id, response, request_hash) values ($1,$2,$3,$4,$5)`, [
+    idem.scope,
+    idem.key,
+    userId,
+    JSON.stringify(response),
+    idem.hash ?? null,
+  ]);
 }
 
 /**

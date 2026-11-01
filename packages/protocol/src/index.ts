@@ -87,6 +87,7 @@ export const PROTOCOL_HEADER = 'x-t21-protocol';
 
 export type ErrorCode =
   | 'client_outdated'
+  | 'idempotency_conflict'
   | 'bad_request'
   | 'unauthorized'
   | 'not_found'

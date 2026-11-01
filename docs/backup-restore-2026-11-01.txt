@@ -1,12 +1,9 @@
 $ pnpm db:backup export postgres://***@127.0.0.1:55432/table21_deploy backup.json.gz
-exported 17 rows from 25 tables (004_pilot.sql) from postgres://***@127.0.0.1:55432/table21_deploy to deploy-backup.json.gz
+exported 23 rows from 25 tables (005_request_hash.sql) from postgres://***@127.0.0.1:55432/table21_deploy to rc-backup.json.gz
 $ pnpm db:backup restore postgres://***@127.0.0.1:55432/table21_restore backup.json.gz   (fresh empty database)
-schema as in the backup: 001_init.sql, 002_gifts.sql, 003_identity.sql, 004_pilot.sql
-restored 17 rows into postgres://***@127.0.0.1:55432/table21_restore
-verify ok: 17 rows match; wallets 3980 units = ledger 3980 units
-exit 0
-$ pnpm db:backup verify postgres://***@127.0.0.1:55432/table21_deploy backup.json.gz   (source still matches)
-verify ok: 17 rows match; wallets 3980 units = ledger 3980 units
+schema as in the backup: 001_init.sql, 002_gifts.sql, 003_identity.sql, 004_pilot.sql, 005_request_hash.sql
+restored 23 rows into postgres://***@127.0.0.1:55432/table21_restore
+verify ok: 23 rows match; wallets 4000 units = ledger 4000 units
 exit 0
 $ pnpm db:backup restore ... again into the same (now non-empty) database
 restore failed: target is not empty (users has 1 rows). Restore only into a fresh database.

@@ -149,11 +149,16 @@ for (const vp of [
     await onboard(p, 2);
     await createRoom(p);
     await page.getByTestId('sit').click();
-    await page.locator('.stake-chip', { hasText: /^25$/ }).click();
-    const deal = page.getByTestId('deal');
-    if (await deal.isVisible({ timeout: 3000 }).catch(() => false)) await deal.click().catch(() => {});
-    await expect(page.getByTestId('room')).toHaveAttribute('data-phase', /player_turns|results/, { timeout: 15_000 });
-    test.skip((await page.getByTestId('room').getAttribute('data-phase')) === 'results', 'dealt a natural; nothing to act on');
+    // Random shoe: a natural ends the round with no turn; then play the next one until there is a hand to act on.
+    for (let i = 0; ; i++) {
+      await page.locator('.stake-chip', { hasText: /^25$/ }).click();
+      const deal = page.getByTestId('deal');
+      if (await deal.isVisible({ timeout: 3000 }).catch(() => false)) await deal.click().catch(() => {});
+      await expect(page.getByTestId('room')).toHaveAttribute('data-phase', /player_turns|results/, { timeout: 15_000 });
+      if ((await page.getByTestId('room').getAttribute('data-phase')) === 'player_turns') break;
+      expect(i, 'a hand to act on within 5 deals').toBeLessThan(5);
+      await expect(page.getByTestId('room')).toHaveAttribute('data-phase', /waiting|betting/, { timeout: 30_000 });
+    }
     const me = () => page.evaluate(() => fetch('/api/me').then((r) => r.json()));
     const sync = () => page.evaluate(() => fetch('/api/me').then((r) => r.json()).then((m) => m.wallet));
     const before = await sync();

@@ -1,34 +1,33 @@
-# QA report: P0 gate, Club art, free-tier risks and safe updates
+# QA report: release candidate (P0 gate, Club art, free-tier risks, safe updates, idempotency)
 
-> **סיכום לעוז (העדכון האחרון: עדכון PWA בטוח):**
-> - **מה נבדק:** עדכון גרסה בזמן משחק. גרסה חדשה שנכנסת באמצע יד ממתינה עד סוף היד, ורק אז מופיעה ההודעה "גרסה חדשה זמינה" עם כפתור רענון. שום דבר לא מתרענן לבד.
-> - **גרסה ישנה מול שרת חדש:** השרת חוסם פעולות משחק מגרסה ישנה, והקוינס לא משתנים. אחרי רענון השחקן חוזר לאותה יד ומסיים אותה.
-> - **תמונות רקע שלא נטענות:** מוצג העיצוב הקודם, ושום דבר לא זז ממקומו. נבדק לפי הפיקסלים ולפי המיקום של כל רכיב.
-> - **מה נמצא ותוקן:**
->   - ה-service worker הקודם השתלט מיד על דף פתוח.
->   - קבצים נשמרו לזיכרון האופליין מתוך זיכרון הדפדפן, כך שבמקרה של קובץ ששונה בלי לשנות את שמו נשמר עותק ישן.
-> - **בדיקות:** 32 בדיקות כללים, 56 בדיקות אינטגרציה (4 חדשות), 33 בדיקות דפדפן (5 חדשות), ו-13 בדיקות חזרה לפריסה. הכול עבר.
-> - **בדיקות שנכשלו פעם אחת:** בשתי ריצות מלאות קודמות נכשלה כל פעם בדיקה אחרת, ושתיהן עברו בריצה החוזרת. הפירוט בטבלה למטה.
-> - **מה לא נבדק:** עדכון אמיתי ב-Render ובאייפון.
+> **סיכום לעוז (העדכון האחרון: נעילת Idempotency וקבלה סופית):**
+> - **מה נבנה:** לכל פעולה שמזיזה קוינס יש עכשיו מפתח חד-פעמי: הימור, דאבל, ספליט, יציאה מהכיסא, מתנה, מענק יומי, מענק חילוץ ותשלום בסוף יד.
+> - **אותה בקשה פעמיים:** מחזירה את אותה תשובה בלי לחייב שוב. נבדק גם כשהבקשות נשלחות במקביל, וגם כששני שרתים מקבלים אותה ברגע זהה.
+> - **אותו מפתח עם בקשה אחרת:** נדחה, ושום דבר לא משתנה.
+> - **רישום המפתח והתנועה בקוינס:** נשמרים יחד. ניתוק באמצע משאיר את שניהם לא שמורים, ובניסיון החוזר הפעולה מתבצעת פעם אחת.
+> - **קבלה סופית:** כל חבילת הבדיקות רצה מחדש על אותו קוד, והכול עבר. בשתי בדיקות דפדפן הנחת היסוד לא התאימה לבלאקג׳ק טבעי (כאשר יד נגמרת מיד), ותיקנתי אותן.
+> - **מועמד לפריסה:** הקומיט שמכיל את הדוח הזה. מספר הקומיט מופיע בהודעת הסיום, ומזהי הקוד שנבדק מופיעים בסעיף "מועמד לפריסה".
+> - **מה לא נבדק:** טלפונים אמיתיים, Render עצמו, והתחברות עם Google ו-Facebook.
 
 Date: 2026-11-01. Environment: Claude's cloud workspace (Node 22.23, PostgreSQL 16.15, Chromium 153 emulation).
-Commit: see the final message (`TASK DONE <hash>`); the P0 gate itself was d20daa4.
+Commit: the release candidate is the commit that contains this report (child of 1c45b54); see "Release candidate"
+at the end. The P0 gate itself was d20daa4.
 
 Status legend: PASS (automated test passed on this commit), FAIL (found; fixed or documented), NOT RUN (not possible
 here, with the reason).
 
-## Suites on this commit
+## Suites on this commit (final acceptance run, all on the same code)
 
 | Suite | Command | Result |
 |---|---|---|
 | Typecheck (4 packages) | `pnpm typecheck` | PASS |
-| Unit (engine rules) | `pnpm test:unit` | PASS 32/32 |
-| Integration (real PostgreSQL) | `pnpm test:integration` | PASS 56/56 (52 earlier + 4 new in `updates.test.ts`) |
-| E2E (Chromium, separate browser contexts, real service worker) | `pnpm test:e2e` | PASS 33/33 (28 earlier + 5 new in `updates.spec.ts`); see 7.10 for two one-off failures in earlier full runs |
-| Deployment rehearsal (Render build command in a clean copy, production start behind HTTPS/WSS, real process kills) | `node scripts/deploy-check.mjs ...` | PASS 13/13 (`docs/deploy-check-2026-11-01.txt`) |
-| Turn layout checker (4 screen sizes x 6 situations) | `node scripts/check-turn-layout.mjs` | PASS 24/24 in the previous task; not re-run (the update message is an overlay shown only between hands; turn-fit.spec.ts re-ran in the e2e suite) |
+| Engine rules (unit) | `pnpm test:unit` | PASS 32/32 |
+| Server and integration (real PostgreSQL 16) | `pnpm test:integration` | PASS 67/67 (56 earlier + 11 new in `idempotency.test.ts`) |
+| E2E (Chromium, separate browser contexts, real service worker), including updates with a stale cached client and image failure | `pnpm test:e2e` | PASS 33/33 |
+| Turn layout checker (4 screen sizes x 6 situations) | `node scripts/check-turn-layout.mjs` | PASS 24/24 |
+| Deployment rehearsal (Render build command in a clean copy, production start behind HTTPS/WSS, real process kills, sleeping server) | `node scripts/deploy-check.mjs ...` | PASS 13/13 (`docs/deploy-check-2026-11-01.txt`) |
 | Backup CLI on the rehearsal database (export, restore into an empty database, verify, refuse a second restore) | `pnpm db:backup ...` | PASS (`docs/backup-restore-2026-11-01.txt`) |
-| Page weight and LCP, before and after | `node scripts/perf-measure.mjs` | measured (section 5) |
+| Page weight and LCP | `node scripts/perf-measure.mjs` | measured in the Club art task (section 5); not re-measured (no client asset change since) |
 
 ## 1. Rules that decide money
 
@@ -130,22 +129,51 @@ here, with the reason).
 | 7.7 | Version mismatch, socket, in the middle of a hand: the outdated tab can join and see its hand, but bet, act, leave and gifts are refused; wallets, ledger, room version and round unchanged; after the refresh the same player finishes the same hand, 2 settlements, consistent ledger | PASS | updates.test.ts |
 | 7.8 | Version mismatch in the browser, online hand: "Switch to the new version" notice with the reason (coins untouched); a stand is refused with a clear message; wallet unchanged; refresh returns to the same room and hand, and the hand completes with nothing left reserved | PASS (simulated mismatch: test builds can pretend to be another protocol; production builds cannot) | updates.spec.ts; `docs/screenshots/update-outdated-{portrait,landscape}.png` |
 | 7.9 | Background images that fail to load: every `/art/club/` request aborted; the cloth is still green (pixels sampled in 3 places), the room behind is still dark, coffee falls back to its SVG icon, the card back to `classic.svg`; every key element (felt, header, status, cards, seats, actions, stake chips, gift icons) has the same position and size as with images; no overflow; portrait and landscape | PASS | updates.spec.ts; `docs/screenshots/image-fallback-*.png` |
-| 7.10 | One-off failures seen in earlier full e2e runs on this commit. Neither reproduced in a rerun; the latest full run passed 33/33 | NOTED | (a) account.spec "guest saves the account..." failed once after 1.5 s as the first test of a run; it passed 20/20 with `--repeat-each 4` and in two later full runs; the error detail was not kept. (b) multiplayer.spec failed once on "saw a hidden hole card": with a random shoe the dealer can show a natural, which reveals the hole card at once, so no frame with a hidden card exists. This is a test assumption, not a leak. Not fixed in this task |
+| 7.10 | One-off e2e failures seen in the previous task | (a) NOTED, (b) FIXED in the idempotency task (8.11) | (a) account.spec "guest saves the account..." failed once as the first test of a run. It was not seen again in four later full runs or 20 repeats; the error detail was not kept. (b) multiplayer.spec "saw a hidden hole card" assumed no dealer natural: test assumption, not a leak |
 | 7.11 | FOUND: the previous service worker called `skipWaiting()` on install and `clients.claim()`, so a release took over an open page at once (mid-hand included) and deleted the cache that page was using | FAIL, fixed | install no longer skips waiting; takeover only on the player's tap |
 | 7.12 | FOUND: precaching used the HTTP cache, so a file changed under the same name could be cached stale by the new worker | FAIL, fixed | precache requests use `cache: 'no-cache'` (revalidate; 304 when unchanged) |
 
-## 8. NOT RUN (needs a person or a device)
+## 8. Idempotency for every coin movement
+
+Keys:
+- **Socket commands:** the `commandId` (bet, double, split, leave seat). It is claimed first in the command's
+  transaction.
+- **Gifts:** the client event id.
+- **HTTP:** the `Idempotency-Key` header (guest, room, club, daily grant, rescue grant).
+- **Movements inside the server:** the ledger `idem_key`. This covers settlement, voids, grants, match stacks, and now
+  every command movement too.
+
+Each key stores a fingerprint of its request:
+- same key and same request: the first result, nothing applied twice;
+- same key and a different request: `idempotency_conflict` (HTTP 409), nothing changed.
+
+| # | Check | Status | Evidence |
+|---|---|---|---|
+| 8.1 | Bet sent again, sequentially and 6 at once: charged once, every answer is the first result (`duplicate`) | PASS | idempotency.test.ts |
+| 8.2 | The same bet received by two server instances at the same moment: charged once, one commands row (the key is claimed in the database, not only in memory) | PASS | idempotency.test.ts |
+| 8.3 | Same commandId with a different body (other stake, other command type, other version): refused; wallet, ledger, seats, round, room version and the stored command row unchanged | PASS | idempotency.test.ts |
+| 8.4 | Double and split, 5 concurrent sends: the extra stake is reserved once; the same key for another action is refused with no change; a later replay still answers "duplicate" | PASS | idempotency.test.ts (2 tests) |
+| 8.5 | Gift: 5 concurrent sends with one event id record one gift; the same id for another gift, recipient or room is refused and records nothing | PASS | idempotency.test.ts |
+| 8.6 | Daily grant: 5 concurrent requests with one key pay once and all answer `{ ok: true }`; a later replay answers the same (not "already claimed"); the key row exists once | PASS | idempotency.test.ts |
+| 8.7 | HTTP same key, different body: guest, room, club and grant answer 409 `idempotency_conflict` and create nothing | PASS | idempotency.test.ts |
+| 8.8 | Key and coins in one transaction: the connection is killed (`pg_terminate_backend`) after the bet's coins moved but before commit; afterwards there is no command row, no ledger row and the wallet is untouched; the retry with the same key applies once, and a further retry replays | PASS | idempotency.test.ts |
+| 8.9 | Ledger key: the same key with the same movement is a no-op; the same key with another amount or kind is refused (`IdempotencyConflict`) and nothing changes | PASS | idempotency.test.ts |
+| 8.10 | A whole round with retries everywhere (bet twice, stand twice at once, stale timer): every ledger row has a key, one settlement, wallet = start - stake + return, nothing reserved | PASS | idempotency.test.ts |
+| 8.11 | FOUND: two e2e tests assumed a random shoe never deals a natural. The presenter-dealer test failed once (no turn), and the multiplayer test failed once (no hidden-card frame) | FAIL, fixed (test) | the tests now deal again after a natural (presenter, version mismatch) or accept a revealed dealer natural; multiplayer.spec 9/9 with `--repeat-each 3` |
+| 8.12 | Behaviour change: the same commandId sent with a different body used to replay the first result silently; it is now refused. The client always reuses the exact same command on a retry, so nothing it sends is affected | PASS | net.ts `send` (one command object per intent) |
+
+## 9. NOT RUN (needs a person or a device)
 
 | # | Check | Why |
 |---|---|---|
-| 8.1 | Physical iPhone and Android: Safari toolbars, safe areas, real rotation, touch timing, 60 fps | needs Oz's phones |
-| 8.2 | Listening to the sounds (balance, annoyance over ten rounds) | Claude cannot listen; ten rounds were instrumented (no errors, sound budget held) and a demo file was delivered |
-| 8.3 | PWA update on a real phone and on Render with two real releases (iOS Safari service worker timing, Android Chrome) | automated in Chromium with the real service worker (section 7); devices and Render not available |
-| 8.4 | PWA install from the home screen on iPhone and Android | needs devices; guide in docs/PWA_INSTALL.md |
-| 8.5 | Real Render deployment, its wake-up time, its proxy behaviour while waking (hold vs 502/503), and the pilot card against Render's real database dates | needs Oz's Render account |
-| 8.6 | Real Google and Facebook sign-in | needs a public HTTPS domain and provider apps (docs/PROVIDER_SETUP.md) |
-| 8.7 | The new art on real screens (OLED/LCD brightness, outdoor light), and the fixed room layer in iOS Safari | emulated in Chromium only |
-| 8.8 | Backup download and CLI against Render's own database | needs the deployment; tested against local PostgreSQL 16 |
+| 9.1 | Physical iPhone and Android: Safari toolbars, safe areas, real rotation, touch timing, 60 fps | needs Oz's phones |
+| 9.2 | Listening to the sounds (balance, annoyance over ten rounds) | Claude cannot listen; ten rounds were instrumented (no errors, sound budget held) and a demo file was delivered |
+| 9.3 | PWA update on a real phone and on Render with two real releases (iOS Safari service worker timing, Android Chrome) | automated in Chromium with the real service worker (section 7); devices and Render not available |
+| 9.4 | PWA install from the home screen on iPhone and Android | needs devices; guide in docs/PWA_INSTALL.md |
+| 9.5 | Real Render deployment, its wake-up time, its proxy behaviour while waking (hold vs 502/503), and the pilot card against Render's real database dates | needs Oz's Render account |
+| 9.6 | Real Google and Facebook sign-in | needs a public HTTPS domain and provider apps (docs/PROVIDER_SETUP.md) |
+| 9.7 | The new art on real screens (OLED/LCD brightness, outdoor light), and the fixed room layer in iOS Safari | emulated in Chromium only |
+| 9.8 | Backup download and CLI against Render's own database | needs the deployment; tested against local PostgreSQL 16 |
 
 ## Screenshots
 
@@ -154,3 +182,22 @@ here, with the reason).
 Club art: `docs/screenshots/club-art-{portrait-360x640,portrait-390x844,landscape-844x390}-{home,practice-bet,practice-turn,lab-three,lab-six}.png`.
 Waking up: `docs/screenshots/waking-{portrait-360x640,portrait-390x844,landscape-844x390}.png`, `deploy-waking.png`.
 Safe updates: `docs/screenshots/update-ready-{portrait,landscape}.png`, `update-outdated-{portrait,landscape}.png`, `image-fallback-{390x844,844x390}-{table,practice}.png`.
+
+## Release candidate
+
+**Candidate for deployment: the commit that adds this section.** Its parent is 1c45b54; its hash is given in the
+final message, and `git log -1 -- docs/QA_REPORT.md` shows it. Every suite in "Suites on this commit" ran on this exact
+code. After the runs, only documentation changed (this report, DEPLOY.md, CLAUDE.md, logs and screenshots written by
+the runs).
+
+Check that a deployed commit carries the tested code (these must print the same ids):
+
+```bash
+git rev-parse <commit>:apps      # 2125b08dbb66466ed3587af2bec1b47039990586
+git rev-parse <commit>:packages  # 02e5c9b4255178c40a6a302532db5316a83d3e42
+git rev-parse <commit>:tests     # ff5644727f626d7f12670e8aded2f4ef90534cbf
+git rev-parse <commit>:scripts   # 9a04245a747001b495525a70e0ce708eccd01cd3
+```
+
+Not part of this candidate's checks (section 9): physical phones, the real Render service, and Google and Facebook
+sign-in.

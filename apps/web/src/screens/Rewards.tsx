@@ -1,4 +1,4 @@
-import { api, refreshMe, useMe } from '../api.ts';
+import { api, createWithRetry, refreshMe, useMe } from '../api.ts';
 import { errorText, getLocale, t } from '../i18n.ts';
 import { toast } from '../components/bits.tsx';
 
@@ -10,7 +10,7 @@ export function Rewards({ embedded }: { embedded?: boolean } = {}) {
     iso ? new Date(iso).toLocaleTimeString(getLocale() === 'he' ? 'he-IL' : 'en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', weekday: 'short' }) : '';
   const claim = async (kind: 'daily' | 'rescue') => {
     try {
-      const r = await api<{ ok: boolean; reason?: string }>(`/api/grants/${kind}`, { method: 'POST' });
+      const r = await createWithRetry<{ ok: boolean; reason?: string }>(`/api/grants/${kind}`, {}, 30_000); // one key for every retry: paid once
       toast(r.ok ? t('claimed') : errorText(r.reason));
       await refreshMe();
     } catch {

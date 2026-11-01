@@ -2,7 +2,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
-import { idemFrom, pruneIdem } from './idempotency.ts';
+import { IdempotencyConflict, idemFrom, pruneIdem } from './idempotency.ts';
 import { Pilot, pilotConfigFromEnv, type PilotConfig } from './pilot.ts';
 import { exportDb } from './backup.ts';
 import { gzipSync } from 'node:zlib';
@@ -147,6 +147,15 @@ export async function buildApp(opts: AppOptions) {
     return payload;
   });
 
+  // The same Idempotency-Key for a different request: refused with 409, nothing changed (the transaction rolled back).
+  const keyed = async <T>(reply: FastifyReply, run: () => Promise<T>) => {
+    try {
+      return await run();
+    } catch (e) {
+      if (e instanceof IdempotencyConflict) return reply.code(409).send({ error: 'idempotency_conflict' });
+      throw e;
+    }
+  };
   app.decorateRequest('user', null);
   app.addHook('preHandler', async (req) => {
     req.user = await userFromToken(opts.db, req.cookies[SESSION_COOKIE]);
@@ -195,9 +204,11 @@ export async function buildApp(opts: AppOptions) {
       await social.updateProfile(req.user, { name: body.data.name, avatar: body.data.avatar, locale: body.data.locale });
       return { ok: true, created: false };
     }
-    const { token, replayed } = await createGuest(opts.db, body.data, eco, deviceLabel(req.headers['user-agent']), idemFrom(req.headers, 'guest'));
-    setSession(req, reply, token);
-    return { ok: true, created: true, replayed };
+    return keyed(reply, async () => {
+      const { token, replayed } = await createGuest(opts.db, body.data, eco, deviceLabel(req.headers['user-agent']), idemFrom(req.headers, 'guest', body.data));
+      setSession(req, reply, token);
+      return { ok: true, created: true, replayed };
+    });
   });
 
   app.get('/api/me', async (req, reply) => {
@@ -365,15 +376,15 @@ export async function buildApp(opts: AppOptions) {
     return { ok: true };
   });
 
-  app.post('/api/grants/daily', authed, async (req) => social.claimDaily(req.user!));
-  app.post('/api/grants/rescue', authed, async (req) => social.claimRescue(req.user!));
+  app.post('/api/grants/daily', authed, async (req, reply) => keyed(reply, () => social.claimDaily(req.user!, idemFrom(req.headers, `daily:${req.user!.id}`, req.body))));
+  app.post('/api/grants/rescue', authed, async (req, reply) => keyed(reply, () => social.claimRescue(req.user!, idemFrom(req.headers, `rescue:${req.user!.id}`, req.body))));
   app.get('/api/stats', authed, async (req) => social.stats(req.user!.id));
   app.get('/api/history', authed, async (req) => social.history(req.user!.id, 40));
 
   app.post('/api/rooms', { ...authed, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
     const body = RoomCreate.safeParse(req.body ?? {});
     if (!body.success) return reply.code(400).send({ error: 'bad_request' });
-    return manager.createRoom(req.user!, body.data, idemFrom(req.headers, `room:${req.user!.id}`));
+    return keyed(reply, () => manager.createRoom(req.user!, body.data, idemFrom(req.headers, `room:${req.user!.id}`, body.data)));
   });
   app.post('/api/rooms/:roomId/rotate-code', authed, async (req, reply) => {
     try {
@@ -386,7 +397,7 @@ export async function buildApp(opts: AppOptions) {
   app.post('/api/groups', authed, async (req, reply) => {
     const body = z.object({ name: DisplayName }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'bad_request' });
-    return social.createGroup(req.user!, body.data.name, idemFrom(req.headers, `group:${req.user!.id}`));
+    return keyed(reply, () => social.createGroup(req.user!, body.data.name, idemFrom(req.headers, `group:${req.user!.id}`, body.data)));
   });
   app.post('/api/groups/join', { ...authed, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
     const body = z.object({ code: z.string().max(12) }).safeParse(req.body);

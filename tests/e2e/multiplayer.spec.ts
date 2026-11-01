@@ -45,7 +45,12 @@ test('three separate browsers: create, join, bet, play turns, dealer, settle, ba
     const me = await p.page.evaluate(() => fetch('/api/me').then((r) => r.json()));
     expect(me.wallet.availableUnits).toBe(4000 - stake + ret);
     expect(me.wallet.reservedUnits).toBe(0);
-    expect(assertRedacted(p)).toBe(true);
+    // No frame ever carries the shoe, card uids or a hidden hole card. A dealer natural is revealed by the peek at
+    // once, so only then is there no hidden-card frame to check (random shoe: about 1 deal in 21).
+    const sawHidden = assertRedacted(p);
+    const d = s.round.dealer.cards.map((c: any) => c.rank);
+    const dealerNatural = d.length === 2 && d.includes('A') && d.some((r: string) => ['10', 'J', 'Q', 'K'].includes(r));
+    expect(sawHidden || dealerNatural).toBe(true);
   }
   for (const p of [a, b, c]) await p.ctx.close();
 });
@@ -92,8 +97,15 @@ test('friend as presenter dealer: cannot see the hole card, triggers steps, auto
   await dealer.page.getByTestId('claim-dealer').click();
   await expect(dealer.page.getByTestId('sit')).toHaveCount(0);
   await sitAndBet(host, 50);
-  await dealer.page.getByTestId('deal').click();
-  await expect(host.page.locator('.act-stand')).toBeVisible({ timeout: 10_000 });
+  // Random shoe: a natural (player or dealer) ends the round at once with no turn. Then simply play the next round.
+  for (let i = 0; ; i++) {
+    await dealer.page.getByTestId('deal').click();
+    const turn = await host.page.locator('.act-stand').waitFor({ state: 'visible', timeout: 10_000 }).then(() => true, () => false);
+    if (turn) break;
+    expect(i, 'a turn within 5 deals').toBeLessThan(5);
+    await expect(host.page.getByTestId('room')).toHaveAttribute('data-phase', /waiting|betting/, { timeout: 30_000 });
+    await bet(host, 50);
+  }
   await host.page.locator('.act-stand').click();
   const step = dealer.page.getByTestId('dealer-step');
   await expect(step).toBeVisible();

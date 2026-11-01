@@ -1,4 +1,4 @@
-import { idemReplay, idemSave, withIdem, type Idem } from './idempotency.ts';
+import { IdempotencyConflict, idemReplay, idemSave, requestHash, withIdem, type Idem } from './idempotency.ts';
 import {
   STANDARD_RULES,
   applyAction,
@@ -66,6 +66,9 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   betSeconds: 20,
   resultSeconds: 6,
 };
+
+/** Ledger key for a coin movement made by a player's command: one movement per command, wallet and kind. */
+const cmdKey = (commandId: string, walletId: string, kind: string) => `cmd:${commandId}:${walletId}:${kind}`;
 
 export class CmdError extends Error {
   constructor(public code: ErrorCode) {
@@ -329,12 +332,25 @@ export class RoomManager {
   /* --------------------------------- commands -------------------------------- */
 
   async command(user: SessionUser, cmd: Command): Promise<CommandResult> {
+    const { commandId: _key, ...body } = cmd;
+    const hash = requestHash(body);
     return this.serial(cmd.roomId, async () => {
       let changed = false;
       try {
         const res = await this.db.tx(async (q) => {
-          const dup = await q.query('select result from commands where user_id = $1 and command_id = $2', [user.id, cmd.commandId]);
-          if (dup[0]) return { ...(dup[0].result as CommandResult), duplicate: true };
+          // The commandId is this command's idempotency key. It is claimed first, inside the same transaction as
+          // every coin it moves: a concurrent retry waits on this row, then replays the committed result; a
+          // rollback removes the claim, so a retry is evaluated again from scratch.
+          const claim = await q.query(
+            `insert into commands(user_id, command_id, room_id, result, request_hash) values ($1,$2,$3,'{"pending":true}',$4)
+             on conflict (user_id, command_id) do nothing returning command_id`,
+            [user.id, cmd.commandId, cmd.roomId, hash],
+          );
+          if (!claim.length) {
+            const dup = (await q.query('select result, request_hash from commands where user_id = $1 and command_id = $2', [user.id, cmd.commandId]))[0];
+            if (dup?.request_hash && dup.request_hash !== hash) throw new CmdError('idempotency_conflict');
+            return { ...(dup?.result as CommandResult), duplicate: true };
+          }
           const room = await this.lockRoom(q, cmd.roomId);
           if (!room || room.status !== 'open') throw new CmdError('not_found');
           if (TURN_SENSITIVE.has(cmd.type) && cmd.expectedVersion !== room.version) throw new CmdError('stale_version');
@@ -342,19 +358,16 @@ export class RoomManager {
           await this.handle(q, room, user, cmd);
           await this.saveRoom(q, room);
           const result: CommandResult = { ok: true, version: room.version };
-          await q.query('insert into commands(user_id, command_id, room_id, result) values ($1,$2,$3,$4)', [
-            user.id,
-            cmd.commandId,
-            room.id,
-            JSON.stringify(result),
-          ]);
+          await q.query('update commands set result = $3 where user_id = $1 and command_id = $2', [user.id, cmd.commandId, JSON.stringify(result)]);
           return result;
         });
         changed = !res.duplicate;
         return res;
       } catch (e: any) {
         const code: ErrorCode =
-          e instanceof CmdError
+          e instanceof IdempotencyConflict
+            ? 'idempotency_conflict'
+            : e instanceof CmdError
             ? e.code
             : e instanceof FundsError
               ? 'insufficient_funds'
@@ -418,9 +431,10 @@ export class RoomManager {
         const w = await lockWallet(q, user.id, scope).catch(() => {
           throw new CmdError('insufficient_funds');
         });
-        if (mySeat.bet_units > 0) await move(q, w, 'stake_release', mySeat.bet_units, -mySeat.bet_units, { roomId: room.id, commandId: cmd.commandId });
+        if (mySeat.bet_units > 0)
+          await move(q, w, 'stake_release', mySeat.bet_units, -mySeat.bet_units, { roomId: room.id, commandId: cmd.commandId, idemKey: cmdKey(cmd.commandId, w.id, 'stake_release') });
         if (w.available_units < units) throw new CmdError('insufficient_funds');
-        await move(q, w, 'stake_reserve', -units, units, { roomId: room.id, commandId: cmd.commandId });
+        await move(q, w, 'stake_reserve', -units, units, { roomId: room.id, commandId: cmd.commandId, idemKey: cmdKey(cmd.commandId, w.id, 'stake_reserve') });
         await q.query('update seats set bet_units = $3, sitting_out = false where room_id = $1 and seat_index = $2', [room.id, mySeat.seat_index, units]);
         mySeat.bet_units = units;
         mySeat.sitting_out = false;
@@ -475,7 +489,7 @@ export class RoomManager {
         }
         const extra = requiredStake(r.engine, cmd.action);
         const available = w.available_units;
-        if (extra > 0) await move(q, w, 'stake_reserve', -extra, extra, { roomId: room.id, roundId: r.id, commandId: cmd.commandId });
+        if (extra > 0) await move(q, w, 'stake_reserve', -extra, extra, { roomId: room.id, roundId: r.id, commandId: cmd.commandId, idemKey: cmdKey(cmd.commandId, w.id, 'stake_reserve') });
         r.engine = applyAction(r.engine, cmd.action, available);
         await this.saveRound(q, r);
         await this.onRoundChanged(q, room, r);
@@ -548,7 +562,7 @@ export class RoomManager {
     if (seat.bet_units <= 0) return;
     const scope = await this.scopeFor(q, room);
     const w = await lockWallet(q, seat.user_id, scope);
-    await move(q, w, 'stake_release', seat.bet_units, -seat.bet_units, { roomId: room.id, commandId });
+    await move(q, w, 'stake_release', seat.bet_units, -seat.bet_units, { roomId: room.id, commandId, idemKey: commandId ? cmdKey(commandId, w.id, 'stake_release') : undefined });
     await q.query('update seats set bet_units = 0 where room_id = $1 and seat_index = $2', [room.id, seat.seat_index]);
     seat.bet_units = 0;
   }

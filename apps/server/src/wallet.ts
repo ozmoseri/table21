@@ -1,4 +1,5 @@
 import type { Q } from './db.ts';
+import { IdempotencyConflict } from './idempotency.ts';
 import { newId } from './util.ts';
 
 export type LedgerKind =
@@ -65,7 +66,14 @@ export async function move(
        values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict (idem_key) do nothing returning id`,
       [w.id, kind, dAvailable, dReserved, ref.roomId ?? null, ref.roundId ?? null, ref.commandId ?? null, ref.idemKey],
     );
-    if (ins.length === 0) return false;
+    if (ins.length === 0) {
+      // Already applied under this key. The same key must never mean a different movement.
+      const prev = (await q.query(`select wallet_id, kind, delta_available, delta_reserved from ledger where idem_key = $1`, [ref.idemKey]))[0];
+      if (prev && (prev.wallet_id !== w.id || prev.kind !== kind || Number(prev.delta_available) !== dAvailable || Number(prev.delta_reserved) !== dReserved)) {
+        throw new IdempotencyConflict(`ledger:${ref.idemKey}`);
+      }
+      return false;
+    }
   } else {
     await q.query(
       `insert into ledger(wallet_id, kind, delta_available, delta_reserved, room_id, round_id, command_id) values ($1,$2,$3,$4,$5,$6,$7)`,

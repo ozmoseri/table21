@@ -131,7 +131,7 @@ export function Home() {
 
   const claim = async (kind: 'daily' | 'rescue') => {
     try {
-      const r = await api<{ ok: boolean; reason?: string }>(`/api/grants/${kind}`, { method: 'POST' });
+      const r = await createWithRetry<{ ok: boolean; reason?: string }>(`/api/grants/${kind}`, {}, 30_000); // one key for every retry: paid once
       toast(r.ok ? t('claimed') : errorText(r.reason));
       await refreshMe();
     } catch {

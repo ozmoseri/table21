@@ -60,24 +60,29 @@ export class Social {
   }
 
   /** Daily grant: one per Asia/Jerusalem calendar date, enforced by a primary key. */
-  async claimDaily(user: SessionUser): Promise<{ ok: boolean; reason?: string }> {
+  async claimDaily(user: SessionUser, idem?: Idem): Promise<{ ok: boolean; reason?: string }> {
     const day = jerusalemDate(this.now());
-    return this.db.tx(async (q) => {
+    return withIdem(this.db, idem, async (q) => {
+      const prior = await idemReplay<{ ok: boolean; reason?: string }>(q, idem);
+      if (prior) return prior.response;
       const w = await ensureWallet(q, user.id, 'casual');
       const ins = await q.query(
         `insert into grant_claims(user_id, kind, period_key) values ($1,'daily',$2) on conflict do nothing returning user_id`,
         [user.id, day],
       );
-      if (!ins.length) return { ok: false, reason: 'already_claimed' };
-      await move(q, w, 'grant_daily', this.eco.dailyUnits, 0, { idemKey: `daily:${user.id}:${day}` });
-      return { ok: true };
+      const out = ins.length ? { ok: true } : { ok: false, reason: 'already_claimed' };
+      if (ins.length) await move(q, w, 'grant_daily', this.eco.dailyUnits, 0, { idemKey: `daily:${user.id}:${day}` });
+      await idemSave(q, idem, out, user.id);
+      return out;
     });
   }
 
   /** Rescue refill: only below the minimum stake, at most once per cooldown, serialized by the wallet lock. */
-  async claimRescue(user: SessionUser): Promise<{ ok: boolean; reason?: string }> {
+  async claimRescue(user: SessionUser, idem?: Idem): Promise<{ ok: boolean; reason?: string }> {
     const now = this.now();
-    return this.db.tx(async (q) => {
+    return withIdem(this.db, idem, async (q) => {
+      const prior = await idemReplay<{ ok: boolean; reason?: string }>(q, idem);
+      if (prior) return prior.response;
       const w = await lockWallet(q, user.id, 'casual');
       if (w.available_units >= this.eco.minStakeUnits) return { ok: false, reason: 'balance_not_low' };
       const last = (await q.query(`select max(claimed_at) as t from grant_claims where user_id = $1 and kind = 'rescue'`, [user.id]))[0]?.t;
@@ -85,6 +90,7 @@ export class Social {
       const key = new Date(now).toISOString();
       await q.query(`insert into grant_claims(user_id, kind, period_key, claimed_at) values ($1,'rescue',$2,$3)`, [user.id, key, new Date(now)]);
       await move(q, w, 'grant_rescue', this.eco.rescueUnits, 0, { idemKey: `rescue:${user.id}:${key}` });
+      await idemSave(q, idem, { ok: true }, user.id);
       return { ok: true };
     });
   }

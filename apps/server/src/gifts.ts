@@ -5,10 +5,11 @@ import { blockedEither } from './friends.ts';
 
 export const GIFT_LIMITS = { minIntervalMs: 6_000, perHour: 30 };
 
-export type GiftResult = { ok: true; event: GiftEvent; duplicate: boolean } | { ok: false; error: 'rate_limited' | 'forbidden' | 'not_found' };
+export type GiftResult = { ok: true; event: GiftEvent; duplicate: boolean } | { ok: false; error: 'rate_limited' | 'forbidden' | 'not_found' | 'idempotency_conflict' };
 
 interface Row {
   id: string;
+  room_id: string;
   sender_id: string;
   recipient_id: string;
   gift_id: GiftId;
@@ -37,7 +38,12 @@ export async function sendGift(
   return db.tx(async (q) => {
     await q.query('select pg_advisory_xact_lock(hashtext($1))', [`gift:${input.senderId}`]);
     const dup = await q.query<Row>('select * from gift_events where sender_id = $1 and client_event_id = $2', [input.senderId, input.eventId]);
-    if (dup[0]) return { ok: true as const, event: toEvent(dup[0]), duplicate: true };
+    if (dup[0]) {
+      // The event id is the gift's idempotency key: the same id for a different gift, recipient or room is refused.
+      const d = dup[0];
+      if (d.room_id !== input.roomId || d.recipient_id !== input.recipientId || d.gift_id !== input.giftId) return { ok: false as const, error: 'idempotency_conflict' as const };
+      return { ok: true as const, event: toEvent(d), duplicate: true };
+    }
     // A block in either direction: answered like an absent recipient, so the block is not revealed.
     if (await blockedEither(q, input.senderId, input.recipientId)) return { ok: false as const, error: 'not_found' as const };
     const now = new Date(input.now);

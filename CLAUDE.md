@@ -36,6 +36,9 @@ pnpm perf <baseUrl> <label> [out.json]   # page weight + LCP (needs a VITE_LAB=1
   Turn-sensitive commands (`action`, `dealer_step`, `deal`) require an exact version match.
 - Wallet changes lock the wallet row (`select ... for update`) inside the same transaction as the
   rule check. Settlement and voids are exactly once (`finished_at` guard + ledger `idem_key`).
+- Every coin movement has an idempotency key written in the same transaction: `commandId` (socket commands),
+  gift event id, `Idempotency-Key` header (HTTP), ledger `idem_key` (server movements). Same key + different
+  request = `idempotency_conflict`, no change.
 - Emit only after commit. Clients recover with a full snapshot.
 - Updates never interrupt a hand: the service worker waits, the page reloads only on the player's tap at a safe
   point (`apps/web/src/update.ts`). Bump `PROTOCOL_VERSION` only for wire changes an older client cannot handle.

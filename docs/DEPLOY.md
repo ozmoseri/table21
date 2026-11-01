@@ -198,10 +198,14 @@ What happens while the server is asleep:
   stays the same on every retry. The server stores the key in the same transaction as the thing it creates
   (`idempotency_keys`, kept 24 h). A retry either replays the first result, or (if the first attempt rolled back)
   creates it once. A guest replay gives this device a fresh session for the same account.
-- **Money:**
-  - **Bets and actions** were already idempotent through `commandId`.
-  - **Grants** are once per period.
-  - **Settlement** is exactly once (`finished_at` guard + ledger `idem_key`).
+- **Money:** every coin movement has an idempotency key stored in the same transaction:
+  - `commandId` for bets, double, split and leave;
+  - the event id for gifts;
+  - the `Idempotency-Key` header for grants and creates;
+  - the ledger `idem_key` for settlement, voids and grants.
+
+  A retry with the same key replays; the same key with a different request is refused (409 or
+  `idempotency_conflict`) without any change (docs/QA_REPORT.md section 8).
 - **Database lost in the middle of a payout** (or any timed step):
   - The whole transaction rolls back, so nothing is half paid.
   - The room stays paused on its last committed state, and the server retries the same step with backoff (0.5 s up
