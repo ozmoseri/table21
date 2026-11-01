@@ -1,6 +1,6 @@
 import type { PublicCard, PublicHand, RoomSnapshot } from '@table21/protocol';
 import { Table } from '../components/Table.tsx';
-import { ActionButtons, ResultPanel } from '../components/Table.tsx';
+import { ActionButtons, ResultPanel, myTurnText } from '../components/Table.tsx';
 import { renderTimeline, type Sfx } from '../sound.ts';
 
 /**
@@ -177,9 +177,9 @@ export function Lab({ kind }: { kind: string }) {
   const view = settled ?? snap;
   const reactions = kind === 'six' ? [{ userId: 'user_lab_2', name: 'Maya', reaction: 'card' as const, at: Date.now() + 60_000 }] : [];
   return (
-    <div className="room" data-testid={`lab-${kind}`}>
+    <div className="room" data-testid={`lab-${kind}`} data-phase={view.phase}>
       <div className="status-line">
-        <span className="phase-text">{settled ? '' : 'תורך'}</span>
+        <span className="phase-text" data-testid="status">{settled ? '' : myTurnText(view, 'user_lab_0')}</span>
       </div>
       <Table snap={view} meId="user_lab_0" back="classic" theme="emerald" offset={0} dealer={{ name: 'דילר אוטומטי', presenter: false }} sessionKey={`lab-${kind}`} reactions={reactions} />
       <div className="controls">{settled ? <ResultPanel snap={view} meId="user_lab_0" /> : <ActionButtons legal={view.you.legalActions} onAction={() => {}} />}</div>

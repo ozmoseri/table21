@@ -97,12 +97,13 @@ export async function playRound(players: Player[], choose: (p: Player) => 'hit' 
     let acted = false;
     for (const p of players) {
       const btn = p.page.locator(`.act-${choose(p)}`);
-      if (await btn.isVisible().catch(() => false)) {
+      const usable = async (l: typeof btn) => (await l.isVisible().catch(() => false)) && (await l.isEnabled({ timeout: 500 }).catch(() => false));
+      if (await usable(btn)) {
         await btn.click().catch(() => {});
         acted = true;
       } else {
         const stand = p.page.locator('.act-stand');
-        if (await stand.isVisible().catch(() => false)) {
+        if (await usable(stand)) {
           await stand.click().catch(() => {});
           acted = true;
         }

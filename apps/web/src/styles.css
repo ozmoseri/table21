@@ -231,7 +231,7 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
 .b-lose, .b-bust { color: #2b0807; background: var(--loss); }
 .b-push { color: var(--text); background: #3a4a52; }
 .b-blackjack { color: #1b1407; background: linear-gradient(90deg, var(--gold-hi), var(--gold)); animation: pop 0.45s cubic-bezier(.2, 1.6, .4, 1); }
-.hand.out-blackjack .hand-cards { animation: shimmer 1.4s ease-out 1; }
+/* celebrations are applied only through .celebrate-* classes, set for live results (never after a reload) */
 .badge { animation: pop 0.35s cubic-bezier(.2, 1.5, .4, 1); }
 
 /* ---------- cards ---------- */
@@ -242,7 +242,7 @@ input:focus, select:focus { border-color: var(--gold); outline: none; }
 .card-sm + .card-sm { margin-inline-start: -14px; }
 .card-md { --w: clamp(48px, 14vw, 58px); }
 .card-lg { --w: clamp(66px, 21vw, 92px); }
-.card-inner { position: absolute; inset: 0; transition: transform 0.32s cubic-bezier(.3, .7, .2, 1); transform-style: preserve-3d; }
+.card-inner { position: absolute; inset: 0; transition: transform var(--dur-flip, 260ms) cubic-bezier(.3, .7, .2, 1); transform-style: preserve-3d; }
 .card.is-down .card-inner { transform: rotateY(180deg); }
 .card-face, .card-back { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.1); backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18), 0 6px 12px -4px rgba(0, 0, 0, 0.55); }
 .card-face { background: linear-gradient(160deg, #fffdf7, var(--ivory)); color: var(--ink); border: 1px solid rgba(0, 0, 0, 0.12); overflow: hidden; }
@@ -747,9 +747,11 @@ body {
   --dur-press: 90ms;
   --dur-chip: 280ms;
   --dur-card: 230ms;
-  --dur-flip: 320ms;
+  --dur-flip: 260ms;
   --dur-result: 420ms;
-  --dur-celebrate: 900ms;
+  --dur-celebrate: 950ms;
+  --dur-win: 600ms;
+  --dur-card-travel: 280ms;
   --ease-out: cubic-bezier(.2, .75, .25, 1);
 }
 .bet-spot { position: relative; display: flex; align-items: center; justify-content: center; width: clamp(96px, 30vw, 132px); aspect-ratio: 1; border-radius: 50%; margin: 0 auto; border: 2px dashed rgba(240, 213, 149, 0.45); background: radial-gradient(circle, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.05) 70%); }
@@ -774,3 +776,80 @@ body {
 .empty-club { display: flex; flex-direction: column; gap: 12px; }
 .empty-club p { margin: 0; }
 .empty-club .btn { flex: 1; }
+
+/* ------------------------------ results and celebrations (sized to the event) ------------------------------ */
+.felt.celebrate-bj .me-zone .hand.out-blackjack .hand-cards { animation: shimmer var(--dur-celebrate) ease-out 1; }
+.felt.celebrate-bj .me-zone .natural-tag { animation: tag-pop var(--dur-celebrate) var(--ease-out) 1; }
+.felt.celebrate-win .me-zone .hand.out-win .hand-cards { animation: win-glow var(--dur-win) ease-out 1; }
+.felt.celebrate-lose .me-zone .hand.out-lose .hand-cards { animation: calm-settle 450ms ease-out 1; }
+@keyframes win-glow { 0% { filter: drop-shadow(0 0 0 rgba(127, 224, 176, 0)); } 45% { filter: drop-shadow(0 0 10px rgba(127, 224, 176, 0.55)); } 100% { filter: drop-shadow(0 0 0 rgba(127, 224, 176, 0)); } }
+@keyframes calm-settle { 0% { opacity: 1; } 100% { opacity: 0.86; } }
+@keyframes tag-pop { 0% { transform: scale(0.8); } 30% { transform: scale(1.12); } 100% { transform: none; } }
+.me-zone .hand.out-lose .hand-cards { opacity: 0.86; }
+.hand-label { display: block; text-align: center; font-size: 13px; font-weight: 700; color: rgba(245, 242, 234, 0.8); margin-bottom: 2px; }
+.hand-label.is-turn { color: var(--turn); }
+.hand-chip { min-height: 48px; min-width: 48px; }
+.hand-chip.turn { border-color: var(--turn); box-shadow: 0 0 0 2px rgba(240, 213, 149, 0.35); }
+.hand-chip.turn .hc-n { background: var(--turn); color: #241806; }
+.result-head { margin: 0; font-weight: 800; font-size: 15px; text-align: center; }
+.result-panel.even .result-head { color: var(--push); }
+.result-panel.pos .result-head { color: var(--win); }
+.result-panel.neg .result-head { color: var(--loss-soft); }
+.result-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.result-table th, .result-table td { padding: 4px 3px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.result-table thead th { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.result-table .coins { font-size: 13px; }
+.result-table .badge { font-size: 11.5px; }
+.actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.actions .act { min-height: 52px; min-width: 48px; padding: 0 6px; }
+.actions .act:disabled { opacity: 0.38; }
+
+/* ------------------------------ P0: the whole turn fits one screen ------------------------------ */
+/* During betting, turns and the dealer's turn the room is exactly one screen high: the felt takes what the header,
+   status line and actions leave, and card sizes follow the height. Results may scroll (the per-hand table can be long). */
+@media (orientation: portrait) {
+  .room:not([data-phase='results']):not([data-phase='finished']) { height: 100dvh; min-height: 0; }
+  .room:not([data-phase='results']):not([data-phase='finished']) > .felt { flex: 1 1 0; min-height: 0; max-height: none; height: auto; }
+  .room > :not(.felt) { flex: none; }
+  .room[data-phase='player_turns'] > .fine, .room[data-phase='dealer_turn'] > .fine { display: none; }
+}
+@media (orientation: portrait) and (max-height: 760px) {
+  .room { gap: 6px; padding-top: 6px; }
+  .felt { gap: 4px; padding: 8px 8px 10px; }
+  .card-lg, .felt.is-solo .card-lg, .felt.few-seats .card-lg { --w: clamp(54px, 11.5dvh, 92px); }
+  .card-md { --w: clamp(46px, 9.5dvh, 70px); }
+  .dealer-cards .card, .felt.is-solo .dealer-cards .card { --w: clamp(42px, 8.4dvh, 70px); }
+  .dealer-cards { min-height: 0; }
+  .me-zone { min-height: 0; }
+  .seat { padding: 4px 4px 6px; gap: 2px 4px; }
+  .few-seats .seat, .many-seats .seat { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .few-seats .seat-hands, .many-seats .seat-hands { flex-basis: 100%; }
+  .seat .hand-sm { flex-direction: row; align-items: center; gap: 4px; }
+  .seat .hand-sm .hand-meta { flex-direction: column; gap: 2px; }
+  .seat-avatar, .seat .avatar { width: 32px; height: 32px; }
+  .many-seats .seat-avatar, .many-seats .seat .avatar { width: 26px; height: 26px; }
+  .seat .card-sm, .few-seats .seat .card-sm { --w: clamp(24px, 5.6dvh, 36px); }
+  .many-seats .seat .card-sm { --w: clamp(20px, 4.6dvh, 30px); }
+  .few-seats .card-sm .pip { display: none; }
+  .others { padding-bottom: 2px; }
+  .many-seats .seat, .few-seats .seat { transform: none; }
+  .bet-spot { width: clamp(76px, 15dvh, 110px); }
+  .split .hand-chips { gap: 4px; flex-wrap: nowrap; }
+  .hand-chip { padding: 0 8px 0 4px; gap: 4px; }
+  .hand-chip .hc-s { display: none; } /* the label above the hand and the chip's accessible name carry the state */
+  .split .card-md { --w: clamp(42px, 8dvh, 64px); }
+  /* six players on a narrow phone: each friend's total sits on the corner of their own cards */
+  .many-seats .seat .hand-sm { position: relative; flex-direction: column; padding-bottom: 6px; }
+  .many-seats .seat .hand-sm .hand-meta { position: absolute; bottom: -4px; inset-inline-end: -6px; }
+  .many-seats .seat .hand-sm .hand-meta .total { min-width: 24px; height: 20px; font-size: 12px; }
+  .many-seats .seat .card-sm + .card-sm { margin-inline-start: calc(var(--w) * -0.5); }
+  .split .hand-meta { margin-top: 2px; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .room[data-phase='player_turns'] > .fine, .room[data-phase='dealer_turn'] > .fine { display: none; }
+  /* split: the hand in focus beside a 2 x 2 grid of hand chips, so four hands never reach the friends' seats */
+  .split { display: grid; grid-template-columns: auto auto; align-items: end; justify-content: center; column-gap: 8px; }
+  .split .hand-label { grid-column: 1 / -1; }
+  .split .hand-chips { display: grid; grid-template-columns: repeat(2, auto); gap: 4px; }
+  .card-md { --w: clamp(42px, 12dvh, 64px); }
+}

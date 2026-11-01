@@ -117,3 +117,26 @@ Runs in Claude's cloud workspace: unit 26/26, integration 34/34, e2e 17/17 (Chro
 | 8 | Sounds pleasant and balanced on a phone, ten real rounds with sound | NOT_RUN | Claude cannot listen; demo file and Settings sound check provided |
 | 8 | Sounds silenced on resync and background | PASS (code path); not automated | presentation.finishAll -> stopAll, visibilitychange |
 | 11 | Higgsfield assets in the game | NOT_RUN | waiting for Oz: browser sign-in or an approved credit package |
+
+
+## P0 turn layout, results and timing (2026-11-01, task from the coordinator)
+
+Runs in Claude's cloud workspace, Chromium emulation: typecheck PASS, unit 26/26, integration 34/34, e2e 22/22
+(new turn-fit.spec.ts 5), layout checker `scripts/check-turn-layout.mjs` 24/24 combinations OK.
+
+| # | Check | Status | Evidence |
+|---|---|---|---|
+| 1 | 360x640 and 844x390: my cards, total and all actions on screen during a turn, no page scroll, no overlap (1, 3, 6 players, 4 split hands) | PASS (emulation) | turn-fit.spec.ts, check-turn-layout.mjs (also 390x844 and 640x360), p0-portrait-360x640.png, p0-landscape-844x390.png |
+| 1 | Same at 125% text size | PASS (emulation, six players) | turn-fit.spec.ts |
+| 1 | Online room at 360x640 with header and reactions | PASS (emulation) | turn-fit.spec.ts, p0-room-360x640.png |
+| 1 | Action buttons at least 48x48, four fixed slots (illegal ones disabled, not removed) | PASS | turn-fit.spec.ts (sizes, same position after a hit) |
+| 1 | Double tap sends one decision | PASS | turn-fit.spec.ts (dblclick on hit adds exactly one card); server idempotency tests unchanged |
+| 2 | Turn stated in words ("Your turn · hand 3 of 4 · you have 9 / 19") and highlighted; split label "hand n of m · playing now" | PASS | turn-fit.spec.ts |
+| 2 | Result per hand: outcome, stake, total returned, net; split shows a row per hand plus totals | PASS (lab and room) | ResultPanel, account.spec.ts split21, layout-v4.spec.ts wording |
+| 2 | Push reads "Stake returned", net 0, no celebration | PASS (code and wording) | ResultPanel, MOTION_SPEC |
+| 3 | Card 280 ms, 90 to 120 ms apart, flip 260 ms, win 600 ms, natural 950 ms | PASS (measured in browser) | turn-fit.spec.ts "round timings" |
+| 3 | Reload after a result does not celebrate again | PASS | turn-fit.spec.ts (no celebrate class after reload) |
+| 3 | Reduced motion | PASS (existing) | social.spec.ts reduced motion |
+| 4 | Rotation in the middle of a deal | PASS (emulation, viewport switch) | turn-fit.spec.ts |
+| 4 | Ten rounds in a row with sound on | PASS (instrumented, not listened): no errors, at most 5 sound starts within 400 ms | turn-fit.spec.ts |
+| 4 | Real phone: Safari toolbars, physical rotation, listening to sounds | NOT_RUN | needs Oz's phone |

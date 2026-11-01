@@ -119,3 +119,10 @@ Screenshots: docs/screenshots/stage-c-*.png. Not run: real Google/Facebook, real
 | Sound demo (offline render) | 108 sounds, 0 dropped, peak -4.1 dBFS, max 1 at a time |
 
 Not run: real iPhone/Android, rotation on a device, listening tests, Higgsfield assets.
+
+## P0 turn layout run (2026-11-01)
+
+Typecheck PASS. Unit PASS 26/26. Integration PASS 34/34. E2E PASS 22/22 (new turn-fit.spec.ts: one-screen turn at
+360x640 and 844x390 for 1/3/6 players and 4 split hands with RTL and 125% text, online room with double-tap guard and
+fixed button slots, rotation mid-deal, ten rounds with instrumented sound, measured round timings). Layout checker:
+24/24 OK. Not run: physical devices, listening.

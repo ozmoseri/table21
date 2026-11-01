@@ -6,7 +6,7 @@ import type { PlayerAction } from '@table21/game-engine';
 import { RoomClient, type Intent } from '../net.ts';
 import { api, refreshMe } from '../api.ts';
 import { REACTION_TEXT, errorText, getLocale, t } from '../i18n.ts';
-import { ActionButtons, ResultPanel, StakePicker, Table, totalLabel, type DealerInfo } from '../components/Table.tsx';
+import { ActionButtons, ResultPanel, StakePicker, Table, myTurnText, totalLabel, type DealerInfo } from '../components/Table.tsx';
 import { Avatar, Coins, Seconds, Sheet, toast } from '../components/bits.tsx';
 import { go } from '../App.tsx';
 
@@ -168,7 +168,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
   let status = '';
   if (snap.phase === 'waiting') status = t('waitingBets');
   else if (snap.phase === 'betting') status = t('dealingSoon');
-  else if (snap.phase === 'player_turns') status = myTurn ? t('yourTurn') : t('turnOf', { name: turnName });
+  else if (snap.phase === 'player_turns') status = myTurn ? myTurnText(snap, me.userId) : t('turnOf', { name: turnName });
   else if (snap.phase === 'dealer_turn') status = t('dealerTurn');
 
   const controls = () => {

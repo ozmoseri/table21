@@ -22,10 +22,11 @@ full six-player deal (14 cards) now animates with overlap.
 |---|---|---|
 | `--dur-press` | 90 ms | button and chip press scale |
 | `--dur-chip` | 280 ms | chip flight to the bet spot, stack pop |
-| `--dur-card` | 230 ms | card travel (JS constant in presentation.ts) |
-| `--dur-flip` | 320 ms | hole card flip |
+| `--dur-card-travel` | 280 ms | card travel (JS constant in presentation.ts, target 240 to 320), next card 90 to 120 ms later |
+| `--dur-flip` | 260 ms | hole card flip (target 220 to 300) |
 | `--dur-result` | 420 ms | result badge pop |
-| `--dur-celebrate` | 900 ms | blackjack shimmer, once |
+| `--dur-celebrate` | 950 ms | natural blackjack shimmer and tag pop, once (target 800 to 1100) |
+| `--dur-win` | 600 ms | win glow, once (target 450 to 700) |
 | `--ease-out` | cubic-bezier(.2,.75,.25,1) | all of the above |
 
 Cards now land with a small settle (scale 1.03 at 82% of the travel, then rest). The bet is a sequence: chip press
@@ -69,3 +70,20 @@ WSOP pace (0.5 s per card) would make a 14-card deal take 7 s. To revisit after 
 ## Verification
 
 Automated (Chromium emulation): see docs/QA_MATRIX.md, section 2 and 4. Real-device smoothness (60 fps target) is NOT_RUN.
+
+
+## Round timing contract (2026-11-01, measured in Chromium by tests/e2e/turn-fit.spec.ts)
+
+| Moment | Value | Verified |
+|---|---|---|
+| Card travel | 280 ms | animation duration read from the browser |
+| Gap between dealt cards | 90 to 120 ms (`clamp(90, 1700 / n, 120)`) | animation delays read from the browser |
+| Dealer hole card flip | 260 ms | computed CSS token |
+| Win | 600 ms glow plus win sound | CSS token |
+| Natural blackjack | 950 ms shimmer and tag pop, blackjack sound; never for 21 after a split (that outcome is a win) | CSS token; engine tests for split 21 |
+| Loss | calm 450 ms settle (cards dim slightly), neutral low sound | CSS |
+| Push | no celebration; "Stake returned", net 0 | e2e wording |
+
+Celebrations are classes set only when a result arrives live (`presentation.hydratedLast` false). A reload, reconnect
+or return from background shows the result without the celebration or its sound (tested in turn-fit.spec.ts). Reduced
+motion turns all of them off.

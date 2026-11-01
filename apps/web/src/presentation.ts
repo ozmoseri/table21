@@ -19,6 +19,8 @@ export class TablePresentation {
   private anims = new Set<Animation>();
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private sequenceEndsAt = 0;
+  /** True when the latest commit only hydrated state (first render, reconnect, resume). Used to skip old celebrations. */
+  hydratedLast = true;
   private onVisibility = () => {
     if (document.visibilityState === 'visible') this.resync();
   };
@@ -45,11 +47,13 @@ export class TablePresentation {
     const items = this.batch.sort((a, b) => a.slot - b.slot);
     this.batch = [];
     const wasHydrate = this.mode === 'hydrate';
+    this.hydratedLast = wasHydrate;
     this.mode = 'live';
     if (wasHydrate || !items.length || reducedMotion()) return;
-    // A full six-player deal is 14 cards: overlap them so the whole deal stays under about 2 seconds.
-    const stagger = Math.max(85, Math.min(150, 1700 / items.length));
-    const duration = 230;
+    // Card travel 280 ms (target 240 to 320), next card 90 to 120 ms later, so a full six-player deal (14 cards) takes
+    // about 1.5 s and a solo deal (4 cards) about 0.6 s.
+    const stagger = Math.max(90, Math.min(120, 1700 / items.length));
+    const duration = 280;
     const start = Math.max(0, this.sequenceEndsAt - performance.now());
     items.forEach((it, i) => {
       const r = it.el.getBoundingClientRect();

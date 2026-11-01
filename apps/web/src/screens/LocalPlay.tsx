@@ -3,7 +3,7 @@ import { AVATARS, type AvatarId } from '@table21/protocol';
 import { LocalGame, type LocalPlayer } from '../local.ts';
 import { getLocal, saveLocal } from '../prefs.ts';
 import { t } from '../i18n.ts';
-import { ActionButtons, ResultPanel, StakePicker, Table } from '../components/Table.tsx';
+import { ActionButtons, ResultPanel, StakePicker, Table, myTurnText } from '../components/Table.tsx';
 import { Avatar, Coins } from '../components/bits.tsx';
 import { go } from '../App.tsx';
 import { useMe } from '../api.ts';
@@ -35,7 +35,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
       </header>
       <div className="status-line">
         <span className="phase-text" data-testid="status">
-          {snap.phase === 'player_turns' ? (solo ? t('yourTurn') : t('turnOf', { name: turnName ?? '' })) : snap.phase === 'dealer_turn' ? t('dealerTurn') : snap.phase === 'betting' ? t('waitingBets') : ''}
+          {snap.phase === 'player_turns' ? (solo ? myTurnText(snap, viewer) : t('turnOf', { name: turnName ?? '' })) : snap.phase === 'dealer_turn' ? t('dealerTurn') : snap.phase === 'betting' ? t('waitingBets') : ''}
         </span>
       </div>
       <Table

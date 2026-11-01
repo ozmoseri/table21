@@ -8,7 +8,7 @@ async function finishLocalRound(page: Page) {
     const hand = page.getByTestId('handoff').getByRole('button');
     if (await hand.isVisible().catch(() => false)) await hand.click();
     const stand = page.locator('.act-stand');
-    if (await stand.isVisible().catch(() => false)) await stand.click().catch(() => {});
+    if ((await stand.isVisible().catch(() => false)) && (await stand.isEnabled({ timeout: 500 }).catch(() => false))) await stand.click({ timeout: 1000 }).catch(() => {});
     await page.waitForTimeout(150);
   }
   throw new Error('local round did not finish');

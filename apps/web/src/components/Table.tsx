@@ -36,6 +36,16 @@ function outcomeKey(h: PublicHand): Key | null {
 
 const statusKey = (h: PublicHand): Key | null => outcomeKey(h) ?? (h.status === 'stood' ? 'stood' : h.status === 'active' ? 'playing' : null);
 
+/** "Your turn · hand 2 of 3 · you have 17": the turn is stated in words, not only by the highlight. */
+export function myTurnText(snap: RoomSnapshot, meId: string): string {
+  const seat = snap.round?.seats.find((x) => x.playerId === meId);
+  const idx = snap.round?.turn?.hand ?? 0;
+  const h = seat?.hands[idx];
+  if (!seat || !h) return t('yourTurn');
+  const total = totalLabel(h);
+  return seat.hands.length > 1 ? t('yourTurnHand', { n: idx + 1, m: seat.hands.length, total }) : t('yourTurnTotal', { total });
+}
+
 /** A+10-value after a split is an ordinary 21 under our rules, not a natural. The UI says so explicitly. */
 export const isSplit21 = (h: Pick<PublicHand, 'fromSplit' | 'cards' | 'total'>) => h.fromSplit && h.cards.length === 2 && h.total === 21;
 
@@ -76,6 +86,10 @@ function SplitHands({ hands, back, activeIndex }: { hands: PublicHand[]; back: s
   const focus = picked ?? activeIndex ?? Math.max(0, hands.findIndex((h) => h.status === 'active' || h.status === 'waiting'));
   return (
     <div className="split">
+      <span className={`hand-label ${activeIndex === focus ? 'is-turn' : ''}`} data-testid="hand-label">
+        {t('handOf', { n: focus + 1, m: hands.length })}
+        {activeIndex === focus ? ` · ${t('playingNow')}` : ''}
+      </span>
       <HandView hand={hands[focus]} back={back} size={hands.length > 2 ? 'md' : 'lg'} active={activeIndex === focus} />
       <div className="hand-chips" role="tablist" aria-label="hands">
         {hands.map((h, i) => {
@@ -85,6 +99,8 @@ function SplitHands({ hands, back, activeIndex }: { hands: PublicHand[]; back: s
               key={i}
               role="tab"
               aria-selected={i === focus}
+              aria-current={i === activeIndex ? 'step' : undefined}
+              aria-label={`${t('handOf', { n: i + 1, m: hands.length })}, ${totalLabel(h)}${k ? `, ${t(k)}` : ''}`}
               className={`hand-chip ${i === focus ? 'on' : ''} ${i === activeIndex ? 'turn' : ''} ${h.outcome ? `out-${h.outcome}` : ''}`}
               onClick={() => setPicked(i)}
             >
@@ -315,16 +331,27 @@ export function Table({
 
   const settledKey = round && (round.phase === 'settled' || round.phase === 'voided') ? round.roundId : null;
   const lastSettled = useRef<string | null>(null);
+  const [celebrate, setCelebrate] = useState<null | 'bj' | 'win' | 'push' | 'lose'>(null);
   useEffect(() => {
     if (!settledKey || settledKey === lastSettled.current) return;
     lastSettled.current = settledKey;
     if (!mine) return;
+    // A result that was already there when the table hydrated (reload, reconnect, resume) is shown, never re-celebrated.
+    if (presentation.hydratedLast) return;
     const net = mine.hands.reduce((a, h) => a + (h.returnedUnits ?? 0) - h.stakeUnits, 0);
     const bj = mine.hands.some((h) => h.outcome === 'blackjack');
     // The result sound waits until the dealer's last card has landed.
     presentation.sound(bj ? 'blackjack' : net > 0 ? 'win' : net < 0 ? 'lose' : 'chip');
-    presentation.afterSequence(() => announce(`${t(net > 0 ? 'win' : net < 0 ? 'lose' : 'push')} ${net / 2}`));
+    presentation.afterSequence(() => announce(`${net > 0 ? t('resultUp') : net < 0 ? t('resultDown') : t('resultEven')} ${net / 2}`));
+    // Celebration scale follows the event: natural blackjack 950 ms, win 600 ms, push none, loss a calm settle.
+    const kind = bj ? 'bj' : net > 0 ? 'win' : net < 0 ? 'lose' : 'push';
+    presentation.afterSequence(() => setCelebrate(kind));
   }, [settledKey]);
+  useEffect(() => {
+    if (!celebrate) return;
+    const id = setTimeout(() => setCelebrate(null), celebrate === 'bj' ? 1100 : 750);
+    return () => clearTimeout(id);
+  }, [celebrate]);
 
   const myActiveHand = myTurn ? (round?.turn?.hand ?? null) : null;
   const seatCount = others.length;
@@ -332,7 +359,7 @@ export function Table({
 
   return (
     <PresentationContext.Provider value={presentation}>
-      <section ref={feltRef} className={`felt theme-${theme} ${layout} ${round ? '' : 'no-round'}`} aria-label="table" data-seats={seatCount + (mySeat ? 1 : 0)}>
+      <section ref={feltRef} className={`felt theme-${theme} ${layout} ${round ? '' : 'no-round'} ${celebrate ? `celebrate-${celebrate}` : ''}`} aria-label="table" data-seats={seatCount + (mySeat ? 1 : 0)}>
         <div className="felt-lip" aria-hidden="true" />
         <div className="dealer-zone" dir="ltr">
           <button className="dealer-id" onClick={onDealerTap} data-uid={dealer.userId ?? 'dealer'} disabled={!onDealerTap}>
@@ -435,35 +462,47 @@ function GiftFlightView({ f, track, done }: { f: GiftFlight; track: (a: Animatio
   );
 }
 
+/**
+ * The four decisions always keep the same slots (hit, stand, double, split), so a button never moves under the thumb
+ * between turns; a decision that is not legal now stays visible but disabled. After one press every button locks until
+ * the table answers (legal actions change) or 2.5 s pass, so a double tap cannot send two decisions. The server is
+ * idempotent anyway (commandId + exact version).
+ */
 export function ActionButtons({ legal, disabled, onAction }: { legal: PlayerAction[]; disabled?: boolean; onAction: (a: PlayerAction) => void }) {
   const order: PlayerAction[] = ['hit', 'stand', 'double', 'split'];
+  const [locked, setLocked] = useState(false);
+  const legalKey = legal.join(',');
+  useEffect(() => {
+    setLocked(false);
+  }, [legalKey]);
+  useEffect(() => {
+    if (!locked) return;
+    const id = setTimeout(() => setLocked(false), 2500);
+    return () => clearTimeout(id);
+  }, [locked]);
+  const fire = (a: PlayerAction) => {
+    if (locked || disabled || !legal.includes(a)) return;
+    setLocked(true);
+    buzz(8);
+    play('tap');
+    onAction(a);
+  };
   useEffect(() => {
     const keys: Record<string, PlayerAction> = { h: 'hit', s: 'stand', d: 'double', p: 'split' };
     const f = (e: KeyboardEvent) => {
       const a = keys[e.key.toLowerCase()];
-      if (a && legal.includes(a) && !disabled && !(e.target instanceof HTMLInputElement)) onAction(a);
+      if (a && !e.repeat && !(e.target instanceof HTMLInputElement)) fire(a);
     };
     addEventListener('keydown', f);
     return () => removeEventListener('keydown', f);
-  }, [legal, disabled, onAction]);
+  });
   return (
-    <div className="actions">
-      {order
-        .filter((a) => legal.includes(a))
-        .map((a) => (
-          <button
-            key={a}
-            className={`btn act act-${a}`}
-            disabled={disabled}
-            onClick={() => {
-              buzz(8);
-              play('tap');
-              onAction(a);
-            }}
-          >
-            {t(a)}
-          </button>
-        ))}
+    <div className="actions" data-locked={locked || undefined}>
+      {order.map((a) => (
+        <button key={a} className={`btn act act-${a}`} disabled={disabled || locked || !legal.includes(a)} aria-disabled={!legal.includes(a) || undefined} onClick={() => fire(a)}>
+          {t(a)}
+        </button>
+      ))}
     </div>
   );
 }
@@ -518,19 +557,56 @@ export function ResultPanel({ snap, meId }: { snap: RoomSnapshot; meId: string }
     );
   const mine = round.seats.find((s) => s.playerId === meId);
   if (!mine) return null;
-  const stake = mine.hands.reduce((a, h) => a + h.stakeUnits, 0);
-  const ret = mine.hands.reduce((a, h) => a + (h.returnedUnits ?? 0), 0);
+  const rows = mine.hands.map((h) => ({ h, stake: h.stakeUnits, ret: h.returnedUnits ?? 0, net: (h.returnedUnits ?? 0) - h.stakeUnits }));
+  const stake = rows.reduce((a, r) => a + r.stake, 0);
+  const ret = rows.reduce((a, r) => a + r.ret, 0);
   const net = ret - stake;
+  const label = (h: PublicHand) => (h.outcome === 'blackjack' ? t('natural') : h.outcome === 'push' ? t('pushReturned') : t((h.outcome ?? 'push') as Key));
+  const split = rows.length > 1;
   return (
-    <div className={`result-panel ${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}`} data-testid="result-panel">
-      <div className="result-hands">
-        {mine.hands.map((h, i) => (
-          <span key={i} className={`badge b-${h.outcome}`}>
-            {mine.hands.length > 1 ? `${i + 1}: ` : ''}
-            {t((h.outcome ?? 'push') as Key)}
-          </span>
-        ))}
-      </div>
+    <div className={`result-panel ${net > 0 ? 'pos' : net < 0 ? 'neg' : 'even'}`} data-testid="result-panel" data-net={net}>
+      <p className="result-head" data-testid="result-head">
+        {net > 0 ? t('resultUp') : net < 0 ? t('resultDown') : t('resultEven')}
+      </p>
+      {split ? (
+        <table className="result-table" data-testid="result-table">
+          <thead>
+            <tr>
+              <th scope="col">{t('hand')}</th>
+              <th scope="col">{t('outcome')}</th>
+              <th scope="col">{t('stake')}</th>
+              <th scope="col">{t('returned')}</th>
+              <th scope="col">{t('netShort')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className={`out-${r.h.outcome}`}>
+                <th scope="row" className="num">
+                  {i + 1}
+                </th>
+                <td>
+                  <span className={`badge b-${r.h.outcome}`}>{label(r.h)}</span>
+                  {isSplit21(r.h) && <span className="split21-tag">21</span>}
+                </td>
+                <td>
+                  <Coins units={r.stake} />
+                </td>
+                <td>
+                  <Coins units={r.ret} />
+                </td>
+                <td className="net">
+                  <Coins units={r.net} sign />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div className="result-hands">
+          <span className={`badge b-${rows[0].h.outcome}`}>{label(rows[0].h)}</span>
+        </div>
+      )}
       {mine.hands.some(isSplit21) && (
         <p className="split21-note" data-testid="split21-note">
           <b>{t('split21')}.</b> {t('split21Why')}
@@ -538,7 +614,7 @@ export function ResultPanel({ snap, meId }: { snap: RoomSnapshot; meId: string }
       )}
       <dl className="result-nums">
         <div>
-          <dt>{t('stake')}</dt>
+          <dt>{split ? t('stakeTotal') : t('stake')}</dt>
           <dd>
             <Coins units={stake} />
           </dd>
