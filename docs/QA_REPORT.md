@@ -201,3 +201,6 @@ git rev-parse <commit>:scripts   # 9a04245a747001b495525a70e0ce708eccd01cd3
 
 Not part of this candidate's checks (section 9): physical phones, the real Render service, and Google and Facebook
 sign-in.
+
+Final release-candidate set (production build of c38b481, two real players, `node scripts/rc-shots.mjs`):
+`docs/screenshots/rc/{lobby,mid-hand,results}-{portrait-390x844,landscape-844x390}.png`.
