@@ -20,7 +20,10 @@ pg.types.setTypeParser(20, (v) => Number(v));
 const RETRYABLE = new Set(['40001', '40P01']);
 
 export function postgresDb(url: string): Db {
-  const pool = new pg.Pool({ connectionString: url, max: 10 });
+  const pool = new pg.Pool({ connectionString: url, max: 10, connectionTimeoutMillis: 10_000 });
+  // An idle connection dropped by the database (restart, maintenance, free-tier hiccup) must not crash the process.
+  // The pool discards it; the next query opens a new connection.
+  pool.on('error', (e) => console.error('[db] idle connection lost:', e.message));
   return {
     kind: 'postgres',
     async query(sql, params) {
@@ -29,6 +32,14 @@ export function postgresDb(url: string): Db {
     async tx(fn) {
       for (let attempt = 0; ; attempt++) {
         const client = await pool.connect();
+        let broken = false;
+        // pg emits 'error' on a checked-out client whose connection drops; without a listener that crashes the
+        // process. The failing query rejects anyway, so the transaction below sees the error and rolls back.
+        const onLost = (e: Error) => {
+          broken = true;
+          console.error('[db] connection lost during a transaction:', e.message);
+        };
+        client.on('error', onLost);
         try {
           await client.query('begin');
           const q: Q = { query: async (sql, params) => (await client.query(sql, params as any[])).rows };
@@ -36,11 +47,13 @@ export function postgresDb(url: string): Db {
           await client.query('commit');
           return out;
         } catch (e: any) {
-          await client.query('rollback').catch(() => {});
+          // A lost connection cannot roll back; Postgres already discarded the open transaction. Drop the client.
+          await client.query('rollback').catch(() => (broken = true));
           if (RETRYABLE.has(e?.code) && attempt < 4) continue;
           throw e;
         } finally {
-          client.release();
+          client.off('error', onLost);
+          client.release(broken || undefined);
         }
       }
     },
@@ -76,10 +89,12 @@ export async function embeddedDb(dataDir: string): Promise<Db> {
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 
-export async function migrate(db: Db): Promise<string[]> {
+/** Applies pending migrations in name order; `until` stops after that file (used to restore an older backup). */
+export async function migrate(db: Db, until?: string): Promise<string[]> {
   await db.query('create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())');
   const done = new Set((await db.query<{ name: string }>('select name from schema_migrations')).map((r) => r.name));
-  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort();
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql') && (!until || f <= until)).sort();
+  if (until && !files.includes(until)) throw new Error(`unknown migration ${until} (backup from a newer version of the app?)`);
   const applied: string[] = [];
   for (const f of files) {
     if (done.has(f)) continue;

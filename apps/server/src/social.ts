@@ -1,4 +1,5 @@
 import type { Db } from './db.ts';
+import { idemReplay, idemSave, withIdem, type Idem } from './idempotency.ts';
 import type { Economy, SessionUser } from './auth.ts';
 import { ensureWallet, lockWallet, move } from './wallet.ts';
 import { blockedEither } from './friends.ts';
@@ -139,14 +140,17 @@ export class Social {
 
   /* -------------------------------- groups --------------------------------- */
 
-  async createGroup(user: SessionUser, name: string) {
+  async createGroup(user: SessionUser, name: string, idem?: Idem): Promise<{ id: string; code: string }> {
     const id = newId('g');
     const code = newCode(6);
-    await this.db.tx(async (q) => {
+    return withIdem(this.db, idem, async (q) => {
+      const prior = await idemReplay<{ id: string; code: string }>(q, idem);
+      if (prior) return prior.response;
       await q.query('insert into groups(id, name, code, owner_id) values ($1,$2,$3,$4)', [id, name, code, user.id]);
       await q.query('insert into group_members(group_id, user_id) values ($1,$2)', [id, user.id]);
+      await idemSave(q, idem, { id, code }, user.id);
+      return { id, code };
     });
-    return { id, code };
   }
 
   async joinGroup(user: SessionUser, code: string) {

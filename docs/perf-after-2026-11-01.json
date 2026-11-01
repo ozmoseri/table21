@@ -1,0 +1,154 @@
+[
+  {
+    "label": "after",
+    "network": "unthrottled",
+    "viewport": "portrait-390x844",
+    "page": "first-visit",
+    "kb": 254,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Image": 44,
+      "Font": 60,
+      "Script": 136,
+      "Fetch": 1
+    },
+    "fcpMs": 104,
+    "lcpMs": 220,
+    "lcpElement": "P.fine",
+    "lcpUrl": ""
+  },
+  {
+    "label": "after",
+    "network": "unthrottled",
+    "viewport": "portrait-390x844",
+    "page": "table",
+    "kb": 401,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Image": 156,
+      "Font": 95,
+      "Script": 136,
+      "Fetch": 1
+    },
+    "fcpMs": 92,
+    "lcpMs": 308,
+    "lcpElement": "SECTION.felt theme-emerald few-seats  ",
+    "lcpUrl": "/art/club/felt-portrait.webp"
+  },
+  {
+    "label": "after",
+    "network": "unthrottled",
+    "viewport": "landscape-844x390",
+    "page": "first-visit",
+    "kb": 244,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Script": 136,
+      "Image": 35,
+      "Font": 60,
+      "Fetch": 1
+    },
+    "fcpMs": 156,
+    "lcpMs": 236,
+    "lcpElement": "SPAN.brand-word",
+    "lcpUrl": ""
+  },
+  {
+    "label": "after",
+    "network": "unthrottled",
+    "viewport": "landscape-844x390",
+    "page": "table",
+    "kb": 377,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Image": 132,
+      "Font": 95,
+      "Script": 136,
+      "Fetch": 1
+    },
+    "fcpMs": 80,
+    "lcpMs": 320,
+    "lcpElement": "SECTION.felt theme-emerald few-seats  ",
+    "lcpUrl": "/art/club/felt-landscape.webp"
+  },
+  {
+    "label": "after",
+    "network": "slow-4g",
+    "viewport": "portrait-390x844",
+    "page": "first-visit",
+    "kb": 254,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Font": 60,
+      "Image": 44,
+      "Script": 136,
+      "Fetch": 1
+    },
+    "fcpMs": 720,
+    "lcpMs": 1860,
+    "lcpElement": "P.fine",
+    "lcpUrl": ""
+  },
+  {
+    "label": "after",
+    "network": "slow-4g",
+    "viewport": "portrait-390x844",
+    "page": "table",
+    "kb": 401,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Font": 95,
+      "Image": 156,
+      "Script": 136,
+      "Fetch": 1
+    },
+    "fcpMs": 708,
+    "lcpMs": 2960,
+    "lcpElement": "SECTION.felt theme-emerald few-seats  ",
+    "lcpUrl": "/art/club/felt-portrait.webp"
+  },
+  {
+    "label": "after",
+    "network": "slow-4g",
+    "viewport": "landscape-844x390",
+    "page": "first-visit",
+    "kb": 244,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Font": 60,
+      "Image": 35,
+      "Script": 136,
+      "Fetch": 1
+    },
+    "fcpMs": 716,
+    "lcpMs": 1884,
+    "lcpElement": "SPAN.brand-word",
+    "lcpUrl": ""
+  },
+  {
+    "label": "after",
+    "network": "slow-4g",
+    "viewport": "landscape-844x390",
+    "page": "table",
+    "kb": 377,
+    "byTypeKb": {
+      "Document": 1,
+      "Stylesheet": 12,
+      "Font": 95,
+      "Image": 132,
+      "Script": 136,
+      "Fetch": 1
+    },
+    "fcpMs": 728,
+    "lcpMs": 2768,
+    "lcpElement": "SECTION.felt theme-emerald few-seats  ",
+    "lcpUrl": "/art/club/felt-landscape.webp"
+  }
+]

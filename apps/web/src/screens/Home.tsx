@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, isWaking, refreshMe, useMe } from '../api.ts';
+import { api, createWithRetry, isWaking, refreshMe, useMe, useNet } from '../api.ts';
+import { PilotCard } from '../components/PilotCard.tsx';
 import { errorText, t } from '../i18n.ts';
 import { Avatar, Coins, Sheet, toast } from '../components/bits.tsx';
 import { go } from '../App.tsx';
@@ -12,12 +13,16 @@ export function CreateRoomSheet({ open, onClose, preset }: { open: boolean; onCl
   const [rotate, setRotate] = useState(false);
   const [stack, setStack] = useState(1000);
   const [busy, setBusy] = useState(false);
+  const net = useNet();
   const create = async () => {
     setBusy(true);
     try {
-      const r = await api<{ code: string }>('/api/rooms', {
-        method: 'POST',
-        body: { mode, settings: { dealerMode, turnSeconds, rotateDealerEvery: rotate ? 5 : 0 }, matchStackCoins: stack, matchRounds: 10 },
+      // Same Idempotency-Key on every retry: a server that wakes up mid-request still opens exactly one room.
+      const r = await createWithRetry<{ code: string }>('/api/rooms', {
+        mode,
+        settings: { dealerMode, turnSeconds, rotateDealerEvery: rotate ? 5 : 0 },
+        matchStackCoins: stack,
+        matchRounds: 10,
       });
       onClose();
       go(`r/${r.code}`);
@@ -77,6 +82,11 @@ export function CreateRoomSheet({ open, onClose, preset }: { open: boolean; onCl
       <button className="btn primary wide" disabled={busy} onClick={create} data-testid="create-room">
         {t('open')}
       </button>
+      {busy && net.pending && (
+        <p className="note" role="status" data-testid="pending-create">
+          {t('pendingCreate')}
+        </p>
+      )}
     </Sheet>
   );
 }
@@ -144,6 +154,7 @@ export function Home() {
         )}
       </header>
 
+      {user?.admin && <PilotCard compact />}
       {me.status === 'offline' && (
         <p className="note" data-testid="offline-note">
           {t('offlineOnboard')}

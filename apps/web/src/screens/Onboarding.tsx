@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AVATARS } from '@table21/protocol';
-import { api, isWaking, refreshMe, useMe } from '../api.ts';
+import { api, createWithRetry, isWaking, refreshMe, useMe, useNet } from '../api.ts';
 import { errorText, setLocale, t, getLocale } from '../i18n.ts';
 import { setPrefs, saveLocal, getLocal } from '../prefs.ts';
 import { Avatar, toast } from '../components/bits.tsx';
@@ -25,6 +25,7 @@ export function Onboarding() {
   const [name, setName] = useState(me.status === 'ready' ? me.me.name : getLocal().name);
   const [avatar, setAvatar] = useState<string>(me.status === 'ready' ? me.me.avatar : getLocal().avatar || 'amber');
   const [busy, setBusy] = useState(false);
+  const net = useNet();
   const [, force] = useState(0);
   const offline = me.status === 'offline';
 
@@ -33,7 +34,8 @@ export function Onboarding() {
     setBusy(true);
     saveLocal({ name: name.trim(), avatar });
     try {
-      await api('/api/session', { method: 'POST', body: { name: name.trim(), avatar, locale: getLocale() } });
+      // One Idempotency-Key for every retry: a sleeping server that wakes mid-request still creates one account.
+      await createWithRetry('/api/session', { name: name.trim(), avatar, locale: getLocale() });
       await refreshMe();
       // Keep deep links (room link, invite) that brought the visitor here.
       let pending: string | null = null;
@@ -107,9 +109,16 @@ export function Onboarding() {
             </div>
           </>
         ) : (
-          <button className="btn primary wide" disabled={busy || !name.trim()}>
-            {t('start')}
-          </button>
+          <>
+            <button className="btn primary wide" disabled={busy || !name.trim()}>
+              {t('start')}
+            </button>
+            {busy && net.pending && (
+              <p className="note" role="status" data-testid="pending-create">
+                {t('pendingCreate')}
+              </p>
+            )}
+          </>
         )}
         <p className="fine">{t('guestNote')}</p>
         {!offline && (

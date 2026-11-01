@@ -147,8 +147,10 @@ try {
   server.kill('SIGKILL');
   await sleep(800);
   await p3.reload();
-  const offline = await p3.getByTestId('offline-note').waitFor({ timeout: 15_000 }).then(() => true, () => false);
-  check('while the server sleeps the page loads from cache and offers offline play', offline);
+  const offline = await p3.getByTestId('waking').waitFor({ timeout: 15_000 }).then(() => true, () => false);
+  const practice = offline && (await p3.getByTestId('waking-practice').isVisible());
+  if (offline) await p3.screenshot({ path: `${shots}/deploy-waking.png` }).catch(() => {});
+  check('while the server sleeps the page loads from cache, shows "waking up" and offers offline play', offline && practice);
   server = startServer({ DATABASE_URL: dbUrl });
   await waitHealthy();
   const back = await p3.getByRole('button', { name: 'שמירה וכניסה' }).waitFor({ timeout: 20_000 }).then(() => true, () => false);

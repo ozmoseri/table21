@@ -1,4 +1,5 @@
 import type { Db, Q } from './db.ts';
+import { idemReplay, idemSave, withIdem, type Idem } from './idempotency.ts';
 import { ensureWallet, move } from './wallet.ts';
 import { newCode, newId, newToken, sha256 } from './util.ts';
 import type { AvatarId } from '@table21/protocol';
@@ -70,9 +71,15 @@ export const DEFAULT_ECONOMY: Economy = {
 };
 
 /** Creates a server-side guest identity with a one-time welcome grant. Returns the raw token for the cookie. */
-export async function createGuest(db: Db, input: { name: string; avatar: AvatarId; locale: 'he' | 'en' }, eco: Economy, label = '') {
+export async function createGuest(db: Db, input: { name: string; avatar: AvatarId; locale: 'he' | 'en' }, eco: Economy, label = '', idem?: Idem) {
   const userId = newId('u');
-  return db.tx(async (q) => {
+  return withIdem(db, idem, async (q) => {
+    // A retry of the same creation (cold start, lost response): same account, a fresh session for this device.
+    const prior = await idemReplay<{ userId: string }>(q, idem);
+    if (prior) {
+      const session = await issueSession(q, prior.response.userId, { label });
+      return { token: session.token, sessionId: session.id, userId: prior.response.userId, replayed: true };
+    }
     let code = newCode(7);
     for (let i = 0; i < 5; i++) {
       const hit = await q.query('select 1 from users where friend_code = $1', [code]);
@@ -91,7 +98,8 @@ export async function createGuest(db: Db, input: { name: string; avatar: AvatarI
     const w = await ensureWallet(q, userId, 'casual');
     await move(q, w, 'grant_welcome', eco.welcomeUnits, 0, { idemKey: `welcome:${userId}` });
     await authEvent(q, userId, 'guest_created');
-    return { token: session.token, sessionId: session.id, userId };
+    await idemSave(q, idem, { userId }, userId);
+    return { token: session.token, sessionId: session.id, userId, replayed: false };
   });
 }
 

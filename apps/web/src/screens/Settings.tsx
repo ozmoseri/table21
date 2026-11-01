@@ -1,4 +1,5 @@
 import { AccountCard } from './Profile.tsx';
+import { PilotCard } from '../components/PilotCard.tsx';
 import { api, useMe } from '../api.ts';
 import { getLocale, setLocale, t, tl } from '../i18n.ts';
 import { setPrefs, usePrefs } from '../prefs.ts';
@@ -11,6 +12,7 @@ export function Settings() {
   return (
     <div className="pad stack">
       <h1 className="title">{t('settings')}</h1>
+      {me.status === 'ready' && me.me.admin && <PilotCard />}
       <div className="panel settings">
         <label className="check">
           <input type="checkbox" checked={p.sound} onChange={() => toggle('sound')} />

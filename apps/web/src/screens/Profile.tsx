@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { backThumb, backThumbFallback } from '../art.ts';
 import { AVATARS, type StatsResponse } from '@table21/protocol';
 import { api, refreshMe, useMe } from '../api.ts';
 import { getLocale, t } from '../i18n.ts';
@@ -123,7 +124,7 @@ export function Profile() {
                     onClick={() => patch(c.kind === 'card_back' ? { cardBack: c.id } : { tableTheme: c.id })}
                     aria-pressed={active}
                   >
-                    {c.kind === 'card_back' ? <img src={`/art/backs/${c.id}.svg`} alt="" width={40} height={56} /> : <span className={`swatch theme-${c.id}`} />}
+                    {c.kind === 'card_back' ? <img src={backThumb(c.id)} onError={(e) => { if (!e.currentTarget.src.endsWith('.svg')) e.currentTarget.src = backThumbFallback(c.id); }} alt="" width={40} height={56} /> : <span className={`swatch theme-${c.id}`} />}
                     <span className="small">{c.unlocked ? t(c.kind === 'card_back' ? 'cardBack' : 'tableTheme') : t('unlockAt', { n: c.requirement })}</span>
                   </button>
                 );

@@ -24,6 +24,16 @@ services:
         value: online
       - key: T21_DATA_DIR
         value: /tmp/table21-data
+      # Pilot card for the operator (Settings): free database end date, quotas, one-tap backup.
+      - key: T21_PILOT_PLAN
+        value: render-free
+      # Optional: the database creation date shown in the Render dashboard (ISO, e.g. 2026-11-02). Without it the
+      # app uses the first time it migrated this database, which is the same day when the Blueprint creates both.
+      - key: T21_PILOT_DB_CREATED
+        sync: false
+      # Optional: your user id (Account screen) if the operator is not the first account created on this server.
+      - key: T21_ADMIN_USER_IDS
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: table21-db

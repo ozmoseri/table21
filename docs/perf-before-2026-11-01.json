@@ -1,0 +1,154 @@
+[
+  {
+    "label": "before",
+    "network": "unthrottled",
+    "viewport": "portrait-390x844",
+    "page": "first-visit",
+    "kb": 646,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Font": 60,
+      "Fetch": 1,
+      "Image": 21
+    },
+    "fcpMs": 436,
+    "lcpMs": 496,
+    "lcpElement": "P.fine",
+    "lcpUrl": ""
+  },
+  {
+    "label": "before",
+    "network": "unthrottled",
+    "viewport": "portrait-390x844",
+    "page": "table",
+    "kb": 671,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Image": 11,
+      "Font": 95,
+      "Fetch": 1
+    },
+    "fcpMs": 396,
+    "lcpMs": 396,
+    "lcpElement": "DIV.card-back",
+    "lcpUrl": "/art/backs/classic.svg"
+  },
+  {
+    "label": "before",
+    "network": "unthrottled",
+    "viewport": "landscape-844x390",
+    "page": "first-visit",
+    "kb": 646,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Fetch": 1,
+      "Font": 60,
+      "Image": 21
+    },
+    "fcpMs": 136,
+    "lcpMs": 204,
+    "lcpElement": "SPAN.brand-word",
+    "lcpUrl": ""
+  },
+  {
+    "label": "before",
+    "network": "unthrottled",
+    "viewport": "landscape-844x390",
+    "page": "table",
+    "kb": 671,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Image": 11,
+      "Font": 95,
+      "Fetch": 1
+    },
+    "fcpMs": 364,
+    "lcpMs": 364,
+    "lcpElement": "DIV.card-back",
+    "lcpUrl": "/art/backs/classic.svg"
+  },
+  {
+    "label": "before",
+    "network": "slow-4g",
+    "viewport": "portrait-390x844",
+    "page": "first-visit",
+    "kb": 646,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Fetch": 1,
+      "Font": 60,
+      "Image": 21
+    },
+    "fcpMs": 3400,
+    "lcpMs": 3584,
+    "lcpElement": "P.fine",
+    "lcpUrl": ""
+  },
+  {
+    "label": "before",
+    "network": "slow-4g",
+    "viewport": "portrait-390x844",
+    "page": "table",
+    "kb": 671,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Fetch": 1,
+      "Image": 11,
+      "Font": 95
+    },
+    "fcpMs": 3656,
+    "lcpMs": 3696,
+    "lcpElement": "DIV.card-back",
+    "lcpUrl": "/art/backs/classic.svg"
+  },
+  {
+    "label": "before",
+    "network": "slow-4g",
+    "viewport": "landscape-844x390",
+    "page": "first-visit",
+    "kb": 646,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Fetch": 1,
+      "Font": 60,
+      "Image": 21
+    },
+    "fcpMs": 3420,
+    "lcpMs": 3604,
+    "lcpElement": "SPAN.brand-word",
+    "lcpUrl": ""
+  },
+  {
+    "label": "before",
+    "network": "slow-4g",
+    "viewport": "landscape-844x390",
+    "page": "table",
+    "kb": 671,
+    "byTypeKb": {
+      "Document": 2,
+      "Stylesheet": 51,
+      "Script": 511,
+      "Image": 11,
+      "Fetch": 1,
+      "Font": 95
+    },
+    "fcpMs": 3748,
+    "lcpMs": 3756,
+    "lcpElement": "DIV.card-back",
+    "lcpUrl": "/art/backs/classic.svg"
+  }
+]

@@ -2,6 +2,10 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
+import { idemFrom, pruneIdem } from './idempotency.ts';
+import { Pilot, pilotConfigFromEnv, type PilotConfig } from './pilot.ts';
+import { exportDb } from './backup.ts';
+import { gzipSync } from 'node:zlib';
 import { Server as IOServer } from 'socket.io';
 import { existsSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
@@ -34,6 +38,8 @@ export interface AppOptions {
   sessionRateLimit?: number;
   /** Sign-in providers. Defaults to the environment (T21_GOOGLE_CLIENT_ID, T21_FACEBOOK_APP_ID/SECRET, T21_TEST_AUTH). */
   providers?: ProviderConfig;
+  /** Free-tier pilot card and backups for the operator. Defaults to the environment (T21_PILOT_PLAN, RENDER, ...). */
+  pilot?: PilotConfig;
 }
 
 const NONCE_COOKIE = 't21n';
@@ -46,6 +52,7 @@ declare module 'fastify' {
 
 export async function buildApp(opts: AppOptions) {
   const deployment = opts.deployment ?? 'online';
+  const pilot = new Pilot(opts.db, opts.pilot ?? (deployment === 'lan' ? {} : pilotConfigFromEnv(process.env)), opts.now ?? Date.now);
   const eco: Economy = { ...DEFAULT_ECONOMY, ...opts.economy };
   const now = opts.now ?? Date.now;
   const app = Fastify({ logger: opts.logger ? { level: 'info' } : false, trustProxy: true, bodyLimit: 16 * 1024, ...(opts.https ? { https: opts.https } : {}) } as any) as unknown as import('fastify').FastifyInstance;
@@ -163,15 +170,33 @@ export async function buildApp(opts: AppOptions) {
       await social.updateProfile(req.user, { name: body.data.name, avatar: body.data.avatar, locale: body.data.locale });
       return { ok: true, created: false };
     }
-    const { token } = await createGuest(opts.db, body.data, eco, deviceLabel(req.headers['user-agent']));
+    const { token, replayed } = await createGuest(opts.db, body.data, eco, deviceLabel(req.headers['user-agent']), idemFrom(req.headers, 'guest'));
     setSession(req, reply, token);
-    return { ok: true, created: true };
+    return { ok: true, created: true, replayed };
   });
 
   app.get('/api/me', async (req, reply) => {
     if (!req.user) return reply.code(401).send({ error: 'unauthorized' });
     const account = await accounts.summary(req.user.id);
-    return { ...(await social.me(req.user)), crossDeviceRecovery: account.kind === 'saved', account };
+    const admin = pilot.enabled && (await pilot.isAdmin(req.user.id));
+    return { ...(await social.me(req.user)), crossDeviceRecovery: account.kind === 'saved', account, admin };
+  });
+
+  /* --------------------------- operator (free pilot) --------------------------- */
+
+  const adminOnly = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (!req.user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!pilot.enabled || !(await pilot.isAdmin(req.user.id))) return reply.code(403).send({ error: 'forbidden' });
+  };
+  app.get('/api/admin/pilot', { preHandler: [guard, adminOnly] }, async () => ({ pilot: await pilot.info() }));
+  // Download a full backup without opening the database to the internet (docs/DEPLOY.md "Backup and restore").
+  app.get('/api/admin/backup', { preHandler: [guard, adminOnly], config: { rateLimit: { max: 6, timeWindow: '15 minutes' } } }, async (req, reply) => {
+    const backup = await exportDb(opts.db, now);
+    const day = backup.createdAt.slice(0, 10);
+    reply.header('content-type', 'application/gzip');
+    reply.header('content-disposition', `attachment; filename="table21-backup-${day}.json.gz"`);
+    reply.header('cache-control', 'no-store');
+    return reply.send(gzipSync(Buffer.from(JSON.stringify(backup))));
   });
 
   /* ------------------------------- identity -------------------------------- */
@@ -323,7 +348,7 @@ export async function buildApp(opts: AppOptions) {
   app.post('/api/rooms', { ...authed, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
     const body = RoomCreate.safeParse(req.body ?? {});
     if (!body.success) return reply.code(400).send({ error: 'bad_request' });
-    return manager.createRoom(req.user!, body.data);
+    return manager.createRoom(req.user!, body.data, idemFrom(req.headers, `room:${req.user!.id}`));
   });
   app.post('/api/rooms/:roomId/rotate-code', authed, async (req, reply) => {
     try {
@@ -336,7 +361,7 @@ export async function buildApp(opts: AppOptions) {
   app.post('/api/groups', authed, async (req, reply) => {
     const body = z.object({ name: DisplayName }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'bad_request' });
-    return social.createGroup(req.user!, body.data.name);
+    return social.createGroup(req.user!, body.data.name, idemFrom(req.headers, `group:${req.user!.id}`));
   });
   app.post('/api/groups/join', { ...authed, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, reply) => {
     const body = z.object({ code: z.string().max(12) }).safeParse(req.body);
@@ -364,6 +389,7 @@ export async function buildApp(opts: AppOptions) {
     await app.register(fastifyStatic, {
       root: opts.webDist,
       wildcard: false,
+      preCompressed: true, // .br / .gz written at build time (apps/web/vite.config.ts precompress)
       setHeaders(res: any, path: string) {
         const set = (k: string, v: string) => (typeof res.setHeader === 'function' ? res.setHeader(k, v) : res.header(k, v));
         set('cache-control', path.includes('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache');
@@ -378,6 +404,11 @@ export async function buildApp(opts: AppOptions) {
   }
 
   await app.ready();
+  // Idempotency keys only need to outlive a retry window.
+  void pruneIdem(opts.db).catch(() => {});
+  const pruneTimer = setInterval(() => void pruneIdem(opts.db).catch(() => {}), 3600_000);
+  pruneTimer.unref?.();
+  app.addHook('onClose', async () => clearInterval(pruneTimer));
 
   io = new IOServer(app.server, { serveClient: false, maxHttpBufferSize: 8 * 1024, cors: undefined });
   const cmdLimiter = new RateLimiter(12, 6);

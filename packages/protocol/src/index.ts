@@ -273,6 +273,21 @@ export interface MeResponse {
   /** True once the account has a way back on another device (recovery codes or a linked provider). */
   crossDeviceRecovery: boolean;
   account: AccountSummary;
+  /** Operator of a free pilot server (sees the pilot card and can download backups). */
+  admin?: boolean;
+}
+
+export interface PilotInfo {
+  plan: string;
+  dbCreatedAt: string;
+  dbCreatedSource: 'env' | 'first_migration';
+  dbExpiresAt: string;
+  dbDeletedAt: string;
+  daysLeft: number;
+  dbBytes: number | null;
+  dbLimitBytes: number;
+  hoursPerMonth: number;
+  state: 'ok' | 'soon' | 'expired';
 }
 
 /* ------------------------------ identity (Stage C) ------------------------------ */

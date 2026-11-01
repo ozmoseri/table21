@@ -853,3 +853,94 @@ body {
   .split .hand-chips { display: grid; grid-template-columns: repeat(2, auto); gap: 4px; }
   .card-md { --w: clamp(42px, 12dvh, 64px); }
 }
+
+/* =====================================================================================================
+   Club art (Higgsfield trial kit 1, direction A). Raster layers sit on top of the CSS look they replace,
+   so a missing or blocked image falls back to the gradients and colours below it. docs/ASSETS_CLUB.md.
+   ===================================================================================================== */
+html { background: var(--room-0); }
+body { background: transparent; }
+/* the room: a fixed layer (iOS ignores background-attachment: fixed), darkened so text stays readable */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(5, 11, 9, 0.5) 0%, rgba(5, 11, 9, 0.72) 45%, rgba(5, 11, 9, 0.9) 100%),
+    url(/art/club/room-portrait.webp) center top / cover no-repeat,
+    radial-gradient(110% 60% at 50% -12%, var(--room-lamp) 0%, var(--room-1) 52%, var(--room-0) 100%),
+    var(--room-0);
+}
+@media (orientation: landscape) {
+  body::before {
+    background:
+      linear-gradient(180deg, rgba(5, 11, 9, 0.62) 0%, rgba(5, 11, 9, 0.8) 60%, rgba(5, 11, 9, 0.92) 100%),
+      url(/art/club/room-landscape.webp) center / cover no-repeat,
+      radial-gradient(110% 60% at 50% -12%, var(--room-lamp) 0%, var(--room-1) 52%, var(--room-0) 100%),
+      var(--room-0);
+  }
+}
+
+/* the table: real felt in the default (emerald) theme; sapphire and bordeaux keep their CSS cloth */
+.felt.theme-emerald {
+  --felt-art: url(/art/club/felt-portrait.webp);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.06) 38%, rgba(0, 0, 0, 0.32)) padding-box,
+    var(--felt-art) center top / cover no-repeat padding-box,
+    radial-gradient(130% 95% at 50% 26%, var(--felt-a, #2b8461), var(--felt-b, #165c43) 46%, var(--felt-c, #0a3324)) padding-box,
+    linear-gradient(180deg, var(--brass-hi), var(--brass-mid) 22%, var(--brass-lo) 55%, var(--brass-mid) 85%, var(--brass-lo)) border-box;
+}
+@media (orientation: landscape) { .felt.theme-emerald { --felt-art: url(/art/club/felt-landscape.webp); } }
+/* labels written straight on the cloth keep their contrast where the lamp pool is brightest */
+.felt .seat-name, .felt .dealer-text, .felt .bet-hint, .felt .bet-spot { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75); }
+
+/* card back art draws its own emblem and border */
+.card-back.has-art { background-color: #0c3a2d; }
+
+/* chips: the kit's five chips by stake tier (10 blue, 25 green, 50 red, 100 black, 250 cream). Colour stays under. */
+.chip.t1, .chip.t2, .chip.t3, .chip.t4, .chip.t5 { border: 0; background-position: center; background-size: cover; background-repeat: no-repeat; box-shadow: 0 1.5px 0 rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.35); }
+.chip.t1 { background-image: url(/art/club/chip-blue.webp); background-color: #2a4f9a; }
+.chip.t2 { background-image: url(/art/club/chip-green.webp); background-color: #127347; }
+.chip.t3 { background-image: url(/art/club/chip-red.webp); background-color: #9b2232; }
+.chip.t4 { background-image: url(/art/club/chip-black.webp); background-color: #1d1d1f; }
+.chip.t5 { background-image: url(/art/club/chip-cream.webp); background-color: #ece3cc; }
+.stake-chip.tier-1, .stake-chip.tier-2, .stake-chip.tier-3, .stake-chip.tier-4, .stake-chip.tier-5 { background: var(--chip-art) center / cover no-repeat, var(--chip); }
+.stake-chip::before { display: none; }
+.stake-chip.tier-1 { --chip: #2a4f9a; --chip-art: url(/art/club/chip-blue.webp); }
+.stake-chip.tier-2 { --chip: #127347; --chip-art: url(/art/club/chip-green.webp); }
+.stake-chip.tier-3 { --chip: #9b2232; --chip-art: url(/art/club/chip-red.webp); }
+.stake-chip.tier-4 { --chip: #1d1d1f; --chip-art: url(/art/club/chip-black.webp); }
+.stake-chip.tier-5 { --chip: #ece3cc; --chip-art: url(/art/club/chip-cream.webp); color: #1b1407; }
+.stake-chip span { background: rgba(0, 0, 0, 0.42); border-color: rgba(243, 220, 158, 0.5); color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); }
+.stake-chip.tier-5 span { background: rgba(255, 250, 235, 0.72); color: #1b1407; text-shadow: none; }
+
+/* gift art keeps the icon box and never catches taps meant for the button around it */
+.gift-art { object-fit: contain; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45)); }
+
+/* ---------- server waking up (free host cold start) ---------- */
+.waking { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px 16px calc(24px + var(--safe-b)); text-align: center; }
+.waking-card { width: min(420px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 18px; border-radius: 22px; background: rgba(8, 20, 16, 0.82); border: 1px solid rgba(243, 220, 158, 0.28); box-shadow: 0 20px 40px -18px rgba(0, 0, 0, 0.9); }
+.waking-card h1 { margin: 0; font-size: 24px; color: var(--brass-hi); }
+.waking-card p { margin: 0; }
+.waking-chips { position: relative; display: flex; gap: 10px; height: 40px; }
+.waking-chips .chip { position: static; width: 34px; height: 34px; animation: waking-bob 1.4s ease-in-out infinite; }
+.waking-chips .chip:nth-child(2) { animation-delay: 0.18s; }
+.waking-chips .chip:nth-child(3) { animation-delay: 0.36s; }
+@keyframes waking-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.waking-bar { width: 100%; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.waking-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--brass-mid), var(--brass-hi)); border-radius: inherit; transition: width 0.9s linear; }
+.waking-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 100%; }
+.waking-actions .btn { min-height: var(--tap); flex: 1 1 140px; display: inline-grid; place-items: center; }
+@media (prefers-reduced-motion: reduce) { .waking-chips .chip { animation: none; } .waking-bar i { transition: none; } }
+@media (orientation: landscape) and (max-height: 560px) {
+  .waking { flex-direction: row; gap: 24px; padding-block: 12px; }
+  .waking-card { padding: 14px 16px; gap: 8px; }
+  .waking-card h1 { font-size: 20px; }
+}
+
+/* ---------- operator pilot card ---------- */
+.pilot { border-inline-start: 3px solid var(--brass-mid); }
+.pilot-date { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin: 4px 0 8px; }
+.pilot-days { font-weight: 700; color: var(--turn); }
+.pilot-soon { border-inline-start-color: var(--turn); }
+.pilot-expired { border-inline-start-color: var(--loss-soft); }
+.pilot .btn { min-height: var(--tap); display: inline-grid; place-items: center; margin-block: 6px; }
+.user-id { font-family: var(--index, monospace); user-select: all; }

@@ -281,6 +281,9 @@ export function Account() {
         <span className={`badge ${acct.kind === 'saved' ? 'b-win' : 'b-push'}`}>{t(acct.kind === 'saved' ? 'accountSaved' : 'accountGuest')}</span>
         <p>{t(acct.kind === 'saved' ? 'accountSavedText' : 'accountGuestText')}</p>
         {serverConfig.deployment === 'lan' && <p className="fine">{t('accountServerLan')}</p>}
+        <p className="fine">
+          {t('userIdLabel')} <bdi dir="ltr" className="user-id" data-testid="user-id">{u.userId}</bdi>
+        </p>
       </section>
 
       <RecoveryCodes remaining={acct.recovery.remaining} onChange={() => void refreshMe()} />

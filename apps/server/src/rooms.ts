@@ -1,3 +1,4 @@
+import { idemReplay, idemSave, withIdem, type Idem } from './idempotency.ts';
 import {
   STANDARD_RULES,
   applyAction,
@@ -40,6 +41,9 @@ export interface Timing {
   humanDealerSeconds: number;
   reconnectGraceMs: number;
   autoDealDelayMs: number;
+  /** First retry after a database error in a timed step; doubles up to dbRetryMaxMs. */
+  dbRetryMs: number;
+  dbRetryMaxMs: number;
 }
 
 export const DEFAULT_TIMING: Timing = {
@@ -49,6 +53,8 @@ export const DEFAULT_TIMING: Timing = {
   humanDealerSeconds: 15,
   reconnectGraceMs: 60_000,
   autoDealDelayMs: 1200,
+  dbRetryMs: 500,
+  dbRetryMaxMs: 10_000,
 };
 
 export const DEFAULT_SETTINGS: RoomSettings = {
@@ -225,10 +231,13 @@ export class RoomManager {
   async createRoom(
     user: SessionUser,
     input: { mode: 'casual' | 'match'; settings: Partial<RoomSettings>; matchStackCoins: number; matchRounds: number; groupId?: string },
+    idem?: Idem,
   ): Promise<{ roomId: string; code: string }> {
     const settings = normalizeSettings({ ...DEFAULT_SETTINGS, ...input.settings });
     const roomId = newId('rm');
-    return this.db.tx(async (q) => {
+    return withIdem(this.db, idem, async (q) => {
+      const prior = await idemReplay<{ roomId: string; code: string }>(q, idem);
+      if (prior) return prior.response;
       let code = newCode();
       for (let i = 0; i < 8; i++) {
         const hit = await q.query(`select 1 from rooms where code = $1 and status = 'open'`, [code]);
@@ -254,6 +263,7 @@ export class RoomManager {
         ]);
         await q.query('update rooms set match_id = $2 where id = $1', [roomId, matchId]);
       }
+      await idemSave(q, idem, { roomId, code }, user.id);
       return { roomId, code };
     });
   }
@@ -353,9 +363,10 @@ export class RoomManager {
                 : e?.message === 'illegal_action'
                   ? 'illegal_action'
                   : 'internal';
-        if (code === 'internal') console.error('[command]', cmd.type, e);
-        const v = await this.db.query<{ version: number }>('select version from rooms where id = $1', [cmd.roomId]);
-        return { ok: false, error: code, version: v[0]?.version ?? 0 };
+        if (code === 'internal') console.error('[command]', cmd.type, e?.code ?? '', e?.message ?? e);
+        // The database may be the thing that failed: answer without it; the client resyncs with a snapshot later.
+        const v = await this.db.query<{ version: number }>('select version from rooms where id = $1', [cmd.roomId]).catch(() => []);
+        return { ok: false, error: code, version: v[0]?.version ?? cmd.expectedVersion };
       } finally {
         if (changed) await this.afterCommit(cmd.roomId);
       }
@@ -752,13 +763,44 @@ export class RoomManager {
     if (changed) await this.afterCommit(roomId);
   }
 
+  /**
+   * The database went away in the middle of a timed step (a payout, a dealer draw, a deal): that transaction rolled
+   * back as a whole, so nothing was paid and the room is paused on its last committed state. Retry the same step
+   * (fenced by the same version) with backoff until the database answers; settlement stays exactly once through the
+   * finished_at guard and the ledger idem_key.
+   */
+  private retryLater(roomId: string, version: number | null, attempt: number): void {
+    if (this.closed) return;
+    const delay = Math.min(this.timing.dbRetryMs * 2 ** Math.min(attempt, 5), this.timing.dbRetryMaxMs);
+    const old = this.timers.get(roomId);
+    if (old) clearTimeout(old);
+    const t = setTimeout(() => {
+      this.timers.delete(roomId);
+      const step = version === null ? this.afterCommit(roomId) : this.tick(roomId, version);
+      void step.catch((e) => {
+        console.error('[db-retry]', roomId, e?.code ?? e?.message);
+        this.retryLater(roomId, version, attempt + 1);
+      });
+    }, delay);
+    t.unref?.();
+    this.timers.set(roomId, t);
+  }
+
   private async afterCommit(roomId: string, reschedule = true): Promise<void> {
     if (this.closed) return;
     if (reschedule) {
-      const rows = await this.db.query<{ version: number; deadline_at: Date | null; status: string }>(
-        'select version, deadline_at, status from rooms where id = $1',
-        [roomId],
-      );
+      let rows: { version: number; deadline_at: Date | null; status: string }[];
+      try {
+        rows = await this.db.query<{ version: number; deadline_at: Date | null; status: string }>(
+          'select version, deadline_at, status from rooms where id = $1',
+          [roomId],
+        );
+      } catch (e: any) {
+        // Committed, but the timer could not be read back: look again once the database answers.
+        console.error('[after-commit]', roomId, e?.code ?? e?.message);
+        this.retryLater(roomId, null, 0);
+        return;
+      }
       const r = rows[0];
       const old = this.timers.get(roomId);
       if (old) clearTimeout(old);
@@ -767,7 +809,10 @@ export class RoomManager {
         const delay = Math.max(0, r.deadline_at.getTime() - this.now());
         const t = setTimeout(() => {
           this.timers.delete(roomId);
-          void this.tick(roomId, r.version).catch((e) => console.error('[tick]', e));
+          void this.tick(roomId, r.version).catch((e) => {
+            console.error('[tick]', roomId, e?.code ?? e?.message);
+            this.retryLater(roomId, r.version, 0);
+          });
         }, delay);
         t.unref?.();
         this.timers.set(roomId, t);

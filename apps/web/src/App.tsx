@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
-import { useMe } from './api.ts';
+import { useMe, useNet } from './api.ts';
+import { Waking } from './screens/Waking.tsx';
 import { t } from './i18n.ts';
 import { usePrefs } from './prefs.ts';
 import { Announcer, Toaster } from './components/bits.tsx';
@@ -58,6 +59,7 @@ function Shell({ route, children, nav = true }: { route: string; children: React
 
 export function App() {
   const me = useMe();
+  const net = useNet();
   const route = useRoute();
   usePrefs();
   const [head, ...rest] = route.split('/');
@@ -83,7 +85,11 @@ export function App() {
     nav = me.status === 'ready';
   }
   else if (head === 'lan') content = <Lan />;
-  else if (me.status === 'loading') content = <p className="muted center pad">{t('loading')}</p>;
+  else if ((me.status === 'loading' && net.slowBoot) || (me.status === 'offline' && net.waking)) {
+    // Cold start of a sleeping free server: say so, keep retrying, keep offline play one tap away.
+    content = <Waking />;
+    nav = false;
+  } else if (me.status === 'loading') content = <p className="muted center pad">{t('loading')}</p>;
   else if (me.status === 'guest-needed' || head === 'onboard') content = <Onboarding />;
   else if (head === 'r' && rest[0]) {
     content = me.status === 'ready' ? <Room code={rest[0].toUpperCase()} me={me.me} /> : <Home />;

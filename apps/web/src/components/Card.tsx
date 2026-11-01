@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { PublicCard } from '@table21/protocol';
 import { usePresentation } from '../presentation.ts';
+import { backHasEmblem, backImage } from '../art.ts';
 
 /** Suit and court marks are original vector shapes drawn in code; ranks are always real text. */
 export const SUIT_PATHS: Record<string, string> = {
@@ -69,10 +70,12 @@ export function Card({ card, back = 'classic', size = 'md' }: { card: PublicCard
             </>
           )}
         </div>
-        <div className="card-back" style={{ backgroundImage: `url(/art/backs/${back}.svg)` }}>
-          <span className="back-mark" aria-hidden="true">
-            21
-          </span>
+        <div className={`card-back ${backHasEmblem(back) ? 'has-art' : ''}`} style={{ backgroundImage: backImage(back) }}>
+          {!backHasEmblem(back) && (
+            <span className="back-mark" aria-hidden="true">
+              21
+            </span>
+          )}
         </div>
       </div>
     </div>

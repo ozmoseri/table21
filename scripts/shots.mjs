@@ -3,6 +3,7 @@
 import { chromium } from '@playwright/test';
 const [base = 'http://127.0.0.1:3131', out = 'shots', label = 'now'] = process.argv.slice(2);
 const sizes = [
+  { name: 'small', viewport: { width: 360, height: 640 } },
   { name: 'portrait', viewport: { width: 390, height: 844 } },
   { name: 'landscape', viewport: { width: 844, height: 390 } },
 ];

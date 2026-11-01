@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, useMe } from '../api.ts';
+import { api, createWithRetry, useMe } from '../api.ts';
 import { errorText, t } from '../i18n.ts';
 import { Avatar, Sheet, toast } from '../components/bits.tsx';
 
@@ -63,7 +63,8 @@ export function Friends() {
 
   const post = async (path: string, body: unknown, after: () => void) => {
     try {
-      await api(path, { method: 'POST', body });
+      if (path === '/api/groups') await createWithRetry(path, body); // creates something: safe to retry
+      else await api(path, { method: 'POST', body });
       after();
     } catch (e: any) {
       toast(errorText(e?.code));

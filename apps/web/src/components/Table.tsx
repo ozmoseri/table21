@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { backImage } from '../art.ts';
 import type { GiftEvent, PublicHand, PublicRoundSeat, ReactionEvent, RoomSnapshot, SeatView } from '@table21/protocol';
 import type { PlayerAction } from '@table21/game-engine';
 import { Card } from './Card.tsx';
@@ -381,7 +382,7 @@ export function Table({
             ))}
           </div>
           <div id="shoe" className="shoe" aria-hidden="true">
-            <i style={{ backgroundImage: `url(/art/backs/${back}.svg)` }} />
+            <i style={{ backgroundImage: backImage(back) }} />
           </div>
         </div>
 

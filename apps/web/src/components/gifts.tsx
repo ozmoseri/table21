@@ -1,4 +1,5 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
+import { CLUB_ART } from '../art.ts';
 import type { GiftId, ReactionId } from '@table21/protocol';
 import { getLocale } from '../i18n.ts';
 
@@ -73,7 +74,14 @@ export const GIFT_LABEL: Record<GiftId, Record<'he' | 'en', string>> = {
   tissue: { he: 'טישו', en: 'Tissue' },
 };
 
+/** Gifts with a raster from the Club Lounge kit; the vector icon above stays as the fallback. */
+const GIFT_ART: Partial<Record<GiftId, string>> = { coffee: `${CLUB_ART}/coffee.webp` };
+
 export function GiftIcon({ id, size = 28 }: { id: GiftId; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const art = GIFT_ART[id];
+  if (art && !failed)
+    return <img src={art} width={size} height={size} className="gift-icon gift-art" alt={GIFT_LABEL[id][getLocale()]} draggable={false} onError={() => setFailed(true)} />;
   return (
     <svg viewBox="0 0 32 32" width={size} height={size} className="gift-icon" role="img" aria-label={GIFT_LABEL[id][getLocale()]}>
       {ICONS[id]}

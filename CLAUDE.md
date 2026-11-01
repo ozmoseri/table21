@@ -14,6 +14,8 @@ pnpm test:unit                   # engine rules (vitest)
 pnpm test:integration            # needs local Postgres (table21_test)
 pnpm test:e2e                    # Playwright, Chromium only
 pnpm export <label>              # sanitized tar.gz + git bundle + SHA-256 in exports/
+pnpm db:backup export|restore|verify <DATABASE_URL> <file.json.gz>   # restore only into an empty DB
+pnpm perf <baseUrl> <label> [out.json]   # page weight + LCP (needs a VITE_LAB=1 build for the table page)
 ```
 
 ## Layout
