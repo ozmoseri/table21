@@ -102,3 +102,19 @@ Screenshots (`scripts/premium2-shots.mjs`, portrait 390x844 and landscape 844x39
 - `docs/screenshots/premium2/before/` (6e7f9a2) and `after/`: home, table2 (two players), practice-turn, celebrate (banner mid-hold), results.
 - `after/age-gate-*`, `after/session-reminder-*`, `after/menu-guardrails-*`, `after/settings-sound-*` (stages 4 and 6).
 - `compare-*.jpg`: before and after side by side for F1-F5.
+
+## P1 polish (GROKBOT 2026-11-01 19:34-19:37, items 1-5)
+
+No rule, engine, server or `PROTOCOL_VERSION` change; no credits.
+
+| # | What changed |
+|---|---|
+| 1 | **Result once.** The 500 ms banner (900 ms for a natural) celebrates. Then the panel shows one fixed line, "ניצחת · +25" (amount 28 px; word 20 px Rubik 600), and under it stake and total return at 14 px. The outcome badge inside the panel and the 3-column table are gone. While the result shows, my hand's outcome tag is hidden, so the result is said once. Two labels stay because they say why: the natural tag (the hand's own state) and "עברת 21". Split rounds keep the per-hand table. The net label stays as an accessible label on the amount. |
+| 2 | **Card back.** Only the existing "21" medallion is kept from the Club back, inside one solid brass ring, on one low-contrast argyle of filled diamonds; no fine lines. Face and back share a 2px ivory frame and an 8 px radius. On seat cards narrower than 57 px the radius scales down (14% of width) so a 28 px card stays a card, not a pill. The lobby illustration uses the same back. Sharpness was checked at 28, 44 and 80 px wide at 2x. |
+| 3 | **Home.** "ערב חברים" and "טלפון אחד" sit right after practice, above the fold at 390x844. Save account is a 48 px row under the balance. The daily grant is a full-width 56 px row. |
+| 4 | **Age gate.** The TABLE21 logo stands alone. The title "לגילאי 18 ומעלה" is Rubik 600 24 px; the body is 16/24 px. Frank Ruhl stays for the brand only. |
+| 5 | **Bust.** No shake. The label "עברת 21" fades in over 160 ms, and cards and numbers are not dimmed. Friends' seats keep the short word. A bust stays a bust after settlement. Win 500 ms and natural 900 ms are unchanged; with reduced motion there is no movement and no particles. |
+
+Also found and fixed in this round:
+- **Deal timing.** The first card of a deal left the shoe 25-50 ms late, because its mount followed the deal tap's own screen change. The opening deal now starts with an 80 ms dealer draw beat (bible 5), so every gap is 200 ms, including the first.
+- **Landscape lobby.** The save-account row spans both lobby columns.

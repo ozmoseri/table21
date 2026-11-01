@@ -289,3 +289,122 @@ test('menus carry the guardrails line: automated dealer, 18+, no cash value', as
   await expect(p.page.getByTestId('menu-footer')).toContainText('ערך כספי');
   await p.ctx.close();
 });
+
+test('P1 result once: one line "ניצחת · +amount" (28 px), stake and return 14 px, no badge in the panel, no duplicate tag on my hand', async ({ browser }) => {
+  for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    const ctx = await browser.newContext({ viewport: vp, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    const page = await ctx.newPage();
+    for (const kind of ['result', 'natural']) {
+      await page.goto(`/#/lab/${kind}`);
+      const panel = page.getByTestId('result-panel');
+      await expect(panel).toBeVisible();
+      const net = Number(await panel.getAttribute('data-net'));
+      const line = page.getByTestId('result-line');
+      if (net > 0) await expect(line).toContainText(kind === 'natural' ? 'בלאקג׳ק טבעי' : 'ניצחת');
+      await expect(line).toContainText('·');
+      expect(await line.locator('.net .coins').evaluate((el) => getComputedStyle(el).fontSize)).toBe('28px');
+      for (const el of await page.getByTestId('result-sub').locator('.coins').all()) expect(await el.evaluate((e) => getComputedStyle(e).fontSize)).toBe('14px');
+      await expect(page.getByTestId('result-sub')).toContainText('הימור');
+      await expect(page.getByTestId('result-sub')).toContainText('החזר כולל');
+      // The result is said once: no outcome badge in the panel (single hand), none beside my cards.
+      await expect(panel.locator('.badge')).toHaveCount(0);
+      await expect(page.locator('.me-zone .my-hands .hand-meta .badge:visible')).toHaveCount(0);
+    }
+    await ctx.close();
+  }
+});
+
+test('P1 card back and face: one 2px ivory frame and an 8 px radius (scaled only below 57 px)', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  await page.goto('/#/lab/three');
+  const look = (sel: string) =>
+    page.locator(sel).first().evaluate((el) => {
+      const w = (el as HTMLElement).getBoundingClientRect().width;
+      const f = getComputedStyle(el.querySelector('.card-face')!);
+      const b = getComputedStyle(el.querySelector('.card-back')!);
+      return { w, face: `${f.borderTopWidth} ${f.borderTopColor} ${f.borderTopLeftRadius}`, back: `${b.borderTopWidth} ${b.borderTopColor} ${b.borderTopLeftRadius}` };
+    });
+  const mine = await look('.my-hands .card');
+  expect(mine.face).toBe('2px rgb(246, 241, 228) 8px');
+  expect(mine.back).toBe(mine.face);
+  const dealer = await look('.dealer-cards .card');
+  expect(dealer.back).toBe(dealer.face);
+  if (dealer.w >= 57) expect(dealer.face).toBe('2px rgb(246, 241, 228) 8px');
+  const seat = await look('.others .card');
+  expect(seat.back).toBe(seat.face);
+  expect(await page.locator('.card-back').first().evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('cardback-simple.webp');
+  await ctx.close();
+});
+
+test('P1 home: friends night and one phone right after practice, above the fold; save account 48 px row by the balance; daily grant full 56 px row', async ({ browser }) => {
+  const p = await player(browser, 'Home P1');
+  await onboard(p, 0);
+  const practice = await box(p.page, '[data-testid=practice]');
+  for (const id of ['friends-night', 'pass-play']) {
+    const b = await box(p.page, `[data-testid=${id}]`);
+    expect(b.y, `${id} right after practice`).toBeGreaterThan(practice.y);
+    expect(b.y - (practice.y + practice.height), `${id} directly below practice`).toBeLessThan(20);
+    expect(b.y + b.height, `${id} above the fold`).toBeLessThanOrEqual(844);
+  }
+  const save = await box(p.page, '[data-testid=home-save]');
+  expect(Math.round(save.height)).toBe(48);
+  const grant = p.page.locator('.grant-strip');
+  if (await grant.isVisible().catch(() => false)) {
+    const g = (await grant.boundingBox())!;
+    expect(Math.round(g.height)).toBe(56);
+    // Full row: as wide as the other full-width rows of the lobby (the practice row).
+    expect(Math.abs(g.width - practice.width)).toBeLessThanOrEqual(1);
+  }
+  await p.ctx.close();
+});
+
+test('P1 age gate: brand on its own, title Rubik 600 24 px, body 16/24', async ({ browser }) => {
+  const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] }, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await expect(page.locator('.age-brand .brand-word')).toBeVisible();
+  const title = await page.locator('#age-title').evaluate((el) => { const s = getComputedStyle(el); return { f: s.fontFamily, w: s.fontWeight, z: s.fontSize, text: el.textContent }; });
+  expect(title.f).toMatch(/^"?Rubik/);
+  expect(title.w).toBe('600');
+  expect(title.z).toBe('24px');
+  expect(title.text).not.toContain('TABLE21');
+  const body = await page.locator('.age-body').evaluate((el) => { const s = getComputedStyle(el); return `${s.fontSize}/${s.lineHeight}`; });
+  expect(body).toBe('16px/24px');
+  await ctx.close();
+});
+
+test('P1 bust: label "עברת 21" fades in (160 ms), no shake, cards and numbers not dimmed', async ({ browser }) => {
+  const p = await player(browser, 'Bust');
+  await p.page.goto('/#/practice');
+  let seen = false;
+  for (let i = 0; i < 30 && !seen; i++) {
+    await p.page.locator('.stake-chip').first().click();
+    await p.page.getByTestId('deal').click();
+    for (let k = 0; k < 8; k++) {
+      const hit = p.page.locator('.act-hit');
+      if (!(await expect(hit).toBeEnabled({ timeout: 4000 }).then(() => true, () => false))) break;
+      await hit.click();
+    }
+    const bust = p.page.locator('.me-zone .hand.is-bust');
+    if (await bust.isVisible({ timeout: 4000 }).catch(() => false)) {
+      seen = true;
+      await expect(bust.locator('.badge.b-bust')).toHaveText('עברת 21');
+      const st = await bust.evaluate((el) => {
+        const cards = getComputedStyle(el.querySelector('.hand-cards')!);
+        const total = getComputedStyle(el.querySelector('.total')!);
+        const badge = el.querySelector('.badge.b-bust')!;
+        const names = el.getAnimations({ subtree: true }).map((a) => (a as CSSAnimation).animationName ?? '');
+        return { cards: cards.opacity, total: total.opacity, anim: getComputedStyle(badge).animationName, dur: getComputedStyle(badge).animationDuration, names };
+      });
+      expect(st.cards).toBe('1');
+      expect(st.total).toBe('1');
+      expect(st.anim).toBe('bust-in');
+      expect(st.dur).toBe('0.16s');
+      expect(st.names).not.toContain('bust-shake');
+    }
+    await p.page.getByTestId('next-round').click({ timeout: 15_000 });
+  }
+  expect(seen, 'a bust within 30 hands of hitting').toBe(true);
+  await p.ctx.close();
+});

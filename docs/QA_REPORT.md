@@ -233,6 +233,25 @@ Suites on this commit (full run after the fix in 11.22): typecheck PASS (4 packa
 Screenshots: `docs/screenshots/premium2/before/` (6e7f9a2), `after/`, and side by side `compare-{home,table2,practice-turn,celebrate,results}-{portrait-390x844,landscape-844x390}.jpg`. Stages 4 and 6 also: `after/{age-gate,session-reminder,menu-guardrails,settings-sound}-{portrait-390x844,landscape-844x390}.png`.
 The celebrate shots are frozen inside the banner's hold by a lab-build-only 4x stretch (`t21:fx-slow`); real timings are measured by the e2e tests at full speed.
 
+## 12. P1 polish (items 1-5, GROKBOT 2026-11-01 19:34-19:37)
+
+No rule, engine, server or `PROTOCOL_VERSION` change; no credits. Details: docs/PREMIUM2.md, "P1 polish".
+
+Suites on this commit (full run on the final code): typecheck PASS (4 packages), unit PASS 44/44, integration PASS 67/67, e2e PASS 59/59 (54 + 5 new P1 tests in `premium2.spec.ts`).
+
+| # | Check | Result | Evidence |
+|---|---|---|---|
+| 12.1 | Result once: one line "word · amount" (28 px), stake and total return 14 px, no badge in the panel, no duplicate outcome tag on my hand; P0 money breakdown still present (stake, total return, net label) | PASS | premium2.spec "P1 result once" (lab result and natural, both orientations); gate.spec and layout-v4.spec unchanged and passing |
+| 12.2 | Card back: medallion, one pattern, no fine lines; face and back 2px ivory frame and 8 px radius (scaled below 57 px); back image is the new one | PASS | premium2.spec "P1 card back"; sharpness checked in the browser at 2x: backs 41 / 57 / 64 px, seat faces 25 / 48 px (`after/card-sizes.png`) |
+| 12.3 | Home: friends night and one-phone play directly after practice and above the fold; save account 48 px row; daily grant 56 px full row | PASS | premium2.spec "P1 home" |
+| 12.4 | Age gate: logo alone, title Rubik 600 24 px without the brand, body 16/24 | PASS | premium2.spec "P1 age gate" |
+| 12.5 | Bust: "עברת 21", 160 ms fade, no shake animation, cards and total at full opacity | PASS | premium2.spec "P1 bust" (real practice hands) |
+| 12.6 | FOUND: after settlement the hand's outcome ("lose") replaced its bust status, so "עברת 21" vanished on the result screen | FAIL, fixed | bust now takes precedence in the hand label |
+| 12.7 | Win 500 ms / natural 900 ms unchanged; reduced motion: no movement, no particles | PASS | premium2.spec celebration test; global reduced-motion rule |
+| 12.9 | FOUND: the first card of a deal left the shoe 25-50 ms late (its mount followed the deal tap's own screen change), so the first gap was about 160 ms instead of 200; the browser timing test failed 3/4 | FAIL, fixed | an 80 ms dealer draw beat before the first card (bible 5, "card draw from shoe 80 ms"); gaps measured 197-205 ms; test thresholds unchanged |
+| 12.10 | FOUND: in landscape the new save-account row took a grid column, so the lobby columns stacked | FAIL, fixed | the row spans both columns; layout-v4 passes 4/4 |
+| 12.8 | Real phones (sharpness of the back on a real screen, feel of the result flow) | NOT RUN | needs Oz's phones |
+
 ## 9. NOT RUN (needs a person or a device)
 
 | # | Check | Why |

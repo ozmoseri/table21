@@ -236,7 +236,8 @@ body:has(.room)::before { display: none; }
 .total.has-ring .timer-ring .bar { stroke: var(--t-confirm); stroke-width: 3.5; }
 
 /* F3: one card language. Face and back share a 2px ivory frame and one radius; the back's art sits inside the frame. */
-.card-face, .card-back { border: 2px solid var(--t-ivory) !important; border-radius: calc(var(--w) * 0.09) !important; box-sizing: border-box; }
+/* P1: one radius, 8 px, on face and back (scaled down only on seat cards under 57 px wide, which would turn round) */
+.card-face, .card-back { border: 2px solid var(--t-ivory) !important; border-radius: min(8px, calc(var(--w) * 0.14)) !important; box-sizing: border-box; }
 .card-face { box-shadow: 0 0 0 0.5px rgba(20, 22, 26, 0.35), 0 6px 12px -4px rgba(0, 0, 0, 0.55); }
 .card-back { background-clip: padding-box; background-origin: padding-box; box-shadow: 0 0 0 0.5px rgba(20, 22, 26, 0.35), 0 6px 12px -4px rgba(0, 0, 0, 0.55); }
 .shoe i { border: 1.5px solid var(--t-ivory); background-size: cover; background-clip: padding-box; }
@@ -295,10 +296,11 @@ body:has(.room)::before { display: none; }
 .felt.celebrate-bj .me-zone .hand-cards::after { animation-duration: var(--dur-celebrate); }
 @keyframes sheen { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 
-/* bust: the hand dims to 60%, its total shakes twice */
-.me-zone .hand.is-bust .hand-cards { opacity: 0.6; }
-.me-zone .hand.is-bust .total { color: var(--t-loss); border-color: rgba(229, 150, 156, 0.5); animation: bust-shake 240ms ease-in-out 1; }
-@keyframes bust-shake { 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
+/* bust (P1): no shake. The label "עברת 21" fades in over 160 ms; cards and numbers stay fully readable. */
+.me-zone .hand.is-bust .hand-cards { opacity: 1; animation: none; }
+.me-zone .hand.is-bust .total { color: var(--t-loss); border-color: rgba(229, 150, 156, 0.5); }
+.me-zone .hand.is-bust .badge.b-bust { animation: bust-in 160ms ease-out both; }
+@keyframes bust-in { from { opacity: 0; } }
 
 /* F5 results: headline 20px Rubik 600, net amount 28px */
 .room .result-head { font-family: var(--ui); font-weight: 600; font-size: 20px; letter-spacing: 0; }
@@ -356,3 +358,45 @@ body:has(.room)::before { display: none; }
   /* with friends at the table there is no spare row in landscape: the print is left out rather than put under a hand */
   .felt.few-seats .felt-print, .felt.many-seats .felt-print { display: none; }
 }
+
+/* =====================================================================================================
+   P1 polish: the result, once. Banner 500 ms, then one fixed line "ניצחת · +25" (amount 28 px), stake and total
+   return 14 px. No outcome badge in the panel; my hand's outcome tag is hidden while the result shows
+   (the natural tag stays: it is the hand's own state label).
+   ===================================================================================================== */
+.room .result-panel { gap: 6px; padding: 12px 14px; }
+.result-line { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.result-line .result-head { font-family: var(--ui); font-weight: 600; font-size: 20px; color: var(--t-ivory); }
+.result-sep { color: var(--muted); font-size: 20px; }
+.room .result-panel .result-line .net .coins { font-size: 28px; font-weight: 600; }
+.result-panel.pos .result-line .net .coins { color: var(--t-win); }
+.result-panel.neg .result-line .net .coins { color: var(--t-loss); }
+.result-panel.even .result-line .net .coins { color: var(--t-push); }
+.result-sub { margin: 0; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.result-sub .coins { font-size: 14px; font-weight: 500; color: var(--t-ivory); }
+.room[data-phase='results'] .me-zone .my-hands .hand-meta .badge:not(.b-bust) { display: none; }
+
+/* P1 home (item 3): friends night and one-phone play right after practice; save account a 48 px row by the balance;
+   the daily grant a full 56 px row */
+.home .play-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.home .play-pair .play { min-height: 72px; padding: 10px 12px; }
+.home .play-pair .play b { font-size: 15px; }
+.home .play-pair .play span { font-size: 12.5px; }
+.home-save-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 0 14px;
+  border-radius: 14px; background: rgba(22, 34, 44, 0.7); border: 1px solid rgba(201, 162, 75, 0.35); color: var(--t-ivory); text-decoration: none; font-size: 14px;
+}
+.home-save-row b { color: var(--t-confirm); font-weight: 600; }
+.home .grant-strip { width: 100%; min-height: 56px; box-sizing: border-box; padding: 0 8px 0 14px; border-style: solid; border-color: rgba(201, 162, 75, 0.4); background: rgba(22, 34, 44, 0.6); }
+.home .grant-strip .btn { min-height: 40px; }
+
+/* P1 age gate (item 4): the brand alone, title Rubik 600 24 px, body 16/24 */
+.age-brand { align-self: center; }
+.age-title { margin: 0; font-family: var(--ui); font-weight: 600; font-size: 24px; line-height: 1.3; color: var(--t-ivory); letter-spacing: 0; }
+.age-body, .age-blocked { font-size: 16px; line-height: 24px; }
+/* one card language in the lobby art too: the same back, frame and radius as the table */
+.home .hero-card { border-radius: 8px; border: 2px solid var(--t-ivory); box-sizing: border-box; }
+.home .hero-card.c1 { background: url(/art/club/cardback-simple.webp) center / cover no-repeat, #0f4a39; }
+.home .hero-card.c1::before, .home .hero-card.c1::after { content: none; }
+/* landscape lobby: the save-account row spans both columns, so play and friends stay side by side */
+.home > .home-save-row { grid-column: 1 / -1; }

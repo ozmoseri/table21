@@ -32,8 +32,9 @@ export function totalLabel(h: Pick<PublicHand, 'total' | 'soft' | 'cards'> & Par
 }
 
 function outcomeKey(h: PublicHand): Key | null {
-  if (h.outcome) return h.outcome as Key;
+  // A bust stays a bust after settlement: it says why the hand lost.
   if (h.status === 'bust') return 'bust';
+  if (h.outcome) return h.outcome as Key;
   if (h.status === 'blackjack') return 'blackjack';
   return null;
 }
@@ -71,8 +72,10 @@ interface Celebration {
   at: number;
 }
 
-function HandView({ hand, back, size, active, ring }: { hand: PublicHand; back: string; size: 'sm' | 'md' | 'lg'; active?: boolean; ring?: ReactNode }) {
+function HandView({ hand, back, size, active, ring, mine }: { hand: PublicHand; back: string; size: 'sm' | 'md' | 'lg'; active?: boolean; ring?: ReactNode; mine?: boolean }) {
   const ok = outcomeKey(hand);
+  // My own bust reads as a plain fact, "עברת 21"; friends' seats keep the short word.
+  const okText = ok === 'bust' && mine ? t('bustMine') : ok ? t(ok) : '';
   return (
     <div className={`hand hand-${size} ${active ? 'active' : ''} ${hand.outcome ? `out-${hand.outcome}` : ''} ${hand.status === 'bust' ? 'out-lose is-bust' : ''}`}>
       <div className="hand-cards">
@@ -88,7 +91,7 @@ function HandView({ hand, back, size, active, ring }: { hand: PublicHand; back: 
           </span>
         )}
         {size !== 'sm' && <ChipStack units={hand.stakeUnits} small />}
-        {ok && ok !== 'blackjack' && <span className={`badge b-${ok}`}>{t(ok)}</span>}
+        {ok && ok !== 'blackjack' && <span className={`badge b-${ok}`}>{okText}</span>}
         {hand.outcome === 'blackjack' || hand.status === 'blackjack' ? (
           <span className="natural-tag" data-testid="natural">
             {t('natural')}
@@ -117,7 +120,7 @@ function SplitHands({ hands, back, activeIndex, ring }: { hands: PublicHand[]; b
         {t('handOf', { n: focus + 1, m: hands.length })}
         {activeIndex === focus ? ` · ${t('playingNow')}` : ''}
       </span>
-      <HandView hand={hands[focus]} back={back} size={hands.length > 2 ? 'md' : 'lg'} active={activeIndex === focus} ring={activeIndex === focus ? ring : undefined} />
+      <HandView hand={hands[focus]} back={back} size={hands.length > 2 ? 'md' : 'lg'} active={activeIndex === focus} ring={activeIndex === focus ? ring : undefined} mine />
       <div className="hand-chips" role="tablist" aria-label="hands">
         {hands.map((h, i) => {
           const k = statusKey(h);
@@ -478,7 +481,7 @@ export function Table({
               <SplitHands hands={mine.hands} back={back} activeIndex={myActiveHand} ring={myRing} />
             ) : (
               <div className="my-hands">
-                <HandView hand={mine.hands[0]} back={back} size="lg" ring={myRing} />
+                <HandView hand={mine.hands[0]} back={back} size="lg" ring={myRing} mine />
               </div>
             )
           ) : mySeat ? (
@@ -703,10 +706,30 @@ export function ResultPanel({ snap, meId }: { snap: RoomSnapshot; meId: string }
   const split = rows.length > 1;
   return (
     <div className={`result-panel ${net > 0 ? 'pos' : net < 0 ? 'neg' : 'even'}`} data-testid="result-panel" data-net={net}>
-      <p className="result-head" data-testid="result-head">
-        {net > 0 ? t('resultUp') : net < 0 ? t('resultDown') : t('resultEven')}
+      {/* The result, once (P1): one fixed line "ניצחת · +25", then stake and total return small. No badge here: the
+          banner already celebrated, and per-hand outcomes appear only in the split table. */}
+      <p className="result-line" data-testid="result-line">
+        <span className="result-head" data-testid="result-head">
+          {net > 0 ? (!split && rows[0].h.outcome === 'blackjack' ? t('natural') : t('celebrateWin')) : net < 0 ? t('youLost') : t('pushReturned')}
+        </span>
+        <span className="result-sep" aria-hidden="true">
+          ·
+        </span>
+        <span className="net">
+          <span className="sr-only">{t('net')} </span>
+          <Coins units={net} sign />
+        </span>
       </p>
-      {split ? (
+      <p className="result-sub" data-testid="result-sub">
+        <span>
+          {split ? t('stakeTotal') : t('stake')} <Coins units={stake} />
+        </span>
+        <span aria-hidden="true">·</span>
+        <span>
+          {t('returned')} <Coins units={ret} />
+        </span>
+      </p>
+      {split && (
         <table className="result-table" data-testid="result-table">
           <thead>
             <tr>
@@ -733,43 +756,19 @@ export function ResultPanel({ snap, meId }: { snap: RoomSnapshot; meId: string }
                 <td>
                   <Coins units={r.ret} />
                 </td>
-                <td className="net">
+                <td className="net-cell">
                   <Coins units={r.net} sign />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      ) : (
-        <div className="result-hands">
-          <span className={`badge b-${rows[0].h.outcome}`}>{label(rows[0].h)}</span>
-        </div>
       )}
       {mine.hands.some(isSplit21) && (
         <p className="split21-note" data-testid="split21-note">
           <b>{t('split21')}.</b> {t('split21Why')}
         </p>
       )}
-      <dl className="result-nums">
-        <div>
-          <dt>{split ? t('stakeTotal') : t('stake')}</dt>
-          <dd>
-            <Coins units={stake} />
-          </dd>
-        </div>
-        <div>
-          <dt>{t('returned')}</dt>
-          <dd>
-            <Coins units={ret} />
-          </dd>
-        </div>
-        <div>
-          <dt>{t('net')}</dt>
-          <dd className="net">
-            <Coins units={net} sign />
-          </dd>
-        </div>
-      </dl>
     </div>
   );
 }

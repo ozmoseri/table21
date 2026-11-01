@@ -7,6 +7,8 @@ describe('motion spec (DECISIONS 1-3)', () => {
   it('pacing: stagger 200, flight 260, full opening deal for one player well under 3.2 s', () => {
     expect(BASE.stagger).toBe(200);
     expect(BASE.flight).toBe(260);
+    // the dealer's draw beat before the first card (bible 5), so card 1 keeps the same 200 ms beat
+    expect(BASE.drawLead).toBe(80);
     // 4 cards: the last leaves at 3 * stagger, flies, turns and settles.
     const oneSeat = 3 * BASE.stagger + BASE.flight + BASE.flip + BASE.settle;
     expect(oneSeat).toBeLessThan(1500);

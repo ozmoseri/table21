@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { t } from '../i18n.ts';
 import { useUpdate } from '../update.ts';
+import { Brand } from '../screens/Onboarding.tsx';
 
 /**
  * Ethics guardrails (DESIGN_BIBLE 9, DECISIONS 9): the 18+ gate and the 60-minute session reminder.
@@ -30,10 +31,14 @@ export function AgeGate({ onConfirm }: { onConfirm: () => void }) {
   const [under, setUnder] = useState(false);
   return (
     <section className="age-gate" role="dialog" aria-modal="true" aria-labelledby="age-title" data-testid="age-gate">
+      {/* P1: the brand on its own (the one place for the display face), then a plain Rubik title */}
+      <div className="age-brand">
+        <Brand />
+      </div>
       <span className="age-badge num" aria-hidden="true" dir="ltr">
         18+
       </span>
-      <h1 id="age-title" className="title">
+      <h1 id="age-title" className="age-title">
         {t('ageTitle')}
       </h1>
       {under ? (

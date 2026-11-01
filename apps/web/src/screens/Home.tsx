@@ -155,6 +155,12 @@ export function Home() {
         )}
       </header>
 
+      {user?.account.kind === 'guest' && (
+        <a className="home-save-row" href="#/account" data-testid="home-save">
+          <span>{t('saveAccountRow')}</span>
+          <b>{t('saveAccount')}</b>
+        </a>
+      )}
       {user?.admin && <PilotCard compact />}
       {me.status === 'offline' && (
         <p className="note" data-testid="offline-note">
@@ -203,6 +209,16 @@ export function Home() {
           <span className="practice-chip" aria-hidden="true" />
           <span>{t('practiceShort')}</span>
         </a>
+        <div className="play-list play-pair">
+          <button className="play" onClick={() => setSheet('match')} disabled={!user} data-testid="friends-night">
+            <b>{t('friendsNight')}</b>
+            <span>{t('friendsNightSub')}</span>
+          </button>
+          <a className="play" href="#/pass" data-testid="pass-play">
+            <b>{t('passPlay')}</b>
+            <span>{t('passPlaySub')}</span>
+          </a>
+        </div>
         <InstallHint />
         <section className="hero-table" aria-hidden="true">
           <div className="hero-felt">
@@ -213,11 +229,6 @@ export function Home() {
         </section>
       </div>
       <div className="home-col home-side">
-        {user?.account.kind === 'guest' && (
-          <a className="home-save" href="#/account" data-testid="home-save">
-            {t('saveAccount')}
-          </a>
-        )}
         {user && (user.grants.dailyAvailable || user.grants.rescueAvailable) && (
           <div className="grant-strip">
             <span>{user.grants.rescueAvailable ? t('rescueReady') : t('dailyReady')}</span>
@@ -239,14 +250,6 @@ export function Home() {
         )}
 
         <div className="play-list">
-          <button className="play" onClick={() => setSheet('match')} disabled={!user}>
-            <b>{t('friendsNight')}</b>
-            <span>{t('friendsNightSub')}</span>
-          </button>
-          <a className="play" href="#/pass">
-            <b>{t('passPlay')}</b>
-            <span>{t('passPlaySub')}</span>
-          </a>
           <a className="play club-tile" href="#/rewards">
             <b>{t('rewards')}</b>
             <span>{t('rewardsSub')}</span>

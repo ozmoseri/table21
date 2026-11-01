@@ -137,6 +137,7 @@ export class TableTimeline {
     const hole = r.dealer.cards[1];
     let t = Math.max(this.now(), this.cursor);
     if (opening) {
+      t += BASE.drawLead;
       // The opening deal overlaps: the next card leaves the shoe while the previous one is still in the air.
       let end = t;
       fresh.forEach((it, i) => {
