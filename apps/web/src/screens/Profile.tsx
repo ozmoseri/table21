@@ -40,6 +40,12 @@ export function Profile() {
 
   return (
     <div className="pad stack">
+      <div className="row between">
+        <span />
+        <a className="btn ghost sm" href="#/settings" data-testid="open-settings">
+          {t('navSettings')}
+        </a>
+      </div>
       <div className="profile-head">
         <Avatar id={u.avatar} size={72} />
         <div>

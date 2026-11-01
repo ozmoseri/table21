@@ -2,7 +2,7 @@ import { api, refreshMe, useMe } from '../api.ts';
 import { errorText, getLocale, t } from '../i18n.ts';
 import { toast } from '../components/bits.tsx';
 
-export function Rewards() {
+export function Rewards({ embedded }: { embedded?: boolean } = {}) {
   const me = useMe();
   if (me.status !== 'ready') return <p className="pad muted">{t('offlineOnboard')}</p>;
   const g = me.me.grants;
@@ -19,7 +19,7 @@ export function Rewards() {
   };
   return (
     <div className="pad stack">
-      <h1 className="title">{t('rewards')}</h1>
+      {!embedded && <h1 className="title">{t('rewards')}</h1>}
       <div className="panel reward done">
         <b>{t('welcomeGrant')}</b>
         <span className="pill">{t('claimed')}</span>

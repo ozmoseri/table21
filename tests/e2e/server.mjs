@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const url = process.env.T21_E2E_DATABASE_URL ?? 'postgres://t21@127.0.0.1:55432/table21_e2e';
-spawnSync('pnpm', ['--filter', '@table21/web', 'build'], { cwd: root, stdio: 'inherit' });
+spawnSync('pnpm', ['--filter', '@table21/web', 'build'], { cwd: root, stdio: 'inherit', env: { ...process.env, VITE_LAB: '1' } });
 const c = new pg.Client({ connectionString: url });
 await c.connect();
 await c.query('drop schema if exists public cascade; create schema public;');

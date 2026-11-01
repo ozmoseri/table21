@@ -20,9 +20,9 @@ export function Settings() {
         <div className="row between">
           <span>{t('motion')}</span>
           <div className="segmented">
-            {(['full', 'reduced'] as const).map((m) => (
+            {(['system', 'full', 'reduced'] as const).map((m) => (
               <button key={m} className={p.motion === m ? 'on' : ''} onClick={() => setPrefs({ motion: m })} aria-pressed={p.motion === m}>
-                {t(m === 'full' ? 'motionFull' : 'motionReduced')}
+                {t(m === 'system' ? 'motionSystem' : m === 'full' ? 'motionFull' : 'motionReduced')}
               </button>
             ))}
           </div>

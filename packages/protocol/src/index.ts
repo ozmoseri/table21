@@ -8,7 +8,7 @@ import { totals, type DrawnCard, type RoundState, type HandStatus, type Outcome,
 export const AVATARS = ['amber', 'cobalt', 'sage', 'coral', 'plum', 'sand', 'slate', 'rose'] as const;
 export type AvatarId = (typeof AVATARS)[number];
 
-export const REACTIONS = ['nice', 'again', 'card', 'wow', 'gg', 'ouch'] as const;
+export const REACTIONS = ['nice', 'card', 'wow', 'yourturn', 'thanks', 'again', 'clap', 'wink'] as const;
 export type ReactionId = (typeof REACTIONS)[number];
 
 export const STAKE_OPTIONS = [10, 25, 50, 100, 250] as const;
@@ -60,6 +60,21 @@ export type Command = z.infer<typeof Command>;
 export type CommandType = Command['type'];
 
 export const ReactionInput = z.object({ roomId: id, reaction: z.enum(REACTIONS) });
+
+/** Table gifts are visual gestures only: no coin value, no credit to the recipient, not transferable. */
+export const GIFTS = ['coffee', 'tea', 'cookie', 'rose', 'trophy', 'tissue'] as const;
+export type GiftId = (typeof GIFTS)[number];
+export const GIFT_TTL_MS = 45_000;
+export const GiftInput = z.object({ roomId: id, recipientId: id, giftId: z.enum(GIFTS), eventId: id });
+
+export interface GiftEvent {
+  id: string;
+  fromId: string;
+  toId: string;
+  giftId: GiftId;
+  at: number;
+  expiresAt: number;
+}
 
 export type ErrorCode =
   | 'bad_request'
@@ -220,6 +235,8 @@ export interface RoomSnapshot {
   members: MemberView[];
   round: PublicRound | null;
   match: MatchView | null;
+  /** Unexpired gifts at the table, so a reconnect shows them without replaying the animation. */
+  gifts: GiftEvent[];
   you: {
     userId: string;
     seatIndex: number | null;

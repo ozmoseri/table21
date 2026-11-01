@@ -4,14 +4,19 @@ import type { Locale } from './i18n.ts';
 
 export interface Prefs {
   sound: boolean;
-  motion: 'full' | 'reduced';
+  /** 'system' follows the OS setting live, also while a game is running. */
+  motion: 'system' | 'full' | 'reduced';
   haptics: boolean;
   locale: Locale;
 }
 
-const systemReduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-let prefs: Prefs = { sound: true, motion: systemReduced ? 'reduced' : 'full', haptics: true, locale: 'he' };
+const mq = typeof matchMedia !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+let prefs: Prefs = { sound: true, motion: 'system', haptics: true, locale: 'he' };
 const subs = new Set<() => void>();
+mq?.addEventListener?.('change', () => {
+  apply();
+  subs.forEach((f) => f());
+});
 
 /** IndexedDB holds only settings and offline practice data. Wrapped so private modes still work. */
 export async function loadPrefs(): Promise<Prefs> {
@@ -24,7 +29,7 @@ export async function loadPrefs(): Promise<Prefs> {
 }
 
 function apply() {
-  document.documentElement.dataset.motion = prefs.motion;
+  document.documentElement.dataset.motion = reducedMotion() ? 'reduced' : 'full';
 }
 
 export function setPrefs(p: Partial<Prefs>) {
@@ -44,7 +49,7 @@ export const usePrefs = () =>
     () => prefs,
   );
 
-export const reducedMotion = () => prefs.motion === 'reduced';
+export const reducedMotion = () => prefs.motion === 'reduced' || (prefs.motion === 'system' && !!mq?.matches);
 
 /** Local practice identity and coins for offline modes. Never sent to the server. */
 export interface LocalProfile {
@@ -69,3 +74,11 @@ export function saveLocal(p: Partial<LocalProfile>) {
   return localMem;
 }
 export const getLocal = () => localMem;
+
+/** Subscribe to preference changes, including live OS reduced-motion changes. */
+export const subscribePrefs = (f: () => void) => {
+  subs.add(f);
+  return () => {
+    subs.delete(f);
+  };
+};

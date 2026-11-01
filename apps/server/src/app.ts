@@ -7,7 +7,8 @@ import { existsSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { z } from 'zod';
 import type { Card } from '@table21/game-engine';
-import { AVATARS, Command, DisplayName, ReactionInput, RoomCreate, SessionCreate } from '@table21/protocol';
+import { AVATARS, Command, DisplayName, GiftInput, ReactionInput, RoomCreate, SessionCreate } from '@table21/protocol';
+import { sendGift } from './gifts.ts';
 import type { Db } from './db.ts';
 import { DEFAULT_ECONOMY, SESSION_COOKIE, createGuest, userFromToken, type Economy, type SessionUser } from './auth.ts';
 import { CmdError, RoomManager, type Timing } from './rooms.ts';
@@ -280,6 +281,22 @@ export async function buildApp(opts: AppOptions) {
       if (!parsed.success) return ack({ ok: false, error: 'bad_request', version: 0 });
       if (parsed.data.roomId !== roomId) return ack({ ok: false, error: 'forbidden', version: 0 });
       ack(await manager.command(user, parsed.data));
+    });
+
+    socket.on('gift', async (raw, ack) => {
+      const reply = typeof ack === 'function' ? ack : () => {};
+      const p = GiftInput.safeParse(raw);
+      if (!p.success || p.data.roomId !== roomId) return reply({ ok: false, error: 'bad_request' });
+      const member = await opts.db.query(
+        `select 1 from seats where room_id = $1 and user_id = $2 union all select 1 from rooms where id = $1 and dealer_user_id = $2`,
+        [p.data.roomId, p.data.recipientId],
+      );
+      const present = (manager.presence.get(p.data.roomId)?.get(p.data.recipientId)?.sockets ?? 0) > 0;
+      if (!member.length && !present) return reply({ ok: false, error: 'not_found' });
+      const r = await sendGift(opts.db, { roomId: p.data.roomId, senderId: user.id, recipientId: p.data.recipientId, giftId: p.data.giftId, eventId: p.data.eventId, now: now() });
+      if (!r.ok) return reply({ ok: false, error: r.error });
+      if (!r.duplicate) io.to(p.data.roomId).emit('room:gift', r.event);
+      reply({ ok: true, duplicate: r.duplicate, event: r.event });
     });
 
     socket.on('react', (raw) => {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import QRCode from 'qrcode';
-import { REACTIONS, type MeResponse, type RoomSnapshot, type SeatView } from '@table21/protocol';
+import { GIFTS, REACTIONS, type AvatarId, type GiftId, type MeResponse, type RoomSnapshot } from '@table21/protocol';
+import { GIFT_LABEL, GiftIcon } from '../components/gifts.tsx';
 import type { PlayerAction } from '@table21/game-engine';
 import { RoomClient, type Intent } from '../net.ts';
 import { api, refreshMe } from '../api.ts';
@@ -90,8 +91,20 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
   const snap = st.snapshot;
   const offsetRef = useRef(0);
   const [sheet, setSheet] = useState<null | 'share' | 'members' | 'more' | 'settings'>(null);
-  const [detail, setDetail] = useState<SeatView | null>(null);
-  const [muteReactions, setMute] = useState(false);
+  const [detail, setDetail] = useState<{ userId: string; name: string; avatar: AvatarId; betUnits?: number } | null>(null);
+  const [muted, setMuted] = useState<Set<string>>(() => new Set());
+  const toggleMute = (uid: string) =>
+    setMuted((m) => {
+      const n = new Set(m);
+      if (n.has(uid)) n.delete(uid);
+      else n.add(uid);
+      return n;
+    });
+  const giveGift = async (to: string, giftId: GiftId) => {
+    const r = await client.sendGift(to, giftId);
+    if (!r.ok) toast(errorText(r.error));
+    else setDetail(null);
+  };
 
   const offset = useMemo(() => {
     if (snap) offsetRef.current = snap.serverTime - Date.now();
@@ -127,7 +140,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
   const roundLive = snap.phase === 'player_turns' || snap.phase === 'dealer_turn';
   const dealerMember = snap.dealerUserId ? snap.members.find((m) => m.userId === snap.dealerUserId) : null;
   const dealer: DealerInfo = dealerMember
-    ? { name: dealerMember.name, avatar: dealerMember.avatar, presenter: true, offline: !dealerMember.connected }
+    ? { name: dealerMember.name, avatar: dealerMember.avatar, presenter: true, offline: !dealerMember.connected, userId: dealerMember.userId }
     : { name: t('autoDealer'), presenter: false };
   const turnPlayer = round?.turn ? round.seats[round.turn.seat]?.playerId : null;
   const turnName = snap.members.find((m) => m.userId === turnPlayer)?.name ?? '';
@@ -319,12 +332,17 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
         theme={me.tableTheme}
         offset={offset}
         dealer={dealer}
-        onSeatTap={setDetail}
+        sessionKey={snap.roomId}
+        resyncKey={st.resyncKey}
+        reactions={st.reactions}
+        muted={muted}
+        onSeatTap={(seat) => setDetail(seat)}
+        onDealerTap={dealerMember && dealerMember.userId !== meId ? () => setDetail(dealerMember) : undefined}
         overlay={
-          !muteReactions && st.reactions.length > 0 ? (
+          !muted.has('*') && st.reactions.some((r) => !snap.seats.some((x) => x.userId === r.userId) && r.userId !== snap.dealerUserId && r.userId !== meId) ? (
             <div className="reaction-float" aria-hidden="true">
               {st.reactions
-                .filter((r) => Date.now() - r.at < 4000)
+                .filter((r) => Date.now() - r.at < 4000 && !muted.has(r.userId) && !snap.seats.some((x) => x.userId === r.userId) && r.userId !== snap.dealerUserId && r.userId !== meId)
                 .map((r) => (
                   <span key={`${r.userId}${r.at}`} className="reaction-bubble">
                     <bdi>{r.name}</bdi>: {REACTION_TEXT[r.reaction]?.[getLocale()]}
@@ -340,13 +358,16 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
       </div>
 
       <div className="reactions" role="group" aria-label="reactions">
-        {REACTIONS.slice(0, 4).map((r) => (
-          <button key={r} className="pill" onClick={() => client.react(r)}>
+        {REACTIONS.map((r) => (
+          <button key={r} className="pill" onClick={() => client.react(r)} data-testid={`react-${r}`}>
             {REACTION_TEXT[r][getLocale()]}
           </button>
         ))}
-        <button className={`pill ${muteReactions ? 'on' : ''}`} onClick={() => setMute((m) => !m)} aria-pressed={muteReactions}>
-          🔕
+        <button className={`pill ${muted.has('*') ? 'on' : ''}`} onClick={() => toggleMute('*')} aria-pressed={muted.has('*')} aria-label={t('muteAll')}>
+          <svg viewBox="0 0 24 24" width="18" height="18" className="ico" aria-hidden="true">
+            <path d="M6 9h3l5-4v14l-5-4H6z" />
+            {muted.has('*') && <path d="M17 9l4 6M21 9l-4 6" />}
+          </svg>
         </button>
       </div>
 
@@ -392,15 +413,35 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
       <RoomSettingsSheet snap={snap} open={sheet === 'settings'} onClose={() => setSheet(null)} send={send} />
       <Sheet open={!!detail} onClose={() => setDetail(null)} title={detail?.name}>
         {detail && (
-          <div className="seat-detail" dir="ltr">
-            <Avatar id={detail.avatar} size={56} />
-            {detailRound?.hands.map((h, i) => (
-              <div key={i} className="detail-hand">
-                <span className="total num">{totalLabel(h)}</span>
-                <Coins units={h.stakeUnits} />
-                {h.outcome && <span className={`badge b-${h.outcome}`}>{t(h.outcome)}</span>}
-              </div>
-            )) ?? (detail.betUnits > 0 ? <Coins units={detail.betUnits} /> : null)}
+          <div className="tray" data-testid="seat-tray">
+            <div className="seat-detail" dir="ltr">
+              <Avatar id={detail.avatar} size={56} />
+              {detailRound?.hands.map((h, i) => (
+                <div key={i} className="detail-hand">
+                  {detailRound.hands.length > 1 && <span className="hc-n num">{i + 1}</span>}
+                  <span className="total num">{totalLabel(h)}</span>
+                  <Coins units={h.stakeUnits} />
+                  {h.outcome && <span className={`badge b-${h.outcome}`}>{t(h.outcome)}</span>}
+                </div>
+              )) ?? (detail.betUnits ? <Coins units={detail.betUnits} /> : null)}
+            </div>
+            {detail.userId !== meId && (
+              <>
+                <h3 className="sub">{t('sendGift')}</h3>
+                <div className="gift-grid">
+                  {GIFTS.map((g) => (
+                    <button key={g} className="gift-pick" onClick={() => giveGift(detail.userId, g)} data-testid={`gift-${g}`}>
+                      <GiftIcon id={g} size={36} />
+                      <span>{GIFT_LABEL[g][getLocale()]}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="fine">{t('giftNote')}</p>
+                <button className={`btn ghost wide ${muted.has(detail.userId) ? 'on' : ''}`} onClick={() => toggleMute(detail.userId)} aria-pressed={muted.has(detail.userId)}>
+                  {muted.has(detail.userId) ? t('unmutePerson') : t('mutePerson')}
+                </button>
+              </>
+            )}
           </div>
         )}
       </Sheet>

@@ -31,6 +31,7 @@ import type { Db, Q } from './db.ts';
 import { ensureWallet, getWallet, lockWallet, move, FundsError, type Wallet } from './wallet.ts';
 import { newCode, newId } from './util.ts';
 import type { SessionUser } from './auth.ts';
+import { activeGifts } from './gifts.ts';
 
 export interface Timing {
   betSeconds: number;
@@ -858,6 +859,7 @@ export class RoomManager {
     }
 
     const scope = round && round.engine.phase !== 'settled' && round.engine.phase !== 'voided' ? round.meta.scope : await this.scopeFor(q, room);
+    const gifts = await activeGifts(this.db, roomId, this.now());
     for (const uid of userIds) {
       const w: Wallet | null = await getWallet(q, uid, scope);
       const available = w?.available_units ?? 0;
@@ -879,6 +881,7 @@ export class RoomManager {
         members,
         round: publicRound,
         match,
+        gifts,
         you: {
           userId: uid,
           seatIndex: mine ? mine.index : null,

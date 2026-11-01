@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import type { Command, CommandResult, ReactionEvent, ReactionId, RoomSnapshot } from '@table21/protocol';
+import type { Command, CommandResult, GiftEvent, GiftId, ReactionEvent, ReactionId, RoomSnapshot } from '@table21/protocol';
 
 type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never;
 export type Intent = DistributiveOmit<Command, 'commandId' | 'roomId' | 'expectedVersion' | 'roundId'>;
@@ -12,6 +12,8 @@ export interface RoomState {
   reactions: ReactionEvent[];
   restored: boolean;
   dupTab: boolean;
+  /** Increments on every reconnect so the table hydrates instead of replaying old animations. */
+  resyncKey: number;
 }
 
 const newCommandId = () => (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/-/g, '');
@@ -24,7 +26,7 @@ const newCommandId = () => (crypto.randomUUID?.() ?? Math.random().toString(36).
 export class RoomClient {
   private socket: Socket;
   private subs = new Set<() => void>();
-  state: RoomState = { snapshot: null, connection: 'connecting', pending: false, error: null, reactions: [], restored: false, dupTab: false };
+  state: RoomState = { snapshot: null, connection: 'connecting', pending: false, error: null, reactions: [], restored: false, dupTab: false, resyncKey: 0 };
   private wasOnline = false;
   private bc: BroadcastChannel | null = null;
 
@@ -34,6 +36,11 @@ export class RoomClient {
     this.socket.on('disconnect', () => this.set({ connection: 'reconnecting' }));
     this.socket.on('connect_error', () => this.set({ connection: this.wasOnline ? 'reconnecting' : 'connecting' }));
     this.socket.on('room:state', (s: RoomSnapshot) => this.accept(s));
+    this.socket.on('room:gift', (g: GiftEvent) => {
+      const snap = this.state.snapshot;
+      if (!snap) return;
+      this.set({ snapshot: { ...snap, gifts: [g, ...(snap.gifts ?? []).filter((x) => x.id !== g.id)] } });
+    });
     this.socket.on('room:reaction', (r: ReactionEvent) => {
       this.set({ reactions: [...this.state.reactions.filter((x) => Date.now() - x.at < 4000), r].slice(-6) });
     });
@@ -74,7 +81,7 @@ export class RoomClient {
     }
     const restored = this.wasOnline;
     this.wasOnline = true;
-    this.set({ connection: 'online', error: null, restored });
+    this.set({ connection: 'online', error: null, restored, resyncKey: restored ? this.state.resyncKey + 1 : this.state.resyncKey });
     this.accept(ack.snapshot);
     if (restored) setTimeout(() => this.set({ restored: false }), 3000);
   }
@@ -101,6 +108,18 @@ export class RoomClient {
   async resync() {
     const ack = await this.socket.timeout(4000).emitWithAck('room:sync', {}).catch(() => null);
     if (ack?.ok) this.accept(ack.snapshot);
+  }
+
+  /** Gifts are idempotent by event id: a retry after a lost ack is recorded and shown once. */
+  async sendGift(recipientId: string, giftId: GiftId): Promise<{ ok: boolean; error?: string }> {
+    const snap = this.state.snapshot;
+    if (!snap) return { ok: false, error: 'not_found' };
+    const payload = { roomId: snap.roomId, recipientId, giftId, eventId: newCommandId() };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await this.socket.timeout(4000).emitWithAck('gift', payload).catch(() => null);
+      if (res) return res;
+    }
+    return { ok: false, error: 'timeout' };
   }
 
   react(reaction: ReactionId) {

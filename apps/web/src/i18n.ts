@@ -211,6 +211,17 @@ const he = {
   dealer: 'דילר',
   timeLeft: 'נשארו {s} שניות',
   syncing: 'מסנכרן',
+  sendGift: 'שליחת מתנה',
+  giftNote: 'מתנה היא מחווה בלבד: היא לא עולה קוינס ולא מוסיפה קוינס למקבל.',
+  mutePerson: 'השתקת מתנות ותגובות של המשתתף',
+  unmutePerson: 'ביטול ההשתקה',
+  muteAll: 'השתקת כל המתנות והתגובות',
+  motionSystem: 'לפי המכשיר',
+  stood: 'עומד',
+  playing: 'בתור',
+  navClub: 'מועדון',
+  club: 'המועדון',
+  collection: 'האוסף שלי',
 };
 
 export type Key = keyof typeof he;
@@ -413,6 +424,17 @@ const en: Record<Key, string | string[]> = {
   dealer: 'Dealer',
   timeLeft: '{s} seconds left',
   syncing: 'Syncing',
+  sendGift: 'Send a gift',
+  giftNote: 'A gift is a gesture only: it costs no coins and adds no coins to the recipient.',
+  mutePerson: 'Mute this person’s gifts and reactions',
+  unmutePerson: 'Unmute',
+  muteAll: 'Mute all gifts and reactions',
+  motionSystem: 'Device setting',
+  stood: 'Stands',
+  playing: 'Playing',
+  navClub: 'Club',
+  club: 'The club',
+  collection: 'My collection',
 };
 
 const dicts: Record<Locale, Record<Key, string | string[]>> = { he, en };
@@ -452,9 +474,11 @@ export const errorText = (code?: string) => (code && ERROR_TEXT[code]?.[current]
 
 export const REACTION_TEXT: Record<string, Record<Locale, string>> = {
   nice: { he: 'יפה!', en: 'Nice!' },
-  again: { he: 'עוד סיבוב?', en: 'Another one?' },
   card: { he: 'איזה קלף!', en: 'What a card!' },
   wow: { he: 'וואו', en: 'Wow' },
-  gg: { he: 'כל הכבוד', en: 'Well played' },
-  ouch: { he: 'אאוץ׳', en: 'Ouch' },
+  yourturn: { he: 'תורך', en: 'Your turn' },
+  thanks: { he: 'תודה', en: 'Thanks' },
+  again: { he: 'עוד סיבוב?', en: 'Another round?' },
+  clap: { he: 'מחיאות כפיים', en: 'Applause' },
+  wink: { he: 'קריצה', en: 'Wink' },
 };

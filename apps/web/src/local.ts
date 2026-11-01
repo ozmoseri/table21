@@ -31,6 +31,8 @@ export interface LocalPlayer {
  */
 export class LocalGame {
   private rng = cryptoRng();
+  /** Unique per local session so card ids never collide with an earlier game in the same tab. */
+  private session = Math.random().toString(36).slice(2, 8) + Date.now().toString(36);
   private shoe: Card[];
   private subs = new Set<() => void>();
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -42,9 +44,11 @@ export class LocalGame {
   handoff: string | null = null;
   private confirmed: string | null = null;
   view: RoomSnapshot;
+  readonly sessionId: string;
 
   constructor(public mode: 'solo' | 'pass', public players: LocalPlayer[], public stakes = [10, 25, 50, 100, 250]) {
     this.shoe = newShuffledShoe(STANDARD_RULES.decks, this.rng);
+    this.sessionId = `local-${this.session}`;
     this.view = this.build();
   }
 
@@ -99,7 +103,7 @@ export class LocalGame {
     if (this.shoe.length < STANDARD_RULES.cutRemaining) this.shoe = newShuffledShoe(STANDARD_RULES.decks, this.rng);
     this.round++;
     this.engine = startRound({
-      roundId: `local${this.round}`,
+      roundId: `local-${this.session}-${this.round}`,
       rules: STANDARD_RULES,
       shoe: this.shoe,
       seats: seated.map((p) => ({ seatId: p.id, playerId: p.id, stake: p.betUnits })),
@@ -196,6 +200,7 @@ export class LocalGame {
       members: this.players.map((p) => ({ userId: p.id, name: p.name, avatar: p.avatar, connected: true, role: 'player' as const })),
       round: e ? toPublicRound(e) : null,
       match: null,
+      gifts: [],
       you: {
         userId: viewer.id,
         seatIndex: this.players.indexOf(viewer),

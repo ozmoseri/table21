@@ -45,6 +45,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
         theme={theme}
         offset={0}
         dealer={{ name: t('autoDealer'), presenter: false }}
+        sessionKey={game.sessionId}
         overlay={
           handoffPlayer ? (
             <div className="handoff" role="dialog" aria-modal="true" data-testid="handoff">

@@ -7,7 +7,7 @@ import { useGroups } from './Friends.tsx';
 
 type Board = { kind: 'weekly' | 'balance'; since: string; minHands: number; rows: LeaderboardRow[] };
 
-export function Leaderboard() {
+export function Leaderboard({ embedded }: { embedded?: boolean } = {}) {
   const { groups } = useGroups();
   const [groupId, setGroupId] = useState<string | null>(null);
   const [kind, setKind] = useState<'weekly' | 'balance' | 'session'>('weekly');
@@ -25,7 +25,7 @@ export function Leaderboard() {
 
   return (
     <div className="pad stack">
-      <h1 className="title">{t('navBoard')}</h1>
+      {!embedded && <h1 className="title">{t('navBoard')}</h1>}
       {groups && groups.length === 0 && <p className="muted">{t('pickGroup')}</p>}
       {groups && groups.length > 1 && (
         <select value={gid ?? ''} onChange={(e) => setGroupId(e.target.value)}>
