@@ -252,6 +252,51 @@ Suites on this commit (full run on the final code): typecheck PASS (4 packages),
 | 12.10 | FOUND: in landscape the new save-account row took a grid column, so the lobby columns stacked | FAIL, fixed | the row spans both columns; layout-v4 passes 4/4 |
 | 12.8 | Real phones (sharpness of the back on a real screen, feel of the result flow) | NOT RUN | needs Oz's phones |
 
+## 13. Experience round (2026-11-02): version on the phone, entry, lobby, anchors, round staging, sound
+
+Details: docs/EXPERIENCE.md. Evidence: research/evidence.md. No rule, engine, server-rule, wallet, idempotency or
+`PROTOCOL_VERSION` change.
+
+Legend for this section:
+- **PASS auto:** unit or integration test, Node and PostgreSQL.
+- **PASS emulated:** Playwright Chromium with an emulated phone viewport.
+- **PASS device:** checked on a physical phone.
+- **NOT RUN:** with the reason.
+
+Suites on this commit (full run on the final code): typecheck PASS (4 packages), unit PASS 44/44, integration PASS 67/67, e2e PASS 67/67 (59 + 8 in `experience.spec.ts`). All PASS auto or PASS emulated (Chromium); none on a physical device.
+
+| # | Check | Result |
+|---|---|---|
+| 13.1 | Root cause of the old look in the 2.11 video: the PC copy is at 7261b87 and its `dist` build is 20261101-2099efbb | Verified over the bridge (git and version.json); the Windows server process itself was not inspected (NOT RUN) |
+| 13.2 | `/api/config` and Settings > About show client and server commit, build, build time, protocol, origin, mode and service worker, plus a match line | PASS emulated (`experience.spec` "About"); production build checked by hand in Chromium |
+| 13.3 | A phone screenshot identifies the tested version | NOT RUN (needs Oz's phone after the update, docs/OPEN_TESTED_VERSION.md) |
+| 13.4 | Sound board only in developer mode | PASS emulated, production build: 0 boards; with `?dev=1`: 1 |
+| 13.5 | Branded splash from the first byte; no invented progress; a client that cannot load gets one line and a retry within 12 s | PASS emulated (`experience.spec` "entry") |
+| 13.6 | Lobby order: resume, friends, code, practice, then the rest | PASS emulated (`experience.spec` "lobby order") |
+| 13.7 | Stable anchors through bet, deal, turn and result: my hand's bottom and the controls within 2 px at 390x844, 360x640 and 844x390 (before: up to 125 px of movement) | PASS emulated (`experience.spec` "stable anchors" x3) |
+| 13.8 | A win pays chips (3, or 4 for a natural), a loss pays none; the next round sweeps the cards on copies and the bet bar is back in under 600 ms | PASS emulated (`experience.spec` "round staging") |
+| 13.9 | Loss 220 ms and push 200 ms quiet feedback; win 500 ms; natural 900 ms | PASS auto (`premium2.test`) and PASS emulated (celebration test) |
+| 13.10 | Audio: worst-case overlap peaks below full scale after the limiter (measured 0.4-0.6) | PASS emulated (`experience.spec` "audio"; proof video logs) |
+| 13.11 | Listening test of the sound set | NOT RUN: Claude cannot listen. Loudness of the two recordings measured only (research/evidence.md 2.9, 3.11) |
+| 13.12 | Haptics felt on a device | NOT RUN (the API was stubbed in the emulated tests; a `true` return is not proof of vibration) |
+| 13.13 | Installed PWA on iPhone and Android, safe areas, real full screen, orientation | NOT RUN (needs devices) |
+| 13.14 | Bet, hit, stand, double, split; natural vs 21 after a split; push / loss / win / mixed split; net and return without duplication; double-tap; 1 / 3 / 6 players; rotation mid-deal; background and return; reconnect; PWA update between hands; old client vs new server; failed image or sound; quiet and reduced motion; Hebrew and English | PASS auto / emulated through the existing suites (engine, integration, gate, multiplayer, turn-fit, updates, social, premium, premium2, experience); none on a device (NOT RUN) |
+| 13.15 | 60 fps on a target device | NOT RUN (not measured; not claimed) |
+| 13.16 | REA capture of TABLE21 | PASS (evidence id and sha256 in research/evidence.md 4.4) |
+| 13.18 | FOUND: with the fixed controls height, the four-hand split and three players at 360x640 touched the friends' seats | FAIL, fixed: short portrait uses a 128 px controls area, 8 px gaps, no felt print with friends, no split label (the status line says it), tighter result lines; turn-fit, layout-v4, gate and premium2 pass |
+| 13.19 | FOUND: one full run had the browser timing test at a 171 ms average gap (threshold 175). Alone it passed 5/5 with gaps of 192-201 ms. The failing deal was fired right after a cold page load, while the service worker precached every asset | FAIL, fixed (test precondition): the test now waits for network idle before the first deal; thresholds unchanged |
+| 13.20 | FOUND: `account.spec` failed about 1 run in 3 (also once on 2026-11-01): it read the recovery-code list right after the click, before the server's codes arrived | FAIL, fixed (test race): it waits for exactly 8 codes, then reads them; 5/5 after the fix |
+| 13.17 | Higgsfield | Read-only: Ultra plan, 2,333.75 credits; nothing generated or spent |
+
+Proof videos (`docs/proof/`):
+- `table21-full-flow-390x844.mp4`: a new device, 18+ gate, name, lobby, room, bet, deal, decision, reveal, dealer draw, result.
+- `table21-hand-844x390.mp4`: practice hands until a win, with banner and payout chips.
+
+The sound track is rendered from the game's own engine and event log (`*-sounds.json`), not recorded from a device.
+
+Before and after in the same states: `docs/screenshots/experience/before-7261b87/` (the version on the phone), `after/`
+and `compare-*.jpg`.
+
 ## 9. NOT RUN (needs a person or a device)
 
 | # | Check | Why |

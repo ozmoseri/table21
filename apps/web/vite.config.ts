@@ -4,12 +4,30 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
 import { randomBytes } from 'node:crypto';
+import { execSync } from 'node:child_process';
 
 /**
  * One id per build, shared by the client bundle (__T21_BUILD__), the service worker and dist/version.json (read by the
  * server and returned from /api/config). An open client that sees a different id knows a newer version is deployed.
  */
 const BUILD = process.env.T21_BUILD ?? `${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomBytes(4).toString('hex')}`;
+
+/**
+ * Which source a build was made from, for the About / diagnostics screen: the git commit (with "-dirty" when the working
+ * tree had local changes) and the build time. Outside a git checkout it says "unknown" instead of guessing.
+ */
+function gitCommit(): string {
+  if (process.env.T21_COMMIT) return process.env.T21_COMMIT;
+  try {
+    const sha = execSync('git rev-parse --short HEAD', { cwd: import.meta.dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    const dirty = execSync('git status --porcelain -- . ../../packages', { cwd: import.meta.dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    return dirty ? `${sha}-dirty` : sha;
+  } catch {
+    return 'unknown';
+  }
+}
+const COMMIT = gitCommit();
+const BUILT_AT = new Date().toISOString();
 
 /**
  * Writes .br and .gz next to every text file in dist (scripts, styles, HTML, SVG, manifest, sw.js). The server serves
@@ -50,7 +68,7 @@ function serviceWorker(): Plugin {
       const publicDir = join(import.meta.dirname, 'public');
       const walk = (d: string): string[] =>
         readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [relative(publicDir, join(d, f))]));
-      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD }) });
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD, commit: COMMIT, builtAt: BUILT_AT }) });
       const files = ['./', 'index.html', ...Object.keys(bundle), ...walk(publicDir)].filter((f) => f !== 'sw.js' && f !== 'version.json' && !f.endsWith('.map'));
       const version = BUILD;
       const source = `/* TABLE21 service worker ${version} */
@@ -91,7 +109,7 @@ self.addEventListener('fetch', (e) => {
 
 export default defineConfig({
   plugins: [react(), serviceWorker(), precompress()],
-  define: { __T21_BUILD__: JSON.stringify(BUILD) },
+  define: { __T21_BUILD__: JSON.stringify(BUILD), __T21_COMMIT__: JSON.stringify(COMMIT), __T21_BUILT_AT__: JSON.stringify(BUILT_AT) },
   base: '/',
   build: { target: 'es2022', sourcemap: false, assetsInlineLimit: 0 },
   server: {

@@ -56,6 +56,15 @@ function wav(buf: AudioBuffer): string {
 }
 
 if (typeof window !== 'undefined')
+  /** Render any event list (seconds) through the game's own synthesis, voice rules and limiter; report the peak. */
+  (window as any).__t21RenderEvents = async (events: { s: Sfx; t: number }[], seconds: number) => {
+    const { buffer, played } = await renderTimeline(events, seconds);
+    const d = buffer.getChannelData(0);
+    let peak = 0;
+    for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+    return { wav: wav(buffer), played: played.length, peak };
+  };
+if (typeof window !== 'undefined')
   (window as any).__t21RenderDemo = async () => {
     const { events, seconds } = demoTimeline();
     const { buffer, played } = await renderTimeline(events, seconds);

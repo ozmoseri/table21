@@ -155,12 +155,6 @@ export function Home() {
         )}
       </header>
 
-      {user?.account.kind === 'guest' && (
-        <a className="home-save-row" href="#/account" data-testid="home-save">
-          <span>{t('saveAccountRow')}</span>
-          <b>{t('saveAccount')}</b>
-        </a>
-      )}
       {user?.admin && <PilotCard compact />}
       {me.status === 'offline' && (
         <p className="note" data-testid="offline-note">
@@ -171,8 +165,11 @@ export function Home() {
 
       <div className="home-col home-main">
         {user?.activeRoom && (
-          <a className="resume" href={`#/r/${user.activeRoom.code}`}>
-            {t('backToRoom')} <bdi dir="ltr">{user.activeRoom.code}</bdi>
+          <a className="resume" href={`#/r/${user.activeRoom.code}`} data-testid="resume">
+            <b>{t('backToRoom')}</b>
+            <bdi dir="ltr" className="resume-code">
+              {user.activeRoom.code}
+            </bdi>
           </a>
         )}
 
@@ -219,6 +216,13 @@ export function Home() {
             <span>{t('passPlaySub')}</span>
           </a>
         </div>
+        {/* Account, install and bonus come after the ways into a game (lobby order: resume, friends, code, practice). */}
+        {user?.account.kind === 'guest' && (
+          <a className="home-save-row" href="#/account" data-testid="home-save">
+            <span>{t('saveAccountRow')}</span>
+            <b>{t('saveAccount')}</b>
+          </a>
+        )}
         <InstallHint />
         <section className="hero-table" aria-hidden="true">
           <div className="hero-felt">

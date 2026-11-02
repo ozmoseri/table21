@@ -81,6 +81,8 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
       <div className="controls">
         {snap.phase === 'betting' && (
           <div className="stack">
+            {/* inside the fixed controls area, so showing it between hands never moves the table */}
+            <p className="fine center practice-note">{t('practiceNote')}</p>
             {game.players.map((p) => (
               <div key={p.id} className={`bet-row ${solo ? 'bet-bar' : ''}`}>
                 {!solo && (
@@ -132,7 +134,6 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
           </div>
         )}
       </div>
-      <p className="fine center">{t('practiceNote')}</p>
       <Sheet open={menu} onClose={() => setMenu(false)} title={t('menu')}>
         <div className="stack">
           <DealSettings />

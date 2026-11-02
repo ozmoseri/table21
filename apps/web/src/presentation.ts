@@ -112,6 +112,85 @@ export class TablePresentation {
     this.later(() => play('flip'), (BASE.revealLift + BASE.revealPause) / this.rate);
   }
 
+  /**
+   * End of a hand: the cards on the table are collected toward the discard corner (top start of the table) in
+   * 300 ms, 20 ms apart. Copies are animated in an overlay, so the next state renders immediately underneath and
+   * nothing waits for the sweep. Skipped with reduced motion, after a hydrate, or when nothing is on the table.
+   */
+  sweepOut() {
+    if (!this.root || reducedMotion() || this.mode !== 'live') return;
+    const cards = [...this.root.querySelectorAll<HTMLElement>('.card')].filter((c) => !c.closest('.shoe'));
+    if (!cards.length) return;
+    const box = this.root.getBoundingClientRect();
+    const rtl = getComputedStyle(this.root).direction === 'rtl';
+    const tx = rtl ? box.right - 40 : box.left + 40;
+    const ty = box.top + 40;
+    const layer = document.createElement('div');
+    layer.className = 'sweep-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    document.body.append(layer);
+    let left = cards.length;
+    const done = () => {
+      if (--left <= 0) layer.remove();
+    };
+    cards.forEach((c, i) => {
+      const r = c.getBoundingClientRect();
+      if (!r.width) return done();
+      const clone = c.cloneNode(true) as HTMLElement;
+      clone.removeAttribute('data-card-id');
+      Object.assign(clone.style, { position: 'fixed', left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: '0' });
+      clone.style.setProperty('--w', `${r.width}px`);
+      layer.append(clone);
+      const dx = tx - (r.left + r.width / 2);
+      const dy = ty - (r.top + r.height / 2);
+      const a = clone.animate(
+        [
+          { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
+          { transform: `translate(${dx}px, ${dy}px) rotate(${rtl ? 8 : -8}deg) scale(0.7)`, opacity: 0 },
+        ],
+        { duration: BASE.sweep, delay: Math.min(i, 8) * 20, easing: 'cubic-bezier(.4, 0, .7, .2)', fill: 'both' },
+      );
+      a.finished.then(done, done);
+    });
+    this.later(() => layer.remove(), BASE.sweep + 400);
+  }
+
+  /**
+   * A win is paid: a few chips travel from the dealer to my stake on a short arc (400 ms, 40 ms apart), so the
+   * player sees where the coins came from. Visual only; the balance always comes from the snapshot.
+   */
+  payout(count = 3) {
+    if (!this.root || reducedMotion()) return;
+    const from = this.root.querySelector<HTMLElement>('.dealer-zone .seat-avatar, .dealer-zone');
+    const to = this.root.querySelector<HTMLElement>('.me-zone .hand-meta .chips, .me-zone .my-hands, .me-zone');
+    if (!from || !to) return;
+    const a = from.getBoundingClientRect();
+    const b = to.getBoundingClientRect();
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('i');
+      el.className = 'chip fly-chip t3 payout-chip';
+      el.setAttribute('aria-hidden', 'true');
+      el.style.left = `${a.left + a.width / 2 - 14}px`;
+      el.style.top = `${a.top + a.height / 2 - 14}px`;
+      document.body.appendChild(el);
+      const dx = b.left + 22 - (a.left + a.width / 2);
+      const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+      const anim = el.animate(
+        [
+          { transform: 'translate(0, 0) scale(0.9)', opacity: 0 },
+          { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 36}px) scale(1.05)`, opacity: 1, offset: 0.45 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.85)`, opacity: 1, offset: 0.9 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.8)`, opacity: 0 },
+        ],
+        { duration: BASE.payout, delay: i * 40, easing: 'cubic-bezier(.22,.8,.28,1)', fill: 'backwards' },
+      );
+      this.track(anim);
+      const done = () => el.remove();
+      anim.finished.then(done, done);
+      this.later(done, BASE.payout + i * 40 + 300);
+    }
+  }
+
   private peek(el: HTMLElement) {
     this.track(el.animate(peekKeyframes, { duration: BASE.peek, easing: EASING.flip }));
   }

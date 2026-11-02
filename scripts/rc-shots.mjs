@@ -19,6 +19,9 @@ const shot = async (page, file) => {
 };
 async function onboard(page, name, avatar) {
   await page.goto(base + '/');
+  // A new device answers the 18+ gate first (builds from 2026-11-01 on).
+  const age = page.getByTestId('age-confirm');
+  if (await age.isVisible({ timeout: 2500 }).catch(() => false)) await age.click();
   await page.getByPlaceholder('שם תצוגה').fill(name);
   await page.locator('.avatar-pick').nth(avatar).click();
   await page.getByRole('button', { name: 'שמירה וכניסה' }).click();

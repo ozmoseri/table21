@@ -163,6 +163,9 @@ test('round timings in the browser (DECISIONS 1-2): arc flight 260 ms, 200 ms ap
     };
   });
   await p.page.goto('/#/practice');
+  // Measure the dealing rhythm, not first-load contention: the first visit also installs the service worker and
+  // precaches every asset. A player cannot bet within a few hundred milliseconds of opening the page anyway.
+  await p.page.waitForLoadState('networkidle');
   for (let round = 0; round < 8; round++) {
     await p.page.locator('.stake-chip').first().click();
     await p.page.getByTestId('deal').click();

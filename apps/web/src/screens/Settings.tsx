@@ -6,6 +6,7 @@ import { api, useMe } from '../api.ts';
 import { getLocale, setLocale, t, tl } from '../i18n.ts';
 import { setPrefs, usePrefs } from '../prefs.ts';
 import { SFX, play } from '../sound.ts';
+import { About, isDevMode } from '../components/About.tsx';
 
 export function Settings() {
   const p = usePrefs();
@@ -37,6 +38,7 @@ export function Settings() {
               </button>
             ))}
           </div>
+{isDevMode() && (
       <section className="panel" data-testid="sound-test">
         <h2 className="title sm">{t('soundTest')}</h2>
         <p className="fine">{t('soundTestNote')}</p>
@@ -48,6 +50,7 @@ export function Settings() {
           ))}
         </div>
       </section>
+      )}
         </div>
         <div className="row between">
           <span>{t('language')}</span>
@@ -109,6 +112,7 @@ export function Settings() {
         <h2 className="title sm">{t('account')}</h2>
         {me.status === 'ready' ? <AccountCard kind={me.me.account.kind} /> : <p className="fine">{t('guestNote')}</p>}
       </section>
+      <About />
     </div>
   );
 }

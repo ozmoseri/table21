@@ -67,7 +67,7 @@ const reviewSlow = () => {
   }
 };
 interface Celebration {
-  kind: CelebrationKind | 'lose';
+  kind: CelebrationKind | 'lose' | 'push';
   net: number;
   at: number;
 }
@@ -404,7 +404,10 @@ export function Table({
     presentation.afterSequence(() => announce(`${net > 0 ? t('resultUp') : net < 0 ? t('resultDown') : t('resultEven')} ${net / 2}`));
     if (kind === 'bj') haptic('blackjack');
     else if (kind === 'win') haptic('win');
-    if (kind || net < 0) presentation.afterSequence(() => setCelebrate({ kind: kind ?? 'lose', net, at: performance.now() }));
+    presentation.afterSequence(() => {
+      setCelebrate({ kind: kind ?? (net < 0 ? 'lose' : 'push'), net, at: performance.now() });
+      if (kind) presentation.payout(kind === 'bj' ? 4 : 3);
+    });
   }, [settledKey]);
   useEffect(() => {
     if (!celebrate) return;
@@ -502,7 +505,7 @@ export function Table({
             </svg>
           </button>
         )}
-        {celebrate && celebrate.kind !== 'lose' && (
+        {celebrate && (celebrate.kind === 'win' || celebrate.kind === 'bj') && (
           <div
             className={`celebration c-${celebrate.kind}`}
             data-testid="celebration"
