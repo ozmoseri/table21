@@ -17,10 +17,15 @@ export interface Prefs {
   installHintClosed: boolean;
   /** Quiet room tone under the effects (DECISIONS 10: music/ambience off by default). */
   ambience: boolean;
+  /** Coach (beginner tips): on in practice by default, off in rooms with friends by default. Private to this device. */
+  coachPractice: boolean;
+  coachRooms: boolean;
+  /** Show the recommended move without tapping "tip". */
+  coachAuto: boolean;
 }
 
 const mq = typeof matchMedia !== 'undefined' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
-let prefs: Prefs = { sound: true, motion: 'system', haptics: true, locale: 'he', dealSpeed: 'elegant', leftHanded: false, installHintClosed: false, ambience: false };
+let prefs: Prefs = { sound: true, motion: 'system', haptics: true, locale: 'he', dealSpeed: 'elegant', leftHanded: false, installHintClosed: false, ambience: false, coachPractice: true, coachRooms: false, coachAuto: false };
 const subs = new Set<() => void>();
 mq?.addEventListener?.('change', () => {
   apply();

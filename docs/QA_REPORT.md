@@ -297,6 +297,23 @@ The sound track is rendered from the game's own engine and event log (`*-sounds.
 Before and after in the same states: `docs/screenshots/experience/before-7261b87/` (the version on the phone), `after/`
 and `compare-*.jpg`.
 
+## 14. Coach and strategy guide (2026-11-03)
+
+Details in `docs/COACH.md`. Client only: no engine, odds, server or protocol change.
+
+| # | Check | Result |
+|---|---|---|
+| 14.1 | Every cell of the hard, soft and pair charts against the published 6-deck S17 DAS chart | PASS (unit) |
+| 14.2 | Only legal advice: no double after a third card (soft 18 falls back to stand), no split when not allowed | PASS (unit) |
+| 14.3 | 40,000 rounds through the real engine following the coach: return inside the basic-strategy band | PASS (unit) |
+| 14.4 | Practice: on by default, nothing revealed before the tap, one enabled button marked, sheet closes, verdict after the move | PASS (e2e) |
+| 14.5 | 360x640: the strip sits inside the fixed controls, the hand does not move | PASS (e2e; stable-anchor tests also run with the coach on) |
+| 14.6 | Settings: practice tips off gives the plain row; rooms off by default; on shows the strip on this device only | PASS (e2e) |
+| 14.7 | Guide: chart cells match the coach; row labels visible in RTL (first version scrolled them off, fixed) | PASS (e2e) |
+| 14.8 | Phones | NOT RUN |
+
+Screenshots: `docs/screenshots/coach/` (390x844, 360x640, 844x390: turn, tip, why sheet, verdict; guide; settings).
+
 ## 9. NOT RUN (needs a person or a device)
 
 | # | Check | Why |

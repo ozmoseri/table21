@@ -13,6 +13,7 @@ import { LocalPlay } from './screens/LocalPlay.tsx';
 import { Friends } from './screens/Friends.tsx';
 import { Profile } from './screens/Profile.tsx';
 import { Settings } from './screens/Settings.tsx';
+import { Guide } from './screens/Guide.tsx';
 import { Lan } from './screens/Lan.tsx';
 import { Lab } from './screens/Lab.tsx';
 import { Club } from './screens/Club.tsx';
@@ -80,6 +81,7 @@ export function App() {
     content = <Lab kind={rest[0] ?? 'three'} />;
     nav = false;
   } else if (head === 'settings' || head === 'help') content = <Settings />;
+  else if (head === 'guide') content = <Guide />;
   else if (head === 'signin' || head === 'link') {
     content = <SignIn key={route} pairCode={head === 'link' ? rest[0] : undefined} />;
     nav = false;

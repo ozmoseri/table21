@@ -3,7 +3,8 @@ import { AVATARS, type AvatarId } from '@table21/protocol';
 import { LocalGame, type LocalPlayer } from '../local.ts';
 import { getLocal, saveLocal } from '../prefs.ts';
 import { t } from '../i18n.ts';
-import { ActionButtons, BetConfirm, ResultPanel, StakePicker, Table, myTurnText } from '../components/Table.tsx';
+import { BetConfirm, ResultPanel, StakePicker, Table, myTurnText } from '../components/Table.tsx';
+import { CoachVerdict, CoachedActions } from '../components/Coach.tsx';
 import { DealSettings } from '../components/DealSettings.tsx';
 import { Avatar, Coins, Sheet, RollingCoins } from '../components/bits.tsx';
 import { go } from '../App.tsx';
@@ -79,6 +80,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
         }
       />
       <div className="controls">
+        <CoachVerdict />
         {snap.phase === 'betting' && (
           <div className="stack">
             {/* inside the fixed controls area, so showing it between hands never moves the table */}
@@ -103,7 +105,7 @@ function Game({ game, onExit }: { game: LocalGame; onExit: () => void }) {
             <BetConfirm units={game.players.reduce((a, p) => a + p.betUnits, 0)} label={t('deal')} testId="deal" disabled={!anyBet} onConfirm={() => game.deal()} />
           </div>
         )}
-        {snap.phase === 'player_turns' && !handoffPlayer && <ActionButtons legal={snap.you.legalActions} onAction={(a) => game.act(a)} />}
+        {snap.phase === 'player_turns' && !handoffPlayer && <CoachedActions where="practice" round={snap.round} legal={snap.you.legalActions} onAction={(a) => game.act(a)} />}
         {snap.phase === 'results' && (
           <div className="stack">
             {solo ? (

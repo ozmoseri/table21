@@ -451,3 +451,50 @@ body:has(.room)::before { display: none; }
 @media (max-height: 700px) and (orientation: portrait) {
   .room > .controls .stack { gap: 8px; }
 }
+
+/* Coach (beginner tips): one 36 px strip above the action row, inside the fixed controls height, so turning it on never
+   moves the table. Verdicts float above the controls (absolute) and never take layout space. */
+.coach-bar { display: flex; align-items: center; gap: 10px; height: 36px; min-width: 0; }
+.coach-tip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; cursor: pointer;
+  background: rgba(11, 18, 24, 0.72); border: 1px solid rgba(229, 199, 126, 0.55); color: var(--t-ivory); font: 600 14px/1 var(--ui); white-space: nowrap;
+}
+.coach-tip.on { background: rgba(229, 199, 126, 0.16); border-color: var(--t-confirm, #e5c77e); max-width: 62%; overflow: hidden; text-overflow: ellipsis; }
+.coach-tip u { text-underline-offset: 3px; font-weight: 500; opacity: 0.85; }
+.coach-meter { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.coach-meter-label { font: 500 12px/1.1 var(--ui); color: var(--t-ivory); opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coach-meter-track { position: relative; display: block; height: 6px; border-radius: 3px; background: rgba(246, 241, 228, 0.12); overflow: hidden; }
+.coach-meter-fill {
+  position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: 3px; transition: inline-size 240ms ease-out, background-color 240ms;
+}
+.actions .act.coach-pick { outline: 3px solid var(--t-confirm, #e5c77e); outline-offset: 2px; box-shadow: 0 0 18px rgba(229, 199, 126, 0.55); }
+.coach-verdict {
+  position: absolute; inset-inline: 0; bottom: calc(100% + 10px); margin: 0 auto; width: max-content; max-width: 92%;
+  padding: 8px 14px; border-radius: 18px; font: 600 15px/1.2 var(--ui); pointer-events: none; z-index: 8;
+  background: rgba(11, 18, 24, 0.9); border: 1px solid rgba(246, 241, 228, 0.18); color: var(--t-ivory);
+  animation: coach-pop 2.2s ease-out 1 forwards;
+}
+.coach-verdict.ok { border-color: rgba(120, 200, 140, 0.7); color: #bfe8c8; }
+.coach-verdict.miss { border-color: rgba(242, 193, 78, 0.75); color: #f6dc9a; }
+@keyframes coach-pop { 0% { opacity: 0; transform: translateY(6px); } 10% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+[data-motion='reduced'] .coach-verdict { animation: none; }
+.coach-sheet { display: flex; flex-direction: column; gap: 10px; }
+.coach-why { font-size: 17px; line-height: 1.5; margin: 0; }
+/* landscape: the 2x2 action grid already fills the side column, the strip sits on top of it */
+@media (orientation: landscape) and (max-height: 560px) {
+  .coach-bar { height: 32px; gap: 8px; }
+  .coach-tip { height: 32px; font-size: 13px; padding: 0 10px; }
+}
+/* strategy guide */
+.guide-chart table { border-collapse: separate; border-spacing: 2px; font-family: var(--nums); font-variant-numeric: tabular-nums; font-size: 13px; margin: 0 auto; }
+.guide-scroll { overflow-x: auto; }
+.guide-chart th { font-weight: 600; color: var(--t-ivory); padding: 4px 6px; white-space: nowrap; }
+.guide-chart th.guide-corner { padding: 0; }
+.guide-axes { margin: -4px 0 6px; }
+.guide-chart th { padding: 4px 3px; }
+.guide-chart td { min-width: 25px; height: 26px; text-align: center; border-radius: 5px; font: 700 13px/26px var(--ui); color: #10140f; }
+.guide-chart td.g-h { background: #e9e4d7; }
+.guide-chart td.g-s { background: #e0b44f; }
+.guide-chart td.g-d { background: #7cc79a; }
+.guide-chart td.g-p { background: #8fb7e8; }
+.guide-legend { line-height: 1.5; }

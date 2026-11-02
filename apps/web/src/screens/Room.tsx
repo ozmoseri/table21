@@ -9,7 +9,8 @@ import type { PlayerAction } from '@table21/game-engine';
 import { RoomClient, type Intent } from '../net.ts';
 import { api, refreshMe } from '../api.ts';
 import { REACTION_TEXT, errorText, getLocale, t } from '../i18n.ts';
-import { ActionButtons, BetConfirm, ResultPanel, StakePicker, Table, myTurnText, totalLabel, type DealerInfo } from '../components/Table.tsx';
+import { BetConfirm, ResultPanel, StakePicker, Table, myTurnText, totalLabel, type DealerInfo } from '../components/Table.tsx';
+import { CoachVerdict, CoachedActions } from '../components/Coach.tsx';
 import { DealSettings } from '../components/DealSettings.tsx';
 import { Avatar, Coins, Seconds, Sheet, toast, RollingCoins } from '../components/bits.tsx';
 import { go } from '../App.tsx';
@@ -211,7 +212,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
       );
     }
     if (snap.phase === 'player_turns') {
-      if (myTurn) return <ActionButtons legal={snap.you.legalActions} disabled={st.pending} onAction={(a: PlayerAction) => send({ type: 'action', action: a })} />;
+      if (myTurn) return <CoachedActions where="room" round={round} legal={snap.you.legalActions} disabled={st.pending} onAction={(a: PlayerAction) => send({ type: 'action', action: a })} />;
       return null;
     }
     if (snap.phase === 'dealer_turn') {
@@ -390,6 +391,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
       />
 
       <div className="controls" data-testid="controls">
+        <CoachVerdict />
         {controls()}
       </div>
 

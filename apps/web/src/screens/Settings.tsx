@@ -11,7 +11,7 @@ import { About, isDevMode } from '../components/About.tsx';
 export function Settings() {
   const p = usePrefs();
   const me = useMe();
-  const toggle = (k: 'sound' | 'haptics' | 'ambience') => setPrefs({ [k]: !p[k] });
+  const toggle = (k: 'sound' | 'haptics' | 'ambience' | 'coachPractice' | 'coachRooms' | 'coachAuto') => setPrefs({ [k]: !p[k] });
   return (
     <div className="pad stack">
       <h1 className="title">{t('settings')}</h1>
@@ -71,6 +71,25 @@ export function Settings() {
           </div>
         </div>
       </div>
+      <section className="panel settings" data-testid="coach-settings">
+        <h2 className="title sm">{t('coachSection')}</h2>
+        <label className="check">
+          <input type="checkbox" checked={p.coachPractice} onChange={() => toggle('coachPractice')} data-testid="coach-practice" />
+          <span>{t('coachPractice')}</span>
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={p.coachRooms} onChange={() => toggle('coachRooms')} data-testid="coach-rooms" />
+          <span>{t('coachRooms')}</span>
+        </label>
+        <p className="fine">{t('coachRoomsNote')}</p>
+        <label className="check">
+          <input type="checkbox" checked={p.coachAuto} onChange={() => toggle('coachAuto')} data-testid="coach-auto" />
+          <span>{t('coachAuto')}</span>
+        </label>
+        <a className="link-row" href="#/guide" data-testid="guide-link">
+          {t('coachGuideLink')}
+        </a>
+      </section>
       <section className="panel" data-testid="table-settings">
         <h2 className="title sm">{t('dealSpeed')}</h2>
         <DealSettings />

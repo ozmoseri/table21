@@ -563,7 +563,7 @@ function GiftFlightView({ f, track, done }: { f: GiftFlight; track: (a: Animatio
  * the table answers (legal actions change) or 2.5 s pass, so a double tap cannot send two decisions. The server is
  * idempotent anyway (commandId + exact version).
  */
-export function ActionButtons({ legal, disabled, onAction }: { legal: PlayerAction[]; disabled?: boolean; onAction: (a: PlayerAction) => void }) {
+export function ActionButtons({ legal, disabled, onAction, hint }: { legal: PlayerAction[]; disabled?: boolean; onAction: (a: PlayerAction) => void; hint?: PlayerAction }) {
   const order: PlayerAction[] = ['double', 'split', 'stand', 'hit'];
   const [locked, setLocked] = useState(false);
   const legalKey = legal.join(',');
@@ -594,7 +594,7 @@ export function ActionButtons({ legal, disabled, onAction }: { legal: PlayerActi
   return (
     <div className="actions" dir="ltr" data-locked={locked || undefined}>
       {order.map((a) => (
-        <button key={a} className={`btn act act-${a}`} disabled={disabled || locked || !legal.includes(a)} aria-disabled={!legal.includes(a) || undefined} onClick={() => fire(a)}>
+        <button key={a} className={`btn act act-${a}${hint === a ? ' coach-pick' : ''}`} data-coach-pick={hint === a || undefined} disabled={disabled || locked || !legal.includes(a)} aria-disabled={!legal.includes(a) || undefined} onClick={() => fire(a)}>
           {t(a)}
         </button>
       ))}
