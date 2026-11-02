@@ -398,5 +398,56 @@ body:has(.room)::before { display: none; }
 .home .hero-card { border-radius: 8px; border: 2px solid var(--t-ivory); box-sizing: border-box; }
 .home .hero-card.c1 { background: url(/art/club/cardback-simple.webp) center / cover no-repeat, #0f4a39; }
 .home .hero-card.c1::before, .home .hero-card.c1::after { content: none; }
-/* landscape lobby: the save-account row spans both columns, so play and friends stay side by side */
-.home > .home-save-row { grid-column: 1 / -1; }
+
+/* About / diagnostics (Settings): versions, origin and mode, one screenshot identifies the build */
+.about-list { margin: 0; display: grid; gap: 6px; }
+.about-list > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.about-list dt { color: var(--muted); white-space: nowrap; }
+.about-list dd { margin: 0; font-family: var(--nums); font-variant-numeric: tabular-nums; text-align: left; overflow-wrap: anywhere; color: var(--t-ivory); }
+.about-match { margin: 6px 0 0; font-size: 14px; }
+.about-match.ok { color: var(--t-win); }
+.about-match.warn { color: var(--t-loss); }
+
+/* Stable anchors (portrait): the controls area keeps one height through bet, deal, turn and result, its content pinned
+   to the bottom, so the felt never resizes between phases and my hand (anchored to the felt's bottom) does not jump.
+   156 px fits the tallest phase, the result line plus "next round". Landscape already anchors to the bottom. */
+@media not ((orientation: landscape) and (max-height: 560px)) {
+  .room > .controls { box-sizing: border-box; height: var(--ctl-h, 156px); min-height: var(--ctl-h, 156px); display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; flex: none; }
+  .room > .controls > * { flex: none; }
+  .room > .felt .me-zone { margin-top: auto; }
+}
+.practice-note { margin: 0; font-size: 12.5px; line-height: 1.35; }
+/* lobby step 1: a game in progress is the first and strongest way back in */
+.home .resume {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 0 18px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(229, 199, 126, 0.16), rgba(229, 199, 126, 0.06)), var(--t-panel); border: 1.5px solid var(--t-brass);
+  color: var(--t-ivory); text-decoration: none; font-size: 18px;
+}
+.home .resume b { font-weight: 600; }
+.home .resume-code { font-family: var(--nums); font-variant-numeric: tabular-nums; color: var(--t-confirm); font-size: 16px; letter-spacing: 0.08em; }
+.sweep-layer { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+/* quiet results: a loss settles in 220 ms, a push returns the stake in 200 ms; no banner, no shake */
+.felt.celebrate-lose .me-zone .hand .hand-cards { animation: calm-settle 220ms ease-out 1 !important; }
+.felt.celebrate-push .me-zone .chips { animation: push-return 200ms ease-out 1; }
+@keyframes push-return { 0% { transform: translateY(-4px); opacity: 0.7; } 100% { transform: none; opacity: 1; } }
+.payout-chip { z-index: 61; }
+/* short portrait (360x640) with friends at the table: like landscape, no spare row for the felt print */
+@media (max-height: 700px) and (orientation: portrait) {
+  .felt.few-seats .felt-print, .felt.many-seats .felt-print { display: none; }
+}
+/* short portrait (up to 700 px tall, e.g. 360x640): same stable anchors with a 128 px controls area */
+@media (max-height: 700px) and (orientation: portrait) {
+  .room { --ctl-h: 128px; }
+  .room > .felt { row-gap: 8px; }
+  .room .practice-note { display: none; } /* still in the menu */
+  .room > .controls .result-panel { padding: 8px 12px; gap: 2px; }
+  .room > .controls .btn.wide, .room > .controls [data-testid='next-round'] { min-height: 48px; }
+  .room .split .hand-label { display: none; } /* the status line already says "hand 3 of 4" */
+}
+/* result line: the 28 px amount on a tight line, so line + details + "next round" fit one fixed controls height */
+.result-line { line-height: 1.15; }
+.room .result-panel .result-line .net .coins { line-height: 1.1; }
+.result-sub { line-height: 18px; }
+@media (max-height: 700px) and (orientation: portrait) {
+  .room > .controls .stack { gap: 8px; }
+}

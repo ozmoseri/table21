@@ -51,12 +51,16 @@ export const clientProtocol = (v: unknown) => {
   return Number.isInteger(n) && n > 0 && n < 1000 ? n : 1;
 };
 
-/** The build id of the client this server serves (written by the web build), so open clients can see a newer one. */
-function servedBuild(webDist?: string): string | null {
+/**
+ * Build id (so open clients can see a newer one), source commit and build time of the client this server serves
+ * (written by the web build into version.json), for the update check and the About / diagnostics screen.
+ */
+function servedVersion(webDist?: string): { build: string | null; commit: string | null; builtAt: string | null } {
   try {
-    return webDist ? (JSON.parse(readFileSync(join(webDist, 'version.json'), 'utf8')).build ?? null) : null;
+    const v = webDist ? JSON.parse(readFileSync(join(webDist, 'version.json'), 'utf8')) : {};
+    return { build: v.build ?? null, commit: v.commit ?? null, builtAt: v.builtAt ?? null };
   } catch {
-    return null;
+    return { build: null, commit: null, builtAt: null };
   }
 }
 
@@ -186,7 +190,8 @@ export async function buildApp(opts: AppOptions) {
   app.get('/api/config', async (_req, reply) => {
     reply.header('cache-control', 'no-store');
     // Read per request (tiny file): a deploy that swaps the files is reported without a restart.
-    return { deployment, ads: adsStatus(), avatars: AVATARS, leaderboardMinHands: opts.leaderboardMinHands ?? 20, build: servedBuild(opts.webDist), protocol };
+    const v = servedVersion(opts.webDist);
+    return { deployment, ads: adsStatus(), avatars: AVATARS, leaderboardMinHands: opts.leaderboardMinHands ?? 20, build: v.build, commit: v.commit, builtAt: v.builtAt, protocol };
   });
   app.get('/api/lan-info', async () => {
     if (deployment !== 'lan') return { addresses: [] };

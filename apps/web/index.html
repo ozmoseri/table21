@@ -14,9 +14,35 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>TABLE21</title>
+    <style>
+      /* Shown from the first byte until the app replaces #root: never a white page. */
+      html, body { margin: 0; background: #0b1218; color: #f6f1e4; }
+      .splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        background: radial-gradient(60% 40% at 50% 45%, rgba(255, 214, 150, 0.08), transparent 70%), radial-gradient(120% 90% at 50% 45%, #125743 0%, #0b1218 72%);
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      .splash-mark { display: flex; align-items: center; gap: 10px; direction: ltr; }
+      .splash-cards { position: relative; width: 34px; height: 40px; }
+      .splash-cards i { position: absolute; width: 24px; height: 34px; border-radius: 5px; border: 2px solid #f6f1e4; box-sizing: border-box; }
+      .splash-cards i:first-child { left: 0; top: 4px; background: #0f4a39; transform: rotate(-10deg); }
+      .splash-cards i:last-child { left: 10px; top: 0; background: #f6f1e4; transform: rotate(8deg); }
+      .splash-word { font: 700 30px/1 Georgia, 'Times New Roman', serif; letter-spacing: 0.02em; }
+      .splash-word b { color: #c9a24b; }
+      .splash-status { font-size: 15px; color: rgba(246, 241, 228, 0.72); min-height: 20px; }
+      .splash-retry { display: none; min-height: 48px; padding: 0 22px; border-radius: 14px; border: 0; background: #e5c77e; color: #14161a; font: 600 16px system-ui, sans-serif; }
+      .splash.failed .splash-retry { display: block; }
+      @media (prefers-reduced-motion: no-preference) { .splash-status::after { content: ''; display: inline-block; width: 1.2em; text-align: start; animation: splash-dots 1.2s steps(4) infinite; } }
+      @keyframes splash-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="splash" data-testid="splash" role="status">
+        <div class="splash-mark" aria-label="TABLE21"><span class="splash-cards" aria-hidden="true"><i></i><i></i></span><span class="splash-word">TABLE<b>21</b></span></div>
+        <p class="splash-status" id="splash-status">טוען את המשחק</p>
+        <button class="splash-retry" id="splash-retry" type="button">לנסות שוב</button>
+      </div>
+    </div>
+    <script src="/boot.js" defer></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

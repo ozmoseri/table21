@@ -92,14 +92,17 @@ export class TableTimeline {
     if (hydrate || !prev || reducedMotion()) return this.snapTo(snap, hydrate || !prev);
     const r = snap.round;
     if (!r) {
-      // Between rounds: whatever was still playing finishes now, then the table clears.
+      // Between rounds: whatever was still playing finishes now, then the table clears with a short sweep of the old
+      // cards toward the discard corner (drawn on copies, so the cleared table is ready at once).
       if (this.queue.length) this.skip();
+      if (this.roundId) this.presentation.sweepOut();
       return this.snapTo(snap, false);
     }
     let opening = false;
     if (r.roundId !== this.roundId) {
       // A new round: if the previous one was still animating, it finishes first.
       if (this.queue.length) this.flushNow();
+      if (this.roundId) this.presentation.sweepOut();
       this.roundId = r.roundId;
       this.visible.clear();
       this.counted.clear();

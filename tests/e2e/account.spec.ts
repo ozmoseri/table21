@@ -33,6 +33,8 @@ test('guest saves the account with recovery codes and restores it on another dev
   }
   await expect(a.page.getByTestId('provider-apple')).toContainText('מתוכנן');
   await a.page.getByTestId('create-codes').click();
+  // The codes come back from the server: wait for all eight before reading them (reading at once raced the request).
+  await expect(a.page.getByTestId('recovery-codes').locator('li')).toHaveCount(8);
   const codes = await a.page.getByTestId('recovery-codes').locator('li').allTextContents();
   expect(codes).toHaveLength(8);
   await a.page.screenshot({ path: `${SHOTS}/stage-c-account-codes.png`, fullPage: true });

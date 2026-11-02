@@ -256,8 +256,9 @@ for (const vp of [
       await page.locator('.room > .felt .card').first().waitFor();
       const print = await page.locator('.felt-print').boundingBox();
       if (!print) {
-        // Landscape with friends at the table: no spare row, so the print is left out (never under a hand).
-        expect(vp.height === 390 && kind !== 'solo', `${kind}: print hidden only in landscape with friends`).toBe(true);
+        // Landscape, and short portrait (360x640), with friends at the table: no spare row, so the print is left out
+        // (never under a hand). With room for it (390x844, or alone at the table) it is always shown.
+        expect(vp.height < 700 && kind !== 'solo', `${kind}: print hidden only on short screens with friends`).toBe(true);
         continue;
       }
       for (const sel of ['.hand', '.seat-name', '.dealer-name', '.seat .avatar', '.hand-meta']) {

@@ -7,6 +7,10 @@ export const BASE = {
   /** the dealer's draw beat before the first card of a round (DESIGN_BIBLE 5: "card draw from shoe 80 ms"); it also
    *  lets the deal tap's own screen change finish, so the first card keeps the same 200 ms beat as the rest */
   drawLead: 80,
+  /** end of a hand: cards are collected toward the discard corner (copies; never delays the next state) */
+  sweep: 300,
+  /** a win is paid: chips travel from the dealer to my stake */
+  payout: 400,
   /** next card of the opening deal leaves the shoe this long after the previous one (deals overlap) */
   stagger: 200,
   /** shoe to place, arc flight including the landing settle */

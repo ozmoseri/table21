@@ -46,7 +46,9 @@ interface Voice {
 let voices: Voice[] = [];
 /** Highest number of voices ever sounding at once in this page (tests read it; it must never pass MAX_VOICES). */
 export const soundStats = { maxVoices: 0, played: 0, dropped: 0 };
-if (import.meta.env?.VITE_LAB === '1') (globalThis as Record<string, unknown>).__t21sound = soundStats;
+/** Lab builds only: every sound the game actually plays, with its scheduled time (performance.now ms). */
+const soundLog: { s: Sfx; t: number }[] = [];
+if (import.meta.env?.VITE_LAB === '1') Object.assign(globalThis as Record<string, unknown>, { __t21sound: soundStats, __t21soundLog: soundLog });
 
 function live(): { c: AudioContext; fx: GainNode } | null {
   if (!ctx) {
@@ -63,7 +65,7 @@ function live(): { c: AudioContext; fx: GainNode } | null {
   if (!master) {
     master = ctx.createGain();
     master.gain.value = 2.4;
-    master.connect(ctx.destination);
+    master.connect(limiter(ctx));
     fxBus = ctx.createGain();
     fxBus.connect(master);
     ambBus = ctx.createGain();
@@ -71,6 +73,23 @@ function live(): { c: AudioContext; fx: GainNode } | null {
     ambBus.connect(master);
   }
   return { c: ctx, fx: fxBus! };
+}
+
+/**
+ * Output protection: a fast compressor used as a limiter after the master gain (-3 dBFS ceiling region), so several
+ * overlapping events (a stinger over card sounds) cannot clip. Live play and the offline render use the same chain.
+ */
+export function limiter(c: BaseAudioContext): AudioNode {
+  const comp = c.createDynamicsCompressor();
+  comp.threshold.value = -9;
+  comp.knee.value = 6;
+  comp.ratio.value = 16;
+  comp.attack.value = 0.002;
+  comp.release.value = 0.12;
+  const trim = c.createGain();
+  trim.gain.value = 0.85;
+  comp.connect(trim).connect(c.destination);
+  return comp;
 }
 
 function noise(c: BaseAudioContext, out: AudioNode, t0: number, dur: number, freq: number, gain: number, q = 0.8) {
@@ -198,6 +217,7 @@ export function play(s: Sfx, at = 0) {
   g.connect(l.fx);
   voices.push({ s, end: t + LEN[s], gain: g });
   soundStats.played++;
+  if (import.meta.env?.VITE_LAB === '1') soundLog.push({ s, t: performance.now() + at * 1000 });
   soundStats.maxVoices = Math.max(soundStats.maxVoices, voices.filter((v) => v.end > t).length);
   if (STINGER.has(s)) duck(t, LEN[s]);
   synth(c, g, s, t, CARD.has(s) ? cardPitch() : 1, CARD.has(s) ? Math.floor(Math.random() * 3) : 0);
@@ -281,7 +301,7 @@ export async function renderTimeline(events: { s: Sfx; t: number }[], seconds: n
   const c = new OfflineAudioContext(1, Math.ceil(seconds * sampleRate), sampleRate);
   const out = c.createGain();
   out.gain.value = 2.4;
-  out.connect(c.destination);
+  out.connect(limiter(c));
   const lastAt = new Map<Sfx, number>();
   let v: { s: Sfx; end: number }[] = [];
   const played: { s: Sfx; t: number }[] = [];

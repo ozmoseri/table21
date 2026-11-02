@@ -66,7 +66,9 @@ describe('stage 5 celebrations by total net (DECISIONS 9, F5)', () => {
     expect(CELEBRATE_MS.bj).toBe(900);
     expect(SKIPPABLE_AFTER_MS).toBe(600);
     expect(SPARKLES).toBeLessThanOrEqual(40);
-    expect(Object.keys(CELEBRATE_MS).sort()).toEqual(['bj', 'lose', 'win']);
+    expect(Object.keys(CELEBRATE_MS).sort()).toEqual(['bj', 'lose', 'push', 'win']);
+    expect(CELEBRATE_MS.lose).toBeGreaterThanOrEqual(150), expect(CELEBRATE_MS.lose).toBeLessThanOrEqual(250);
+    expect(CELEBRATE_MS.push).toBeGreaterThanOrEqual(150), expect(CELEBRATE_MS.push).toBeLessThanOrEqual(250);
   });
 });
 
