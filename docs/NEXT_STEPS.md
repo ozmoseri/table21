@@ -51,3 +51,9 @@ Oz runs the LAN host on Windows and plays one round with two phones; fix whateve
 - Daily challenges (3 per day) and a friends-only weekly leaderboard.
 - Chip payout flights at settlement (client only, left out of stage 5 to keep the result readable in 500 ms).
 - Recorded CC0 sounds (Kenney casino pack) to replace the synthesized set: needs the files attached, the workspace cannot download them.
+
+## Repository size (found 2026-11-02)
+- Every round re-commits the e2e screenshots under docs/screenshots (they are rewritten on each run), so the history
+  since 7261b87 is about 350 MB. That is why updating Oz's PC over the desktop bridge failed. Proposal: stop
+  committing the auto-generated e2e screenshots (keep them as CI artifacts, commit only curated review sets), or
+  move images to Git LFS. Needs Oz's decision; no history rewrite without it.

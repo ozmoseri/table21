@@ -4,16 +4,17 @@
 
 ## 1. לעדכן את התיקייה במחשב
 
-אם Claude הניח בתיקייה קובץ בשם `table21-update.bundle`, פותחים PowerShell בתיקייה `C:\Users\user\table21` ומריצים:
+פותחים PowerShell בתיקייה `C:\Users\user\table21` ומריצים:
 
 ```
-git fetch table21-update.bundle main:refs/remotes/origin/main
-git merge --ff-only origin/main
+git pull
 ```
 
-בלי קובץ כזה מספיק להריץ `git pull`.
+העדכון מוריד בפעם הראשונה כמה מאות MB, בעיקר צילומי מסך של הבדיקות.
 
-בדיקה: `git log -1 --oneline` צריך להראות את הקומיט שמופיע בהודעת הסיום של Claude.
+בדיקה: `git log -1 --oneline` צריך להראות את הקומיט שמופיע בהודעת הסיום של Claude, או קומיט חדש יותר.
+
+אם `git pull` נעצר כי השתנו קבצים מקומיים, לא מוחקים כלום. שולחים ל-Claude את ההודעה.
 
 ## 2. לסגור את השרת הישן ולהפעיל מחדש
 
