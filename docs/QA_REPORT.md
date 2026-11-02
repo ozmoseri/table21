@@ -263,7 +263,7 @@ Legend for this section:
 - **PASS device:** checked on a physical phone.
 - **NOT RUN:** with the reason.
 
-Suites on this commit: SUITES_EXP
+Suites on this commit (full run on the final code): typecheck PASS (4 packages), unit PASS 44/44, integration PASS 67/67, e2e PASS 67/67 (59 + 8 in `experience.spec.ts`). All PASS auto or PASS emulated (Chromium); none on a physical device.
 
 | # | Check | Result |
 |---|---|---|
