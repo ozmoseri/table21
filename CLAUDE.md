@@ -52,3 +52,20 @@ pnpm perf <baseUrl> <label> [out.json]   # page weight + LCP (needs a VITE_LAB=1
   (including any Adeline project or the `adeline-returns` Supabase project) without Oz's explicit instruction.
 - Never ask for or print secrets. `.env.example` holds names only.
 - Physical iPhone/Android/Wi-Fi tests are NOT_RUN unless actually performed on devices.
+
+## Team workflow (docs/TEAM_PLAYBOOK.md)
+- The main session is the integration manager. Specialists are defined in `.claude/agents/`.
+- **Parallel work:**
+  - At most 3 code-writing agents at once, each in its own git worktree.
+  - Each one gets its own e2e port and database (`T21_E2E_PORT`, `T21_E2E_DATABASE_URL`).
+  - `pnpm test:integration` runs only on `main`.
+- **Status:** one board, the built-in task list. Handoffs go in `docs/handoffs/<task_id>.json` (schema checked in unit
+  tests). Only the manager merges to `main` and sets `accepted`.
+- **Sources of truth:**
+  - `packages/protocol` for wire, reactions, gifts and avatars.
+  - `assets/manifest.json` for assets.
+  - `apps/web/src/feel.ts` for motion, sound and haptics numbers.
+  - `theme/premium.css` `:root` for design tokens.
+  - `apps/web/src/coach.ts` for strategy.
+  - Approved design decisions live in `C:\Users\user\table21_design\DECISIONS.md` (append only).
+- **Evidence classes in every report:** automated / emulated browser / physical device / listened / NOT RUN.

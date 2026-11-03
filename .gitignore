@@ -12,3 +12,4 @@ exports/
 coverage/
 backups/
 *.json.gz
+.claude/worktrees/
