@@ -1,0 +1,33 @@
+{
+ "task_id": "T08-qa-integrated",
+ "owner": "qa-independent",
+ "status": "ready_for_review",
+ "base_commit": "78e7f8c",
+ "result_commit": null,
+ "contract_version": "protocol 1; manifest 2",
+ "changed_files": [
+  "docs/qa/ACCEPTANCE_2026-11-03.md",
+  "docs/handoffs/T08-qa-integrated.json",
+  "docs/screenshots/qa-T08/",
+  "tests/e2e/qa-t08.spec.ts",
+  "tests/e2e/qa-t08b.spec.ts",
+  "tests/e2e/qa.config.ts"
+ ],
+ "tests_run": [
+  "emulated browser probes (tests/e2e/qa-t08*.spec.ts via qa.config.ts) on port 3122 / table21_e2e_b: 9 + 3 passed; they measure and screenshot, they do not gate",
+  "typecheck, unit, integration, full e2e: NOT RUN by QA (manager reported 4/4, 79/79, 67/67, 100/100 on e900006)"
+ ],
+ "evidence": [
+  "emulated browser: core journey with two contexts incl. invalid and valid join code and guest reload mid-round; 360x640, 390x844, 844x390 lobby, my turn with coach, tip, why sheet, verdict, result; English locale incl. unreachable lan and online; mute (0 sound events vs 11 baseline); reduced motion (0 animations vs 19, emulation and in-app); /art/** and fonts blocked; recovery-code restore with same balance; long names and 9,999,999 balances; gold button scan; landscape card sizes",
+  "automated (read, not re-run): engine.test.ts lines 209, 220, 239 (split-ace 21 is not a blackjack, pays 1:1; original A+Q pays 3:2); updates.spec.ts lines 81 and 146 (no reload mid-hand)",
+  "screenshots: docs/screenshots/qa-T08/ (JPEG, 1.5 MB)",
+  "physical device, listened: NOT RUN"
+ ],
+ "known_gaps": [
+  "B1 medium: with /art/** blocked the dealer hole card is an empty outline and avatars show a broken-image glyph (owner frontend-ux, asset-processor)",
+  "B2 low: header chip at 360 wide with a 20-char name and 9,999,999 starts at x -1 (frontend-ux)",
+  "B3 low: update.ts dereferences an undefined service worker registration when workers are blocked (frontend-ux)",
+  "English unknown-server screen not rendered in my probe; 6 players, 4 split hands, rotation mid-animation not re-tested"
+ ],
+ "next_action": "Manager sends B1 to frontend-ux (card-back and avatar fallbacks, plus an e2e that blocks all of /art/**), B2 and B3 as low fixes; QA re-checks 5-myturn-blocked after the fix."
+}
