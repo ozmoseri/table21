@@ -1,0 +1,21 @@
+{
+ "task_id": "T07-product-backlog",
+ "owner": "product-economy",
+ "status": "accepted",
+ "base_commit": "1847211",
+ "result_commit": null,
+ "contract_version": "protocol 1",
+ "changed_files": [
+  "docs/BACKLOG.md"
+ ],
+ "tests_run": [
+  "read-only code and docs review"
+ ],
+ "evidence": [
+  "docs/BACKLOG.md: journeys, economy map with ledger kinds, guardrail check, ranked backlog with acceptance criteria"
+ ],
+ "known_gaps": [
+  "questions for Oz: mission rewards as XP/cosmetics; coach in friends-night matches; host choice"
+ ],
+ "next_action": "Next round candidates: game-night presence loop, local coach progression, stake-fair weekly ranking."
+}
