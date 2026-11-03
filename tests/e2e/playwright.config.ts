@@ -6,6 +6,8 @@ const BASE = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: '.',
+  // QA probes (measure and screenshot, no gate) run with tests/e2e/qa.config.ts only
+  testIgnore: ['**/qa-t08*.spec.ts'],
   timeout: 120_000,
   workers: 1,
   retries: 0,

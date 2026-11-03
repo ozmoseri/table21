@@ -8,10 +8,13 @@ export const CLUB_ART = '/art/club';
 // (theme/premium.css), so back and face read as one card.
 const RASTER_BACKS: Record<string, string> = { classic: `${CLUB_ART}/cardback-simple.webp` };
 
-/** CSS background-image for a card back: raster first, the original SVG underneath as the fallback. */
+/** Drawn in CSS, no file: the last layer, so a back still reads as a card back when every image fails to load. */
+export const BACK_PATTERN = 'repeating-linear-gradient(45deg, rgba(246, 241, 228, 0.1) 0 3px, transparent 3px 9px), repeating-linear-gradient(-45deg, rgba(246, 241, 228, 0.1) 0 3px, transparent 3px 9px)';
+
+/** CSS background-image for a card back: raster first, the original SVG underneath, a CSS pattern last. */
 export function backImage(back: string): string {
   const svg = `url(/art/backs/${back}.svg)`;
-  return RASTER_BACKS[back] ? `url(${RASTER_BACKS[back]}), ${svg}` : svg;
+  return `${RASTER_BACKS[back] ? `url(${RASTER_BACKS[back]}), ` : ''}${svg}, ${BACK_PATTERN}`;
 }
 
 /** True when this back draws its own "21" emblem, so the CSS medallion is not stacked on top of it. */

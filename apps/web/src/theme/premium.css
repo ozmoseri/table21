@@ -557,3 +557,9 @@ body:has(.room)::before { display: none; }
   .room-head.hud.hud-long .hud-invite bdi { display: none; }
   .room-head.hud.hud-long .hud-balance { padding: 0 10px; font-size: 14px; }
 }
+
+/* QA T08 B2: the lobby header keeps its 16 px gutter with a 20-character name and a 7-digit balance at 360 wide */
+.home-head { gap: 10px; min-width: 0; }
+.home-head .me-chip { min-width: 0; flex: 0 1 auto; max-width: 62%; }
+.home-head .me-chip > span { min-width: 0; }
+.home-head .me-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

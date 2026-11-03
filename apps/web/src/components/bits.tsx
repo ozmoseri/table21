@@ -4,9 +4,20 @@ import { t } from '../i18n.ts';
 import { reducedMotion } from '../prefs.ts';
 import { play } from '../sound.ts';
 
+/** Inline fallback (no network): a neutral figure on the panel colour, used when an avatar file cannot load. */
+const AVATAR_FALLBACK =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#16222C" stroke="#C9A24B" stroke-width="2"/><circle cx="32" cy="25" r="10" fill="#A6B5B0"/><path d="M14 52c3-10 10-14 18-14s15 4 18 14" fill="#A6B5B0"/></svg>',
+  );
+
 export function Avatar({ id, size = 40, dealer, ring }: { id?: string; size?: number; dealer?: boolean; ring?: boolean }) {
   return (
     <img
+      onError={(e) => {
+        const img = e.currentTarget;
+        if (img.src !== AVATAR_FALLBACK) img.src = AVATAR_FALLBACK;
+      }}
       className={`avatar ${ring ? 'ring' : ''}`}
       src={dealer ? '/art/dealer.svg' : `/art/avatars/${id ?? 'amber'}.svg`}
       width={size}

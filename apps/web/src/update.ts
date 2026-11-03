@@ -115,6 +115,7 @@ export async function initUpdates() {
   } catch {
     return;
   }
+  if (!reg) return; // no registration (service workers blocked or unavailable): no update flow
   const watch = (w: ServiceWorker | null) => {
     if (!w) return;
     const on = () => {
@@ -126,7 +127,7 @@ export async function initUpdates() {
   };
   if (reg.waiting && navigator.serviceWorker.controller) set({ waiting: true });
   watch(reg.installing);
-  reg.addEventListener('updatefound', () => watch(reg!.installing));
+  reg.addEventListener('updatefound', () => watch(reg?.installing ?? null));
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (applying) location.reload(); // only after the player tapped "refresh"
     else set({ waiting: !!reg?.waiting });

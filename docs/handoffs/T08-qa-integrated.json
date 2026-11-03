@@ -1,7 +1,7 @@
 {
  "task_id": "T08-qa-integrated",
  "owner": "qa-independent",
- "status": "ready_for_review",
+ "status": "accepted",
  "base_commit": "78e7f8c",
  "result_commit": null,
  "contract_version": "protocol 1; manifest 2",
@@ -29,5 +29,5 @@
   "B3 low: update.ts dereferences an undefined service worker registration when workers are blocked (frontend-ux)",
   "English unknown-server screen not rendered in my probe; 6 players, 4 split hands, rotation mid-animation not re-tested"
  ],
- "next_action": "Manager sends B1 to frontend-ux (card-back and avatar fallbacks, plus an e2e that blocks all of /art/**), B2 and B3 as low fixes; QA re-checks 5-myturn-blocked after the fix."
+ "next_action": "Accepted. B1-B3 fixed by the integration manager in T09-qa-fixes; fallbacks.spec.ts covers B1 and B2."
 }
