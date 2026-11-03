@@ -1,0 +1,45 @@
+{
+  "task_id": "T03-entry-honesty",
+  "owner": "frontend-ux",
+  "status": "ready_for_review",
+  "base_commit": "15028e3",
+  "result_commit": "d33a1ca",
+  "contract_version": "protocol 1",
+  "changed_files": [
+    "apps/web/public/boot.js",
+    "apps/web/src/api.ts",
+    "apps/web/src/i18n.ts",
+    "apps/web/src/joinAttempt.ts",
+    "apps/web/src/screens/Home.tsx",
+    "apps/web/src/screens/Room.tsx",
+    "apps/web/src/screens/Waking.tsx",
+    "apps/web/src/styles.css",
+    "apps/web/src/theme/premium.css",
+    "tests/e2e/entry-honesty.spec.ts",
+    "docs/screenshots/entry/waking-lan-390x844.jpg",
+    "docs/screenshots/entry/waking-online-390x844.jpg",
+    "docs/screenshots/entry/waking-unknown-390x844.jpg",
+    "docs/screenshots/entry/long-values-360x640.jpg"
+  ],
+  "tests_run": [
+    "pnpm -r typecheck: pass",
+    "pnpm test:unit: 50 passed",
+    "e2e (port 3123, db table21_e2e_c) entry-honesty.spec.ts: 5 passed",
+    "e2e experience.spec.ts, coach.spec.ts: all passed",
+    "e2e turn-fit.spec.ts: 4 of 5 passed in the combined run; 'round timings in the browser' failed once under load and passed twice when run alone"
+  ],
+  "evidence": [
+    "automated/emulated browser: unreachable states via route interception (lan, online, unknown): per-kind title and body, no percentage text, no aria-valuenow, indeterminate bar, real elapsed seconds, retry and practice present, no side scroll at 360x640, 390x844, 844x390",
+    "emulated browser: wrong and expired (rotated) code gives inline message, keeps typed code and focus, join button and message stay inside a 360x330 viewport (viewport shrink is a keyboard proxy, not a real keyboard); correct code enters the room; a shared link with a bad code keeps the plain no-room page",
+    "emulated browser: 20-character Hebrew and Latin names and 9,999,999-coin balances (socket frames and /api/me rewritten client-side only) fit in Home, HUD, lobby, table and result panel at 360x640, 390x844, 844x390, numbers LTR and complete",
+    "screenshots: docs/screenshots/entry/waking-lan-390x844.jpg, waking-unknown-390x844.jpg, waking-online-390x844.jpg, long-values-360x640.jpg"
+  ],
+  "known_gaps": [
+    "Physical phone and real on-screen keyboard: NOT RUN (emulated by shrinking the viewport; iOS visualViewport behavior unverified)",
+    "English strings added but no e2e runs in English",
+    "Room.tsx edited beyond CSS classes: a typed join refused by the server returns to Home (joinAttempt.ts) instead of showing the no-room page; HUD gets a hud-long class at >= 1,000,000 coins which hides the invite code text on portrait <= 430px",
+    "boot.js failure wording changed to mention game files, to differ from the server state",
+    "Real fix for the LAN case is only a message: the app cannot know why the host is down"
+  ],
+  "next_action": "Manager: merge, run typecheck, unit and entry-honesty, experience, turn-fit e2e on main; then QA pass on a phone through the tunnel with the PC switched off."
+}

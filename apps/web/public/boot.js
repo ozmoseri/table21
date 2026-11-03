@@ -7,7 +7,7 @@
     s.classList.add('failed');
     var st = document.getElementById('splash-status');
     var he = (document.documentElement.lang || 'he') === 'he';
-    if (st) st.textContent = he ? 'הטעינה לוקחת יותר מהרגיל. בדקו את החיבור ונסו שוב.' : 'Loading is taking longer than usual. Check the connection and try again.';
+    if (st) st.textContent = he ? 'קבצי המשחק עדיין לא נטענו. בדקו את החיבור לאינטרנט ונסו שוב.' : 'The game files have not loaded yet. Check your internet connection and try again.';
     var b = document.getElementById('splash-retry');
     if (b) {
       if (!he) b.textContent = 'Try again';

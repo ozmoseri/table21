@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { api, createWithRetry, isWaking, refreshMe, useMe, useNet } from '../api.ts';
+import { useEffect, useRef, useState } from 'react';
+import { api, createWithRetry, lastDeployment, isWaking, refreshMe, useMe, useNet } from '../api.ts';
+import { startJoin, takeJoinFailure } from '../joinAttempt.ts';
 import { PilotCard } from '../components/PilotCard.tsx';
 import { InstallHint } from '../components/InstallHint.tsx';
 import { errorText, t } from '../i18n.ts';
@@ -117,10 +118,16 @@ export function JoinSheet({ open, onClose }: { open: boolean; onClose: () => voi
   );
 }
 
+let revealJoin = () => {};
+
 export function Home() {
   const me = useMe();
   const [sheet, setSheet] = useState<null | 'casual' | 'match'>(null);
-  const [code, setCode] = useState('');
+  const failed = useRef(takeJoinFailure());
+  const [code, setCode] = useState(failed.current?.typed ?? '');
+  const [joinError, setJoinError] = useState<string | null>(failed.current ? (failed.current.error === 'rate_limited' ? t('joinCodeTooMany') : failed.current.error === 'not_found' ? t('joinCodeNotFound') : errorText(failed.current.error)) : null);
+  const codeRef = useRef<HTMLInputElement>(null);
+  const joinRef = useRef<HTMLDivElement>(null);
   const [online, setOnline] = useState<{ userId: string; avatar: string }[]>([]);
   const user = me.status === 'ready' ? me.me : null;
   useEffect(() => {
@@ -129,6 +136,36 @@ export function Home() {
       .then((f) => setOnline(f.filter((x) => x.online)))
       .catch(() => {});
   }, [!!user]);
+
+  // A refused code: the field keeps what was typed and the focus (the keyboard stays where it was).
+  useEffect(() => {
+    if (failed.current) codeRef.current?.focus({ preventScroll: true });
+  }, []);
+  // The join button must stay above the on-screen keyboard. The keyboard shrinks the visual viewport (visualViewport.height),
+  // not always the layout viewport, so compare against it and scroll just enough. Runs on focus and on every resize while focused.
+  useEffect(() => {
+    const reveal = () => {
+      const box = joinRef.current;
+      if (!box || document.activeElement !== codeRef.current) return;
+      const vv = window.visualViewport;
+      const bottomLimit = (vv ? vv.offsetTop + vv.height : window.innerHeight) - 8;
+      let r = box.getBoundingClientRect();
+      if (r.bottom > bottomLimit || r.top < 0) {
+        box.scrollIntoView({ block: 'center', behavior: 'auto' });
+        r = box.getBoundingClientRect();
+        if (r.bottom > bottomLimit) window.scrollBy(0, r.bottom - bottomLimit);
+      }
+    };
+    revealJoin = reveal;
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', reveal);
+    window.addEventListener('resize', reveal);
+    return () => {
+      vv?.removeEventListener('resize', reveal);
+      window.removeEventListener('resize', reveal);
+      revealJoin = () => {};
+    };
+  }, []);
 
   const claim = async (kind: 'daily' | 'rescue') => {
     try {
@@ -159,7 +196,7 @@ export function Home() {
       {me.status === 'offline' && (
         <p className="note" data-testid="offline-note">
           {t('offlineOnboard')}
-          {isWaking() ? ` ${t('serverWaking')}` : ''}
+          {lastDeployment() === 'lan' ? ` ${t('hostUnreachableNote')}` : isWaking() && lastDeployment() !== 'unknown' ? ` ${t('serverWaking')}` : ''}
         </p>
       )}
 
@@ -178,30 +215,54 @@ export function Home() {
           <span>{t('playFriendsSub')}</span>
         </button>
 
-        <form
-          className="join-row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const c = code.toUpperCase().replace(/[^0-9A-Z]/g, '');
-            if (c.length >= 4) go(`r/${c}`);
-          }}
-        >
-          <input
-            className="code-input sm"
-            dir="ltr"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            maxLength={8}
-            placeholder={t('roomCode')}
-            aria-label={t('roomCode')}
-            autoCapitalize="characters"
-            autoComplete="off"
-            data-testid="join-code"
-          />
-          <button className="btn" disabled={!user || code.replace(/[^0-9A-Za-z]/g, '').length < 4} data-testid="join-go">
-            {t('join')}
-          </button>
-        </form>
+        <div className="join-wrap" ref={joinRef}>
+          <form
+            className="join-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const c = code.toUpperCase().replace(/[^0-9A-Z]/g, '');
+              if (c.length < 4) {
+                setJoinError(t('joinCodeShort'));
+                codeRef.current?.focus();
+                return;
+              }
+              setJoinError(null);
+              startJoin(c, code);
+              go(`r/${c}`);
+            }}
+          >
+            <input
+              ref={codeRef}
+              className="code-input sm"
+              dir="ltr"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                if (joinError) setJoinError(null);
+              }}
+              onFocus={() => {
+                setTimeout(revealJoin, 60);
+                setTimeout(revealJoin, 400);
+              }}
+              maxLength={8}
+              placeholder={t('roomCode')}
+              aria-label={t('roomCode')}
+              aria-invalid={joinError ? true : undefined}
+              aria-describedby={joinError ? 'join-error' : undefined}
+              autoCapitalize="characters"
+              autoComplete="off"
+              data-testid="join-code"
+            />
+            <button className="btn" disabled={!user || code.replace(/[^0-9A-Za-z]/g, '').length < 4} data-testid="join-go">
+              {t('join')}
+            </button>
+          </form>
+          {joinError && (
+            <p className="join-error" id="join-error" role="alert" data-testid="join-error">
+              {joinError}
+            </p>
+          )}
+        </div>
         <a className="practice-row" href="#/practice" data-testid="practice">
           <span className="practice-chip" aria-hidden="true" />
           <span>{t('practiceShort')}</span>
