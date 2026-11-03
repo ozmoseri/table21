@@ -3,7 +3,7 @@
   "owner": "frontend-ux",
   "status": "ready_for_review",
   "base_commit": "9b34240",
-  "result_commit": null,
+  "result_commit": "d9f40b7",
   "contract_version": "protocol 1; manifest 2",
   "changed_files": [
     "apps/web/src/theme/premium.css",
