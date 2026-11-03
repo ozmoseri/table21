@@ -1,0 +1,44 @@
+{
+  "task_id": "T01-feel-config",
+  "owner": "game-feel-audio",
+  "status": "ready_for_review",
+  "base_commit": "15028e3",
+  "result_commit": "a956334",
+  "contract_version": "protocol 1",
+  "changed_files": [
+    "apps/web/src/feel.ts",
+    "apps/web/src/anim/timing.ts",
+    "apps/web/src/fx/celebrate.ts",
+    "apps/web/src/sound.ts",
+    "apps/web/src/haptics.ts",
+    "apps/web/src/components/Coach.tsx",
+    "tests/unit/feel.test.ts",
+    "tests/e2e/feel-bot.spec.ts",
+    "docs/FEEL_TESTS.md",
+    "docs/handoffs/T01-feel-config.json"
+  ],
+  "tests_run": [
+    "pnpm -r typecheck: pass",
+    "pnpm test:unit: pass (feel.test.ts, motion.test.ts, premium2.test.ts and the rest)",
+    "feel-bot.spec.ts full file seed 11: 8 passed (6.1m)",
+    "feel-bot.spec.ts full file seed 22: 8 passed (6.1m)",
+    "feel-bot.spec.ts scenario 6 repeated 4x seed 3: 4 passed",
+    "experience.spec.ts + turn-fit.spec.ts on port 3122: 13 passed (2.5m)"
+  ],
+  "evidence": [
+    "automated: unit test asserts old exports equal FEEL values and FEEL is deeply frozen; motion.test.ts and premium2.test.ts unchanged and passing",
+    "emulated browser: feel-bot scenarios 1-8 (rotation is a viewport resize, background is a faked visibilityState + visibilitychange, offline is Playwright setOffline)",
+    "seed is printed as [feel-bot] seed N and stored as a seed annotation; T21_BOT_SEED reproduces a run",
+    "scenario 3 found no bug: the action row leaves the DOM after the first tap, the second tap lands on nothing, and exactly one card or one result follows"
+  ],
+  "known_gaps": [
+    "NOT LISTENED: sounds are counted from the lab sound log, not heard",
+    "NOT RUN on a physical phone: real touch latency, iOS audio and haptics",
+    "Coach verdict 2200 ms also exists as CSS animation coach-pop 2.2s in theme/premium.css (left as is, noted in feel.ts); the two must be changed together",
+    "Scenario 7 (six players, four split hands) is not duplicated: the test asserts the existing specs (turn-fit, social, layout-v4) still contain those lab routes",
+    "Scenario 6 tolerates the room having moved on to the next betting round while offline (fast test timers); then only the no-replay checks apply",
+    "Timer count covers setTimeout only, not intervals or animation frames",
+    "docs/screenshots are rewritten by the existing specs when they run; they were reverted and not committed"
+  ],
+  "next_action": "Integration manager: merge, run typecheck + unit + feel-bot once on main, then set accepted."
+}
