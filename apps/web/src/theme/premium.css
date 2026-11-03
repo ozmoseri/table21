@@ -15,12 +15,13 @@
   margin: 0 !important;
   overflow: hidden;
   padding: calc(var(--safe-t) + 6px) max(10px, var(--safe-r)) calc(var(--safe-b) + 8px) max(10px, var(--safe-l));
-  /* F1: deep green felt, texture at 40% (a 60% veil of flat felt over it), dark edge, one warm pool of light on the
-     table centre instead of a wash over the whole screen. */
+  /* AD-3: key light overhead, top-centre. One warm pool at 40% height (between dealer and hands), dark edges, 40% veil so
+     the wool shows. Measured at 390x844: centre/corner luminance 2.7, ivory on the brightest felt 4.7:1 (the art review's
+     first values gave 1.25 and 4.1:1). Shadows have no x-offset. */
   background:
-    radial-gradient(42% 26% at 50% 50%, rgba(255, 214, 150, 0.09), transparent 75%),
-    radial-gradient(125% 90% at 50% 48%, transparent 38%, rgba(8, 47, 37, 0.9) 100%),
-    linear-gradient(rgba(18, 87, 67, 0.6), rgba(18, 87, 67, 0.6)),
+    radial-gradient(60% 34% at 50% 40%, rgba(255, 214, 150, 0.06), transparent 72%),
+    radial-gradient(90% 60% at 50% 40%, transparent 10%, rgba(5, 26, 20, 0.9) 100%),
+    linear-gradient(rgba(14, 70, 54, 0.4), rgba(14, 70, 54, 0.4)),
     var(--felt-art) center top / cover no-repeat,
     radial-gradient(125% 90% at 50% 48%, var(--t-felt), var(--t-felt-edge));
 }
@@ -28,7 +29,10 @@
 .room:has(> .felt.theme-sapphire) { --felt-a: #2a6aa0; --felt-b: #18456b; --felt-c: #0b2236; --felt-art: none; }
 .room:has(> .felt.theme-bordeaux) { --felt-a: #8a3043; --felt-b: #5e1c2b; --felt-c: #2e0c14; --felt-art: none; }
 /* results scroll on short screens; the table itself never does */
-.room[data-phase='results'] { height: auto; min-height: 100dvh; overflow: visible; }
+/* AD-5: the room keeps one viewport height in results (no growth, the hand does not move, the countdown stays on screen);
+   only the end-of-session standings may scroll */
+.room[data-phase='results'] { height: 100dvh; overflow: hidden; }
+.room[data-phase='results']:has(.session-end) { height: auto; min-height: 100dvh; overflow: visible; }
 body:has(.room) { background: var(--t-felt-edge); }
 body:has(.room)::before { display: none; }
 
@@ -79,7 +83,7 @@ body:has(.room)::before { display: none; }
 }
 .hud-invite svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
 .hud-invite .num { font-weight: 600; }
-.hud-invite bdi { color: var(--t-confirm); letter-spacing: 0.12em; font-size: 14px; }
+.hud-invite bdi { color: var(--t-ivory); letter-spacing: 0.12em; font-size: 14px; }
 .hud-mode { font-size: 14px; font-weight: 500; }
 
 /* turn and timer: one quiet line under the HUD */
@@ -104,15 +108,15 @@ body:has(.room)::before { display: none; }
 .room .seat { background: none; border: 0; padding: 4px 2px; }
 .room .seat.is-active { box-shadow: none; animation: none; }
 .room .seat .avatar { box-shadow: 0 0 0 2px var(--t-brass), 0 6px 12px rgba(0, 0, 0, 0.5); }
-.room .seat.is-active .avatar { box-shadow: 0 0 0 3px var(--t-confirm), 0 0 18px rgba(229, 199, 126, 0.6); }
+.room .seat.is-active .avatar { box-shadow: 0 0 0 3px var(--t-ivory), 0 0 16px rgba(246, 241, 228, 0.45); }
 .room .seat-name { color: var(--t-ivory); font-size: 13px; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8); }
 
 /* my hand is the hero: 1.25x */
 /* portrait: my cards are the largest thing on the table; landscape keeps the height-based sizes from styles.css */
 @media not ((orientation: landscape) and (max-height: 560px)) {
-  .room .me-zone .card-lg { --w: clamp(80px, 24vw, 112px); }
+  .room .me-zone .card-lg { --w: clamp(84px, 26vw, 116px); }
 }
-.room .me-zone.is-active .my-hands { filter: drop-shadow(0 0 14px rgba(229, 199, 126, 0.35)); }
+.room .me-zone.is-active .my-hands { filter: drop-shadow(0 0 14px rgba(246, 241, 228, 0.3)); }
 
 /* skip the deal: 48 x 48, bottom centre of the table, only while the queue plays */
 .skip-anim {
@@ -133,6 +137,16 @@ body:has(.room)::before { display: none; }
   content: ''; position: absolute; inset: -18px calc(-1 * max(10px, var(--safe-l))) calc(-1 * (var(--safe-b) + 8px)); z-index: -1;
   background: linear-gradient(180deg, transparent, rgba(6, 16, 12, 0.72) 38%, rgba(6, 14, 11, 0.9));
   pointer-events: none;
+}
+/* AD-1 (portrait only, landscape hides the ::before): the near rail, a brass inlay over leather from the table art. Never
+   tiled or mirrored (its centre highlight is the overhead light). */
+@media not ((orientation: landscape) and (max-height: 560px)) {
+  .room > .controls::before {
+    inset: -28px calc(-1 * max(10px, var(--safe-r))) calc(-1 * (var(--safe-b) + 8px)) calc(-1 * max(10px, var(--safe-l)));
+    background:
+      url(/art/club/rail-near.webp) center top / 100% 26px no-repeat,
+      linear-gradient(180deg, transparent 26px, #140e0a 26px, var(--t-room) 75%);
+  }
 }
 
 /* actions: Double, Split, Stand, Hit; 68/68/88/88 at 360 px, 56 tall; Hit and Stand equal weight, no gold */
@@ -204,6 +218,14 @@ body:has(.room)::before { display: none; }
   .room .actions, .actions { grid-template-columns: 1fr 1fr; grid-template-rows: 52px 52px; gap: 8px; }
   .room .actions .act { min-height: 52px; }
   .room > .controls::before { display: none; }
+  /* AD-7: the dealer hand carries the reveal, so it is the second largest thing after mine; friends' cards show more than an index */
+  .room .dealer-cards .card { --w: clamp(52px, 16vh, 64px); }
+  /* with friends at the table the dealer row has 80 px before the seats start: up to 2 friends get 48 px, 3 or more get 43 px (was 43 and 40) */
+  .room .felt.few-seats .dealer-cards .card { --w: clamp(44px, 12.5vh, 52px); }
+  .room .felt.many-seats .dealer-cards .card { --w: clamp(40px, 11vh, 46px); }
+  /* 3 or more friends keep 32 px: a larger card pushes a seat with a status label into my hand */
+  .room .few-seats .seat .card-sm { --w: 32px; }
+  .room .few-seats .seat { padding-block-end: 0; } /* the bigger friend cards must still clear my hand at 390 px tall */
   /* F2: my cards about 76 x 108 CSS px in landscape, whatever the seat count */
   .room .me-zone .card-lg, .room .felt.is-solo .me-zone .card-lg, .room .felt.few-seats .me-zone .card-lg, .room .felt.many-seats .me-zone .card-lg { --w: 76px; }
   .room > .felt { row-gap: 10px; }
@@ -212,6 +234,15 @@ body:has(.room)::before { display: none; }
   .btn.confirm { min-width: 120px; }
 }
 
+/* AD-7: 390 px tall phones (844x390) have room for 40 px friend cards; 360 px tall ones (640x360) keep 32 px, my hand would touch them */
+@media (orientation: landscape) and (min-height: 380px) and (max-height: 560px) {
+  .room .few-seats .seat .card-sm { --w: clamp(36px, 10vh, 40px); }
+}
+/* AD-7: below 380 px tall (640x360) friends' seats reach down to my hand (they did before this pass too); my cards shrink from 76 to 60 px
+   only when friends are seated, which clears every seat box */
+@media (orientation: landscape) and (max-height: 379px) {
+  .room .felt.few-seats .me-zone .card-lg, .room .felt.many-seats .me-zone .card-lg { --w: 60px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .skip-anim { animation: none; }
 }
@@ -233,7 +264,9 @@ body:has(.room)::before { display: none; }
 .total.has-ring { position: relative; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 17px; }
 .total.has-ring.is-soft { min-width: 54px; height: 54px; font-size: 13px; }
 .total.has-ring .timer-ring { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); }
-.total.has-ring .timer-ring .bar { stroke: var(--t-confirm); stroke-width: 3.5; }
+.total.has-ring .timer-ring .bar { stroke: var(--t-ivory); stroke-width: 3.5; }
+/* AD-4: the last 6 s turn the ring rose (the plain rule above had more classes than styles.css .timer-ring.low) */
+.total.has-ring .timer-ring.low .bar { stroke: var(--t-loss); }
 
 /* F3: one card language. Face and back share a 2px ivory frame and one radius; the back's art sits inside the frame. */
 /* P1: one radius, 8 px, on face and back (scaled down only on seat cards under 57 px wide, which would turn round) */
@@ -389,6 +422,9 @@ body:has(.room)::before { display: none; }
 .home-save-row b { color: var(--t-confirm); font-weight: 600; }
 .home .grant-strip { width: 100%; min-height: 56px; box-sizing: border-box; padding: 0 8px 0 14px; border-style: solid; border-color: rgba(201, 162, 75, 0.4); background: rgba(22, 34, 44, 0.6); }
 .home .grant-strip .btn { min-height: 40px; }
+/* AD-6: lobby tiles stay in the palette (the amethyst rewards tile was the only cool-violet object); the friends card is a piece of the felt */
+.home .club-tile { border-color: rgba(201, 162, 75, 0.35); background: var(--t-panel); }
+.home .play.primary { background: linear-gradient(rgba(18, 87, 67, 0.55), rgba(8, 47, 37, 0.85)), url(/art/club/felt-portrait.webp) center / cover; border-color: rgba(201, 162, 75, 0.35); }
 
 /* P1 age gate (item 4): the brand alone, title Rubik 600 24 px, body 16/24 */
 .age-brand { align-self: center; }
@@ -410,12 +446,24 @@ body:has(.room)::before { display: none; }
 
 /* Stable anchors (portrait): the controls area keeps one height through bet, deal, turn and result, its content pinned
    to the bottom, so the felt never resizes between phases and my hand (anchored to the felt's bottom) does not jump.
-   156 px fits the tallest phase, the result line plus "next round". Landscape already anchors to the bottom. */
+   132 px (AD-2, was 156) fits the tallest phase, the result line plus "next round". Landscape already anchors to the bottom. */
 @media not ((orientation: landscape) and (max-height: 560px)) {
-  .room > .controls { box-sizing: border-box; height: var(--ctl-h, 156px); min-height: var(--ctl-h, 156px); display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; flex: none; }
+  .room > .controls { box-sizing: border-box; height: var(--ctl-h, 132px); min-height: var(--ctl-h, 132px); display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; flex: none; }
   .room > .controls > * { flex: none; }
   .room > .felt .me-zone { margin-top: auto; }
+  /* result line + details + next round must fit the 132 px controls (the 390 px panel measured 83 px, so it stuck out 11 px) */
+  .room > .controls .result-panel { padding: 8px 12px; gap: 2px; }
+  .room > .controls .btn.wide, .room > .controls [data-testid='next-round'] { min-height: 48px; }
+  /* AD-5: the turn ring makes my total 44 px (soft totals 54 px) and the result total 26 px; one row height for both so my
+     cards keep their top from turn to result (measured 18 px of jump online before) */
+  .room .me-zone .my-hands .hand-meta { min-height: 54px; }
+  /* the practice fine print (17 px + gap) no longer fits the 132 px betting row; it stays in the menu and the LocalPlay sheet */
+  .room .practice-note { display: none; }
+  /* the coach verdict hangs in the felt above my hand, clear of my total, the bet row and the skip button */
+  .room { --verdict-lift: 260px; }
 }
+/* AD-5: the countdown under the result is quiet ivory text, not gold and not a button */
+.room > .controls > p.muted.small { margin: 0; min-height: 20px; color: var(--t-ivory); opacity: 0.85; font-size: 15px; font-weight: 500; text-align: center; }
 .practice-note { margin: 0; font-size: 12.5px; line-height: 1.35; }
 /* lobby step 1: a game in progress is the first and strongest way back in */
 .home .resume {
@@ -437,7 +485,7 @@ body:has(.room)::before { display: none; }
 }
 /* short portrait (up to 700 px tall, e.g. 360x640): same stable anchors with a 128 px controls area */
 @media (max-height: 700px) and (orientation: portrait) {
-  .room { --ctl-h: 128px; }
+  .room { --ctl-h: 128px; --verdict-lift: 244px; }
   .room > .felt { row-gap: 8px; }
   .room .practice-note { display: none; } /* still in the menu */
   .room > .controls .result-panel { padding: 8px 12px; gap: 2px; }
@@ -457,9 +505,9 @@ body:has(.room)::before { display: none; }
 .coach-bar { display: flex; align-items: center; gap: 10px; height: 36px; min-width: 0; }
 .coach-tip {
   flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; cursor: pointer;
-  background: rgba(11, 18, 24, 0.72); border: 1px solid rgba(229, 199, 126, 0.55); color: var(--t-ivory); font: 600 14px/1 var(--ui); white-space: nowrap;
+  background: rgba(11, 18, 24, 0.72); border: 1px solid rgba(246, 241, 228, 0.35); color: var(--t-ivory); font: 600 14px/1 var(--ui); white-space: nowrap;
 }
-.coach-tip.on { background: rgba(229, 199, 126, 0.16); border-color: var(--t-confirm, #e5c77e); max-width: 62%; overflow: hidden; text-overflow: ellipsis; }
+.coach-tip.on { background: rgba(246, 241, 228, 0.1); border-color: rgba(246, 241, 228, 0.6); max-width: 62%; overflow: hidden; text-overflow: ellipsis; }
 .coach-tip u { text-underline-offset: 3px; font-weight: 500; opacity: 0.85; }
 .coach-meter { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .coach-meter-label { font: 500 12px/1.1 var(--ui); color: var(--t-ivory); opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -467,9 +515,10 @@ body:has(.room)::before { display: none; }
 .coach-meter-fill {
   position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: 3px; transition: inline-size 240ms ease-out, background-color 240ms;
 }
-.actions .act.coach-pick { outline: 3px solid var(--t-confirm, #e5c77e); outline-offset: 2px; box-shadow: 0 0 18px rgba(229, 199, 126, 0.55); }
+.actions .act.coach-pick { outline: 3px solid var(--t-ivory); outline-offset: 3px; box-shadow: 0 0 16px rgba(246, 241, 228, 0.45); }
 .coach-verdict {
-  position: absolute; inset-inline: 0; bottom: calc(100% + 10px); margin: 0 auto; width: max-content; max-width: 92%;
+  /* AD extra: the chip sits above the hand zone (top of the controls minus the bet row and my cards), never on the total, the bet row or the skip button */
+  position: absolute; inset-inline: 0; bottom: calc(100% + var(--verdict-lift, 10px)); margin: 0 auto; width: max-content; max-width: 92%;
   padding: 8px 14px; border-radius: 18px; font: 600 15px/1.2 var(--ui); pointer-events: none; z-index: 8;
   background: rgba(11, 18, 24, 0.9); border: 1px solid rgba(246, 241, 228, 0.18); color: var(--t-ivory);
   animation: coach-pop 2.2s ease-out 1 forwards;

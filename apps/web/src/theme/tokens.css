@@ -70,7 +70,9 @@
 }
 
 /* ---------- full-screen shell: 100dvh, no rubber band, no double-tap zoom, no text selection on the table ---------- */
-html, body { height: 100%; overscroll-behavior: none; background: var(--t-room); }
+/* AD-6: the room colour belongs to html only; an opaque body painted over the fixed body::before room layer (lobby art). */
+html { height: 100%; overscroll-behavior: none; background: var(--t-room); }
+body { height: 100%; overscroll-behavior: none; background: transparent; }
 body {
   min-height: 100dvh;
   touch-action: manipulation;

@@ -214,7 +214,9 @@ test('F1-F3 table: deep felt and 90% HUD, friend on a side seat, ring around my 
   await sit(b);
   // F1
   const bg = await a.page.locator('.room').evaluate((el) => getComputedStyle(el).backgroundImage);
-  expect(bg).toContain('rgba(18, 87, 67, 0.6)');
+  // T06 AD-3: a 40% veil (was 60%) so the wool shows, one overhead pool at 40% height, dark edges
+  expect(bg).toContain('rgba(14, 70, 54, 0.4)');
+  expect(bg).toContain('radial-gradient(60% 34% at 50% 40%');
   expect(await a.page.getByTestId('room-menu').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgba(11, 18, 24, 0.9)');
   // F2: with two players the friend's seat is off the centre line.
   const felt = await box(a.page, '.room > .felt');

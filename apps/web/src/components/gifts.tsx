@@ -1,5 +1,4 @@
 import { useState, type ReactElement } from 'react';
-import { CLUB_ART } from '../art.ts';
 import type { GiftId, ReactionId } from '@table21/protocol';
 import { getLocale } from '../i18n.ts';
 
@@ -74,8 +73,8 @@ export const GIFT_LABEL: Record<GiftId, Record<'he' | 'en', string>> = {
   tissue: { he: 'טישו', en: 'Tissue' },
 };
 
-/** Gifts with a raster from the Club Lounge kit; the vector icon above stays as the fallback. */
-const GIFT_ART: Partial<Record<GiftId, string>> = { coffee: `${CLUB_ART}/coffee.webp` };
+/** AD-8: every gift uses its original SVG (one art set); the glossy coffee raster is retired in the manifest. */
+const GIFT_ART: Partial<Record<GiftId, string>> = {};
 
 export function GiftIcon({ id, size = 28 }: { id: GiftId; size?: number }) {
   const [failed, setFailed] = useState(false);
