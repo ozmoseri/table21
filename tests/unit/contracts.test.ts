@@ -151,6 +151,15 @@ describe('avatars and card backs', () => {
     expect(manifest.filter((e) => e.id.startsWith('back.')).map((e) => e.id.slice(5)).sort()).toEqual([...backs].sort());
   });
 
+  it('AD-8: gifts use their original SVGs, the glossy coffee raster is retired in the manifest and no source references it', () => {
+    expect(byId.get('club.coffee')?.status).toBe('retired');
+    const src = readFileSync(join(root, 'apps/web/src/components/gifts.tsx'), 'utf8');
+    expect(src).toMatch(/const GIFT_ART[^=]*= \{\};/);
+    expect(src).not.toContain('coffee.webp');
+    expect(byId.get('club.rail-near')?.status).toBe('active');
+    expect(byId.get('club.rail-near')?.alphaRequired).toBe(false);
+  });
+
   it('the dealer portrait exists', () => {
     expect(byId.get('dealer.portrait')?.status).toBe('active');
   });
@@ -158,7 +167,7 @@ describe('avatars and card backs', () => {
 
 /* ------------------------------------------------------------------- manifest */
 
-const STATUS = ['active', 'pending_manual', 'deprecated'];
+const STATUS = ['active', 'pending_manual', 'deprecated', 'retired'];
 const ANCHORS = ['center', 'top-center', 'bottom-center', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'left-center', 'right-center'];
 const FORMATS = ['svg', 'png', 'webp', 'jpeg'];
 

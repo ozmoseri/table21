@@ -75,12 +75,12 @@ export function CoachVerdict() {
 
 function Meter({ risk }: { risk: number }) {
   const pct = Math.round(risk * 100);
-  // cold (safe, blue) to hot (red): the fill grows with the risk
+  // AD-4: safe is neutral (push grey), hot is rose; no gold or rainbow ramp, the fill grows with the risk
   return (
     <div className="coach-meter" data-testid="coach-meter" data-risk={pct} title={t('coachMeterTitle')}>
       <span className="coach-meter-label">{pct === 0 ? t('coachRiskNone') : t('coachRisk', { pct })}</span>
       <span className="coach-meter-track" aria-hidden="true">
-        <span className="coach-meter-fill" style={{ inlineSize: `${Math.max(4, pct)}%`, background: `hsl(${Math.round(205 - 200 * risk)} 72% 56%)` }} />
+        <span className="coach-meter-fill" style={{ inlineSize: `${Math.max(4, pct)}%`, background: risk < 0.5 ? 'var(--t-push)' : 'var(--t-loss)' }} />
       </span>
     </div>
   );

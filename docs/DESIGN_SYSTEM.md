@@ -3,23 +3,29 @@
 Direction: a beautiful private card table among friends, not a casino floor and not a dashboard. The table is the one memorable element (deep felt, thin brass rail, shoe, dealt cards); everything around it stays quiet.
 
 ## Color tokens
+Source of truth: `apps/web/src/theme/tokens.css` `:root` (v5 palette, `--t-*`). The older names in `styles.css` (`--bg`, `--panel`,
+`--gold`, `--text`, `--loss`, ...) are mapped onto it, so changing a token moves the whole app.
+
 | Token | Hex | Use |
 |---|---|---|
-| `--bg` | #080F14 | App background |
-| `--panel` | #121D24 | Sheets, bars, dialogs |
-| `--felt` | #0F513E | Table surface (CSS gradients, themeable) |
-| `--gold` | #D8B46A | Brass rail, primary action, focus accents |
-| `--text` | #F5F2EA | Primary text |
-| `--muted` | #A6B5B0 | Secondary text |
-| `--loss` | #F08A87 | Losses, errors |
-| `--success` | #80D5AF | Wins, confirmations |
+| `--t-room` | #0B1218 | App background, `html` only (the lobby room art paints on `body::before` above it) |
+| `--t-panel` | #16222C | Sheets, bars, dialogs, lobby tiles |
+| `--t-felt` / `--t-felt-edge` | #125743 / #082F25 | Table cloth centre and edge (the photo felt sits over them) |
+| `--t-brass` | #C9A24B | Material accents: rail, avatar frames, balance pill border, Double and Split outline |
+| `--t-confirm` | #E5C77E | Gold: only Confirm bet, Continue, the blackjack celebration and the coin icon |
+| `--t-ivory` | #F6F1E4 | Text, card faces, turn ring, active seat ring, coach pick, tip highlight, room code |
+| `--t-win` / `--t-loss` / `--t-push` | #78C9A0 / #E5969C / #B6C1CA | Net gain, loss and the last-6-seconds timer ring, push and the coach meter below 50% |
+| `--t-suit-red` / `--t-ink` | #B3202A / #14161A | Red suits, dark ink on ivory |
+
+Rules (T06): gold only for the one go action; the key light is overhead, top-centre, shadows have no x-offset; the table
+felt is darkest at the corners and no brighter than relative luminance 0.157 (ivory text stays at 4.5:1, measured 4.7:1);
+the near rail (`/art/club/rail-near.webp`, 26 px) closes the table above the controls in portrait only; no violet in the lobby.
 
 Table themes unlocked by play: emerald (default), sapphire, bordeaux. Card backs: classic, brass, midnight. Cosmetics never affect cards, odds or payouts. Contrast is checked for text on panel and felt.
 
 ## Typography
-- Heebo: all UI text, Hebrew and Latin.
-- Libre Bodoni: card rank indices (part of the card artwork).
-- Inter with tabular numerals: coin amounts, totals, timers.
+- Rubik 400/500/600: all UI text, Hebrew and Latin, and tabular numerals for coin amounts, totals and timers (`--ui`, `--nums`).
+- Frank Ruhl Libre 700: titles and card rank indices (`--display`, `--index`).
 All fonts are bundled locally (@fontsource), so LAN and offline modes make no external requests.
 
 ## Layout
