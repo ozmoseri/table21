@@ -56,12 +56,19 @@ for (const vp of sizes) {
   await page.getByTestId('result-panel').waitFor({ timeout: 20_000 }).catch(() => {});
   await page.waitForTimeout(1200);
   await shot(page, tag, '6-result');
-  // the host stops answering
-  await page.route('**/api/**', (r) => r.abort('failed'));
-  await page.route('**/socket.io/**', (r) => r.abort('failed'));
-  await page.goto(base + '/#/home');
-  await page.waitForTimeout(6000);
-  await shot(page, tag, '1-host-unreachable');
+  // the host stops answering. Service workers are blocked here: Playwright routes do not see requests a service
+  // worker makes, so with one active the page would still reach the server.
+  const off = await browser.newContext({ viewport: vp, isMobile: true, hasTouch: true, deviceScaleFactor: 2, locale: 'he-IL', serviceWorkers: 'block' });
+  await off.addInitScript(() => localStorage.setItem('t21:age-ok', '1'));
+  const op = await off.newPage();
+  await op.goto(base + '/');
+  await op.waitForTimeout(1500); // the app learns this host's deployment from /api/config
+  await op.route('**/api/**', (r) => r.abort('failed'));
+  await op.route('**/socket.io/**', (r) => r.abort('failed'));
+  await op.reload();
+  await op.waitForTimeout(6000);
+  await shot(op, tag, '1-host-unreachable');
+  await off.close();
   await ctx.close();
 }
 await browser.close();
