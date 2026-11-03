@@ -1,7 +1,7 @@
 {
  "task_id": "T09-qa-fixes",
  "owner": "integration-manager",
- "status": "ready_for_review",
+ "status": "accepted",
  "base_commit": "b0d2c64",
  "result_commit": "e4f96de",
  "contract_version": "protocol 1; manifest 2",
@@ -16,7 +16,8 @@
  "tests_run": [
   "pnpm -r typecheck 4/4",
   "pnpm test:unit 80/80",
-  "fallbacks.spec 2/2 twice; updates, art-fixes, entry-honesty on port 3122: pass"
+  "fallbacks.spec 2/2 twice; updates, art-fixes, entry-honesty on port 3122: pass",
+  "full e2e on e4f96de: 102/102 (17.2 min)"
  ],
  "evidence": [
   "automated: fallbacks.spec blocks all /art/** and checks the back pattern, inline avatars and a full hand; 20-character name chip inside 360 px"
@@ -24,5 +25,5 @@
  "known_gaps": [
   "the fix was made by the manager because the owning agent had finished; frontend-ux should review the avatar fallback look"
  ],
- "next_action": "Full e2e on e4f96de, then accepted."
+ "next_action": "Accepted. Delivered to the PC host."
 }
