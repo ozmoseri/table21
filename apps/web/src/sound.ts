@@ -1,5 +1,6 @@
 import { getPrefs } from './prefs.ts';
 import { haptic } from './haptics.ts';
+import { FEEL } from './feel.ts';
 
 /**
  * Original synthesized sound set (WebAudio). Nothing is fetched, so offline modes keep audio and the first sound after
@@ -21,15 +22,15 @@ export type Sfx = 'tap' | 'chip' | 'bet' | 'deal' | 'flip' | 'turn' | 'payout' |
 export const SFX: Sfx[] = ['tap', 'chip', 'bet', 'deal', 'flip', 'turn', 'payout', 'win', 'blackjack', 'lose', 'gift', 'reward'];
 
 /** Minimum seconds between two plays of the same sound, and approximate length (for the voice budget). */
-const GAP: Record<Sfx, number> = { tap: 0.03, chip: 0.04, bet: 0.12, deal: 0.05, flip: 0.15, turn: 0.4, payout: 0.3, win: 0.6, blackjack: 0.8, lose: 0.5, gift: 0.5, reward: 0.6 };
-const LEN: Record<Sfx, number> = { tap: 0.04, chip: 0.1, bet: 0.16, deal: 0.09, flip: 0.12, turn: 0.13, payout: 0.36, win: 0.36, blackjack: 0.62, lose: 0.24, gift: 0.5, reward: 0.55 };
-export const MAX_VOICES = 3;
+const GAP: Record<Sfx, number> = FEEL.sound.gap;
+const LEN: Record<Sfx, number> = FEEL.sound.len;
+export const MAX_VOICES = FEEL.sound.maxVoices;
 /** Stingers that may take the oldest voice and that duck the rest of the mix. */
 const STINGER = new Set<Sfx>(['win', 'blackjack']);
 /** Only card sounds vary: three variants and a pitch between 0.98 and 1.02. */
 const CARD = new Set<Sfx>(['deal', 'flip']);
-export const PITCH_RANGE = 0.02;
-export const DUCK_DB = 4;
+export const PITCH_RANGE = FEEL.sound.pitchRange;
+export const DUCK_DB = FEEL.sound.duckDb;
 const DUCK = Math.pow(10, -DUCK_DB / 20);
 
 let ctx: AudioContext | null = null;
@@ -64,12 +65,12 @@ function live(): { c: AudioContext; fx: GainNode } | null {
   if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
   if (!master) {
     master = ctx.createGain();
-    master.gain.value = 2.4;
+    master.gain.value = FEEL.sound.masterGain;
     master.connect(limiter(ctx));
     fxBus = ctx.createGain();
     fxBus.connect(master);
     ambBus = ctx.createGain();
-    ambBus.gain.value = 0.5;
+    ambBus.gain.value = FEEL.sound.ambience.busGain;
     ambBus.connect(master);
   }
   return { c: ctx, fx: fxBus! };
@@ -81,13 +82,13 @@ function live(): { c: AudioContext; fx: GainNode } | null {
  */
 export function limiter(c: BaseAudioContext): AudioNode {
   const comp = c.createDynamicsCompressor();
-  comp.threshold.value = -9;
-  comp.knee.value = 6;
-  comp.ratio.value = 16;
-  comp.attack.value = 0.002;
-  comp.release.value = 0.12;
+  comp.threshold.value = FEEL.sound.limiter.threshold;
+  comp.knee.value = FEEL.sound.limiter.knee;
+  comp.ratio.value = FEEL.sound.limiter.ratio;
+  comp.attack.value = FEEL.sound.limiter.attack;
+  comp.release.value = FEEL.sound.limiter.release;
   const trim = c.createGain();
-  trim.gain.value = 0.85;
+  trim.gain.value = FEEL.sound.limiter.trim;
   comp.connect(trim).connect(c.destination);
   return comp;
 }
@@ -127,17 +128,18 @@ export const cardPitch = () => 1 - PITCH_RANGE + Math.random() * 2 * PITCH_RANGE
 
 /** Schedules one sound at absolute time t0 on any context (live or offline render). */
 export function synth(c: BaseAudioContext, out: AudioNode, s: Sfx, t0: number, pitch = 1, variant = 0) {
+  const lv = FEEL.sound.level[s];
   switch (s) {
     case 'tap':
-      tone(c, out, t0, 1200, 0.03, 0.025);
+      tone(c, out, t0, 1200, 0.03, lv[0]);
       break;
     case 'chip': // one chip picked: short ceramic click
-      tone(c, out, t0, 2100, 0.07, 0.07, 'triangle');
-      tone(c, out, t0 + 0.035, 2900, 0.06, 0.045, 'triangle');
+      tone(c, out, t0, 2100, 0.07, lv[0], 'triangle');
+      tone(c, out, t0 + 0.035, 2900, 0.06, lv[1], 'triangle');
       break;
     case 'bet': // a stack set down on the felt: two soft clacks, lower
-      noise(c, out, t0, 0.05, 1500, 0.22, 1.4);
-      noise(c, out, t0 + 0.07, 0.06, 1100, 0.18, 1.4);
+      noise(c, out, t0, 0.05, 1500, lv[0], 1.4);
+      noise(c, out, t0 + 0.07, 0.06, 1100, lv[1], 1.4);
       break;
     case 'deal': {
       // a card landing on cloth: a short slide tail into a soft place; three variants
@@ -146,37 +148,37 @@ export function synth(c: BaseAudioContext, out: AudioNode, s: Sfx, t0: number, p
         [2150, 0.1, 820],
         [2650, 0.08, 980],
       ][variant % 3];
-      noise(c, out, t0, v[1], v[0] * pitch, 0.24);
-      noise(c, out, t0 + v[1] * 0.45, 0.05, v[2] * pitch, 0.16, 1.1); // the place layer starts within 45 ms: one sound
+      noise(c, out, t0, v[1], v[0] * pitch, lv[0]);
+      noise(c, out, t0 + v[1] * 0.45, 0.05, v[2] * pitch, lv[1], 1.1); // the place layer starts within 45 ms: one sound
       break;
     }
     case 'flip': // hole card turned
-      noise(c, out, t0, 0.06, (variant % 2 ? 3000 : 3200) * pitch, 0.26);
-      noise(c, out, t0 + 0.05, 0.05, 1800 * pitch, 0.18);
+      noise(c, out, t0, 0.06, (variant % 2 ? 3000 : 3200) * pitch, lv[0]);
+      noise(c, out, t0 + 0.05, 0.05, 1800 * pitch, lv[1]);
       break;
     case 'turn': // gentle chime, once per turn
-      tone(c, out, t0, 990, 0.12, 0.045);
+      tone(c, out, t0, 990, 0.12, lv[0]);
       break;
     case 'payout': // chips counted back: three quick clicks
-      [0, 0.09, 0.18].forEach((d, i) => tone(c, out, t0 + d, 2300 + i * 180, 0.07, 0.05, 'triangle'));
+      [0, 0.09, 0.18].forEach((d, i) => tone(c, out, t0 + d, 2300 + i * 180, 0.07, lv[0], 'triangle'));
       break;
     case 'win':
-      [0, 0.09, 0.18].forEach((d, i) => tone(c, out, t0 + d, 2300 + i * 180, 0.07, 0.045, 'triangle'));
-      tone(c, out, t0 + 0.1, 660, 0.18, 0.06);
-      tone(c, out, t0 + 0.19, 880, 0.24, 0.05);
+      [0, 0.09, 0.18].forEach((d, i) => tone(c, out, t0 + d, 2300 + i * 180, 0.07, lv[0], 'triangle'));
+      tone(c, out, t0 + 0.1, 660, 0.18, lv[1]);
+      tone(c, out, t0 + 0.19, 880, 0.24, lv[2]);
       break;
     case 'blackjack':
-      [523, 659, 784, 1047].forEach((f, i) => tone(c, out, t0 + i * 0.08, f, 0.3, 0.055));
+      [523, 659, 784, 1047].forEach((f, i) => tone(c, out, t0 + i * 0.08, f, 0.3, lv[0]));
       break;
     case 'lose': // neutral, low and short; never an alarm
-      noise(c, out, t0, 0.12, 600, 0.12, 0.7);
+      noise(c, out, t0, 0.12, 600, lv[0], 0.7);
       break;
     case 'gift': // soft bell
-      tone(c, out, t0, 1318, 0.45, 0.04);
-      tone(c, out, t0 + 0.06, 1976, 0.35, 0.025);
+      tone(c, out, t0, 1318, 0.45, lv[0]);
+      tone(c, out, t0 + 0.06, 1976, 0.35, lv[1]);
       break;
     case 'reward':
-      [784, 988, 1175].forEach((f, i) => tone(c, out, t0 + i * 0.09, f, 0.32, 0.045));
+      [784, 988, 1175].forEach((f, i) => tone(c, out, t0 + i * 0.09, f, 0.32, lv[0]));
       break;
   }
 }
@@ -227,7 +229,7 @@ export function play(s: Sfx, at = 0) {
 function duck(t: number, len: number) {
   if (!ctx || !ambBus) return;
   for (const v of voices) if (!STINGER.has(v.s)) v.gain.gain.setTargetAtTime(DUCK, t, 0.015);
-  const base = ambBus.gain.value || 0.5;
+  const base = ambBus.gain.value || FEEL.sound.ambience.busGain;
   ambBus.gain.setTargetAtTime(base * DUCK, t, 0.02);
   ambBus.gain.setTargetAtTime(base, t + len, 0.08);
 }
@@ -275,9 +277,9 @@ export function ambience(on: boolean) {
   src.loop = true;
   const f = c.createBiquadFilter();
   f.type = 'lowpass';
-  f.frequency.value = 420;
+  f.frequency.value = FEEL.sound.ambience.lowpassHz;
   const g = c.createGain();
-  g.gain.value = 0.05;
+  g.gain.value = FEEL.sound.ambience.sourceGain;
   src.connect(f).connect(g).connect(ambBus);
   src.start();
   ambSrc = src;
@@ -300,7 +302,7 @@ export function buzz(_ms = 12) {
 export async function renderTimeline(events: { s: Sfx; t: number }[], seconds: number, sampleRate = 44100): Promise<{ buffer: AudioBuffer; played: { s: Sfx; t: number }[] }> {
   const c = new OfflineAudioContext(1, Math.ceil(seconds * sampleRate), sampleRate);
   const out = c.createGain();
-  out.gain.value = 2.4;
+  out.gain.value = FEEL.sound.masterGain;
   out.connect(limiter(c));
   const lastAt = new Map<Sfx, number>();
   let v: { s: Sfx; end: number }[] = [];

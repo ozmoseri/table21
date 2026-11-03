@@ -1,48 +1,23 @@
+import { FEEL, type FeelDealSpeed } from '../feel.ts';
+
 /**
  * Dealing rhythm (DECISIONS.md 1-3, docs/MOTION_SPEC.md "v5"). All values are Elegant milliseconds; Quick and Turbo
  * scale every one of them. The server never waits for any of this: the client plays a queue of visual events and
  * compresses it when the player has to act.
  */
-export const BASE = {
-  /** the dealer's draw beat before the first card of a round (DESIGN_BIBLE 5: "card draw from shoe 80 ms"); it also
-   *  lets the deal tap's own screen change finish, so the first card keeps the same 200 ms beat as the rest */
-  drawLead: 80,
-  /** end of a hand: cards are collected toward the discard corner (copies; never delays the next state) */
-  sweep: 300,
-  /** a win is paid: chips travel from the dealer to my stake */
-  payout: 400,
-  /** next card of the opening deal leaves the shoe this long after the previous one (deals overlap) */
-  stagger: 200,
-  /** shoe to place, arc flight including the landing settle */
-  flight: 260,
-  /** a face-up card turns over right after it lands */
-  flip: 220,
-  /** small breath after a flip before its value counts in the total */
-  settle: 60,
-  /** hole card reveal: lift, pause, slow flip, land (about 770 ms) */
-  revealLift: 120,
-  revealPause: 250,
-  revealFlip: 320,
-  revealLand: 80,
-  /** dealer peeks under the hole card when the up card is an ace or a ten */
-  peek: 600,
-  /** fixed beat before each dealer draw (never longer when the dealer is close to busting) */
-  dealerPause: 300,
-  /** natural blackjack celebration, skippable */
-  natural: 900,
-};
+export const BASE = FEEL.timing.base;
 
-export type DealSpeed = 'elegant' | 'quick' | 'turbo';
+export type DealSpeed = FeelDealSpeed;
 /** Quick matches DECISIONS (stagger 120, flight 170); Turbo for players who just want the result. */
-export const SPEED_FACTOR: Record<DealSpeed, number> = { elegant: 1, quick: 0.62, turbo: 0.35 };
+export const SPEED_FACTOR: Record<DealSpeed, number> = FEEL.timing.speedFactor;
 
 /** When the server says it is the player's turn while the queue is still playing, the rest plays at Turbo. */
-export const CATCH_UP_FACTOR = SPEED_FACTOR.turbo;
+export const CATCH_UP_FACTOR = FEEL.timing.catchUpFactor;
 /** ...but only if more than this much (real time) is still queued, so an ordinary deal keeps its rhythm. */
-export const CATCH_UP_AFTER_MS = 1500;
+export const CATCH_UP_AFTER_MS = FEEL.timing.catchUpAfterMs;
 /** A queue longer than this (real time) is compressed; much longer (reconnect, background) is snapped. */
-export const MAX_LAG_MS = 3000;
-export const SNAP_LAG_MS = 6000;
+export const MAX_LAG_MS = FEEL.timing.maxLagMs;
+export const SNAP_LAG_MS = FEEL.timing.snapLagMs;
 
 export const isTenOrAce = (rank?: string) => rank === 'A' || rank === '10' || rank === 'J' || rank === 'Q' || rank === 'K';
 

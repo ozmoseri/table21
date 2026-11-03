@@ -1,3 +1,4 @@
+import { FEEL } from './feel.ts';
 import { getPrefs, reducedMotion } from './prefs.ts';
 
 /**
@@ -5,16 +6,8 @@ import { getPrefs, reducedMotion } from './prefs.ts';
  * no-op there (never promised in the UI). Off with the Haptics setting. With reduced motion only single short pulses
  * play, never the longer patterns.
  */
-export const HAPTICS = {
-  selection: 8,
-  land: 12, // my own card lands
-  bet: 10,
-  bust: 30,
-  turnWarning: [15, 90, 15], // 5 s left on my turn
-  win: [12, 60, 12],
-  blackjack: [20, 60, 20, 60, 40],
-} as const;
-export type Haptic = keyof typeof HAPTICS;
+export const HAPTICS = FEEL.haptics;
+export type Haptic = keyof typeof FEEL.haptics;
 
 export function haptic(kind: Haptic) {
   if (!getPrefs().haptics) return;

@@ -3,6 +3,7 @@ import type { PlayerAction } from '@table21/game-engine';
 import type { PublicRound, PublicCard } from '@table21/protocol';
 import { advise, coachSession, recordDecision, type Advice, type CoachRank } from '../coach.ts';
 import { t, type Key } from '../i18n.ts';
+import { FEEL } from '../feel.ts';
 import { getPrefs, usePrefs } from '../prefs.ts';
 import { ActionButtons } from './Table.tsx';
 import { Sheet } from './bits.tsx';
@@ -61,7 +62,7 @@ export function CoachVerdict() {
   const v = useVerdict();
   useEffect(() => {
     if (!v) return;
-    const id = setTimeout(() => setVerdict(null), 2200);
+    const id = setTimeout(() => setVerdict(null), FEEL.coach.verdictMs);
     return () => clearTimeout(id);
   }, [v]);
   if (!v) return null;
