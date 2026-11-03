@@ -65,7 +65,7 @@ pnpm perf <baseUrl> <label> [out.json]   # page weight + LCP (needs a VITE_LAB=1
   - `packages/protocol` for wire, reactions, gifts and avatars.
   - `assets/manifest.json` for assets.
   - `apps/web/src/feel.ts` for motion, sound and haptics numbers.
-  - `theme/premium.css` `:root` for design tokens.
+  - `apps/web/src/theme/tokens.css` `:root` for design tokens.
   - `apps/web/src/coach.ts` for strategy.
   - Approved design decisions live in `C:\Users\user\table21_design\DECISIONS.md` (append only).
 - **Evidence classes in every report:** automated / emulated browser / physical device / listened / NOT RUN.

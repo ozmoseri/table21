@@ -1,0 +1,22 @@
+{
+ "task_id": "T04-art-review",
+ "owner": "art-director",
+ "status": "accepted",
+ "base_commit": "15028e3",
+ "result_commit": null,
+ "contract_version": "protocol 1",
+ "changed_files": [],
+ "tests_run": [
+  "read-only review of emulated-browser screenshots (experience/after, coach) and source art; one local crop mock"
+ ],
+ "evidence": [
+  "report: research/art-review-2026-11-03.md (8 decisions AD-1..AD-8 with QA checks)",
+  "observed: lobby room background hidden by tokens.css body background; timer ring low-state overridden by specificity; result phase grows the room"
+ ],
+ "known_gaps": [
+  "no screenshots of betting in flight, hole-card reveal, natural, split, 3-5 seats were reviewed",
+  "shoe art needs a new generation by Oz (brief in the report)",
+  "light direction rule (overhead, top-centre) needs Oz's approval in DECISIONS.md"
+ ],
+ "next_action": "Implemented by T06-art-fixes (frontend-ux)."
+}

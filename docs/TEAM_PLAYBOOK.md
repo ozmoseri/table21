@@ -40,7 +40,7 @@ The Agent tool in this environment offers `opus`, `sonnet`, `haiku` and `fable`.
 | Reaction and gift ids | `REACTIONS`, `GIFTS` in `packages/protocol` | `tests/unit/contracts.test.ts`: every id has he/en text and art, no extras |
 | Assets | `assets/manifest.json` | contracts test: file exists, bytes/dimensions/alpha match, no orphan files, no duplicate ids |
 | Feel (motion timings, celebration, voices, volumes, haptics) | `apps/web/src/feel.ts` | unit tests pin values; rules live only in `packages/game-engine` |
-| Design tokens | `:root` tokens in `apps/web/src/theme/premium.css`, described in `docs/DESIGN_SYSTEM.md` | art director review |
+| Design tokens | `:root` in `apps/web/src/theme/tokens.css`, described in `docs/DESIGN_SYSTEM.md` | art director review |
 | Approved design decisions | `C:\Users\user\table21_design\DECISIONS.md` (Oz's PC) | appended, never rewritten |
 | Strategy advice | `apps/web/src/coach.ts` (guide charts are generated from it) | `tests/unit/coach.test.ts` |
 | Store catalog | not started. `store-contract.json` is created only when store work starts; no invented product ids | - |

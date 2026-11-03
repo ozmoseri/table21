@@ -1,36 +1,36 @@
 {
-  "task_id": "T02-contracts",
-  "owner": "asset-processor",
-  "status": "ready_for_review",
-  "base_commit": "15028e3",
-  "result_commit": "1a9aacc",
-  "contract_version": "protocol 1; manifest 2 (adds id, version, bytes, format, width, height, alphaRequired, alphaPresent, anchor)",
-  "changed_files": [
-    "tests/unit/contracts.test.ts",
-    "scripts/asset-check.mjs",
-    "assets/manifest.json",
-    "docs/ASSET_CATALOG.md",
-    "docs/handoffs/T02-contracts.json"
-  ],
-  "tests_run": [
-    "pnpm -r typecheck: pass",
-    "pnpm test:unit: 6 files, 67 tests pass (contracts.test.ts: 17)",
-    "node scripts/asset-check.mjs: manifest matches the files"
-  ],
-  "evidence": [
-    "automated: contracts.test.ts covers handoff schema (own subset validator, no new dependency), reaction text and glyph ids, gift labels and rendered art, avatar and card-back assets, manifest ids, files, bytes, dimensions, alpha, orphans and /art, /icons, favicon references (templates expanded from AVATARS and the server's card_back unlocks)",
-    "mutation check: changing avatar.amber bytes 2105 to 2106 made 'every active entry points at a real file ...' fail with 'bytes: manifest 2106 file 2105'; adding a stray art/orphan.webp made the orphan test fail; both reverted",
-    "manifest fixes: added club.cardback-simple (used by art.ts and premium.css, was missing); removed 2 non-file entries (styles.css gradients, sound.ts) that were not assets; planned Higgsfield entries kept as status pending_manual with null measured fields; stale byte figures in optimization text are now re-measured by --write",
-    "emulated/physical/listened: NOT RUN (no browser, device or audio check; alpha is read from file headers, not decoded). Visual check by eye of room-portrait, felt-portrait, chip-red, cardback, cardback-simple: no baked text other than the '21' emblem"
-  ],
-  "known_gaps": [
-    "review (possible baked text, not rejected): apps/web/public/art/club/cardback.webp and cardback-simple.webp carry a '21' medallion as artwork; art.ts hides the CSS medallion on purpose. Confirm with art director this counts as emblem, not UI text",
-    "review: apps/web/public/icons/icon-192.png, icon-512.png and maskable-512.png have an alpha channel (flag set); maskable should normally be opaque full-bleed. icon.apple-touch has none (correct). Needs a pixel check by art director",
-    "unreferenced: apps/web/public/art/club/cardback.webp is not used by any code (art.ts uses cardback-simple.webp); candidate for removal by the owner of art.ts",
-    "gift art is code-drawn in apps/web/src/components/gifts.tsx (only coffee has a raster) and gift labels live in GIFT_LABEL there, not in i18n.ts; reaction text is in i18n.ts REACTION_TEXT and glyphs in gifts.tsx. Single source is split across two files; moving GIFT_LABEL to i18n.ts would need an edit outside this task",
-    "card-back ids have no list in packages/protocol; the test reads the card_back ids from UNLOCKS in apps/server/src/social.ts as text (importing it would load the database layer). A CARD_BACKS const in protocol would be the real source",
-    "the 21 pending_manual manifest entries (gifts, reactions, hf backs, chips, felts) have no files; they are exempt from file checks and must have no file until measured and set to active",
-    "assets/higgsfield-requests.json is not validated against the manifest (out of scope)"
-  ],
-  "next_action": "Integration manager: merge worktree-agent-a7064b1ed2e004771, run typecheck and unit on main, set status accepted. Art director: resolve the two review items. Optionally delete unused club/cardback.webp and add CARD_BACKS to protocol."
+ "task_id": "T02-contracts",
+ "owner": "asset-processor",
+ "status": "accepted",
+ "base_commit": "15028e3",
+ "result_commit": "1a9aacc",
+ "contract_version": "protocol 1; manifest 2 (adds id, version, bytes, format, width, height, alphaRequired, alphaPresent, anchor)",
+ "changed_files": [
+  "tests/unit/contracts.test.ts",
+  "scripts/asset-check.mjs",
+  "assets/manifest.json",
+  "docs/ASSET_CATALOG.md",
+  "docs/handoffs/T02-contracts.json"
+ ],
+ "tests_run": [
+  "pnpm -r typecheck: pass",
+  "pnpm test:unit: 6 files, 67 tests pass (contracts.test.ts: 17)",
+  "node scripts/asset-check.mjs: manifest matches the files"
+ ],
+ "evidence": [
+  "automated: contracts.test.ts covers handoff schema (own subset validator, no new dependency), reaction text and glyph ids, gift labels and rendered art, avatar and card-back assets, manifest ids, files, bytes, dimensions, alpha, orphans and /art, /icons, favicon references (templates expanded from AVATARS and the server's card_back unlocks)",
+  "mutation check: changing avatar.amber bytes 2105 to 2106 made 'every active entry points at a real file ...' fail with 'bytes: manifest 2106 file 2105'; adding a stray art/orphan.webp made the orphan test fail; both reverted",
+  "manifest fixes: added club.cardback-simple (used by art.ts and premium.css, was missing); removed 2 non-file entries (styles.css gradients, sound.ts) that were not assets; planned Higgsfield entries kept as status pending_manual with null measured fields; stale byte figures in optimization text are now re-measured by --write",
+  "emulated/physical/listened: NOT RUN (no browser, device or audio check; alpha is read from file headers, not decoded). Visual check by eye of room-portrait, felt-portrait, chip-red, cardback, cardback-simple: no baked text other than the '21' emblem"
+ ],
+ "known_gaps": [
+  "review (possible baked text, not rejected): apps/web/public/art/club/cardback.webp and cardback-simple.webp carry a '21' medallion as artwork; art.ts hides the CSS medallion on purpose. Confirm with art director this counts as emblem, not UI text",
+  "review: apps/web/public/icons/icon-192.png, icon-512.png and maskable-512.png have an alpha channel (flag set); maskable should normally be opaque full-bleed. icon.apple-touch has none (correct). Needs a pixel check by art director",
+  "unreferenced: apps/web/public/art/club/cardback.webp is not used by any code (art.ts uses cardback-simple.webp); candidate for removal by the owner of art.ts",
+  "gift art is code-drawn in apps/web/src/components/gifts.tsx (only coffee has a raster) and gift labels live in GIFT_LABEL there, not in i18n.ts; reaction text is in i18n.ts REACTION_TEXT and glyphs in gifts.tsx. Single source is split across two files; moving GIFT_LABEL to i18n.ts would need an edit outside this task",
+  "card-back ids have no list in packages/protocol; the test reads the card_back ids from UNLOCKS in apps/server/src/social.ts as text (importing it would load the database layer). A CARD_BACKS const in protocol would be the real source",
+  "the 21 pending_manual manifest entries (gifts, reactions, hf backs, chips, felts) have no files; they are exempt from file checks and must have no file until measured and set to active",
+  "assets/higgsfield-requests.json is not validated against the manifest (out of scope)"
+ ],
+ "next_action": "Accepted on main in 9b34240 (unit 68/68). Open items moved to T05 report: maskable icon alpha pixel check, CARD_BACKS constant in protocol, gift labels into i18n."
 }
