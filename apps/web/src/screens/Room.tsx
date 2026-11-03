@@ -9,6 +9,7 @@ import type { PlayerAction } from '@table21/game-engine';
 import { RoomClient, type Intent } from '../net.ts';
 import { api, refreshMe } from '../api.ts';
 import { REACTION_TEXT, errorText, getLocale, t } from '../i18n.ts';
+import { failJoin, isTypedJoin, joinSucceeded } from '../joinAttempt.ts';
 import { BetConfirm, ResultPanel, StakePicker, Table, myTurnText, totalLabel, type DealerInfo } from '../components/Table.tsx';
 import { CoachVerdict, CoachedActions } from '../components/Coach.tsx';
 import { DealSettings } from '../components/DealSettings.tsx';
@@ -137,6 +138,13 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
     return r;
   };
 
+  // A code typed on Home that the server refuses goes back to Home, which shows why next to the field (joinAttempt.ts).
+  const typedJoin = isTypedJoin(code);
+  useEffect(() => {
+    if (st.error && !st.snapshot && failJoin(code, st.error)) go('home');
+    else if (st.snapshot) joinSucceeded(code);
+  }, [st.error, !!st.snapshot, code]);
+  if (st.error && !snap && typedJoin) return <p className="muted center pad">{t('loading')}</p>;
   if (st.error && !snap)
     return (
       <div className="pad center stack">
@@ -306,7 +314,7 @@ export function Room({ code, me }: { code: string; me: MeResponse }) {
 
   return (
     <div className="room" data-phase={snap.phase} data-testid="room">
-      <header className="room-head hud">
+      <header className={`room-head hud${snap.you.availableUnits >= 2_000_000 ? ' hud-long' : ''}`}>
         <button className="hud-btn" onClick={() => setSheet('more')} aria-label={t('menu')} data-testid="room-menu">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 7h16M4 12h16M4 17h16" />

@@ -168,5 +168,28 @@ export async function loadConfig() {
   try {
     serverConfig = await api('/api/config');
     noteServer(serverConfig);
+    rememberDeployment(serverConfig.deployment);
   } catch {}
+}
+
+/**
+ * The kind of server this device last talked to ('lan' = a host computer, 'online' = the free cloud pilot). Kept on the
+ * device so the "cannot reach the server" screen can say something true about THIS setup even when /api/config is the
+ * request that fails. Storage can be blocked or empty: then the kind is simply unknown.
+ */
+const DEPLOYMENT_KEY = 't21:deployment';
+export type DeploymentKind = 'lan' | 'online' | 'unknown';
+function rememberDeployment(d: unknown) {
+  if (d !== 'lan' && d !== 'online') return;
+  try {
+    localStorage.setItem(DEPLOYMENT_KEY, d);
+  } catch {}
+}
+export function lastDeployment(): DeploymentKind {
+  try {
+    const v = localStorage.getItem(DEPLOYMENT_KEY);
+    return v === 'lan' || v === 'online' ? v : 'unknown';
+  } catch {
+    return 'unknown';
+  }
 }

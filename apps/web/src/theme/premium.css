@@ -498,3 +498,13 @@ body:has(.room)::before { display: none; }
 .guide-chart td.g-d { background: #7cc79a; }
 .guide-chart td.g-p { background: #8fb7e8; }
 .guide-legend { line-height: 1.5; }
+
+/* ---------- T03 entry honesty: long balances (>= 1,000,000 coins) keep the whole HUD row on screen ---------- */
+.hud-balance { min-width: 0; white-space: nowrap; }
+.hud-spacer { min-width: 0; }
+.room-head.hud .hud-invite { min-width: 0; }
+@media (max-width: 430px) and (orientation: portrait) {
+  /* The invite code lives in the share sheet too; the number of people stays on the chip. */
+  .room-head.hud.hud-long .hud-invite bdi { display: none; }
+  .room-head.hud.hud-long .hud-balance { padding: 0 10px; font-size: 14px; }
+}
