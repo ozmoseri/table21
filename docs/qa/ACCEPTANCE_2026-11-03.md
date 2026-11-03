@@ -123,3 +123,13 @@ PASS. `apps/web/src/update.ts` read: the new worker waits (no skipWaiting on ins
 - Physical iPhone / Android / Wi-Fi, listening to sound, real keyboard: NOT RUN.
 - Rendering of the English "unknown server" screen: NOT RUN (strings read only).
 - 6 players, 4 split hands, rotation mid-animation: not re-tested.
+
+## Fix verification (integration manager, e4f96de)
+
+| Bug | Fix | Check | Class |
+|---|---|---|---|
+| B1 | Card backs end with a CSS diagonal pattern under the raster and SVG layers (`art.ts`); avatars switch to an inline SVG figure on load error (`bits.tsx`) | `tests/e2e/fallbacks.spec.ts`: all `/art/**` blocked, back pattern present, every avatar on the inline figure with a decoded image, hand plays to the result | automated, emulated browser |
+| B2 | `.home-head .me-chip` can shrink, name ellipsis | `fallbacks.spec.ts`: 20-character name, chip at least 8 px from both edges at 360x640 | automated, emulated browser |
+| B3 | `initUpdates` returns when there is no registration | no page error with service workers blocked (fallbacks and entry-honesty specs run with them blocked) | automated, emulated browser |
+
+The QA probes (`qa-t08*.spec.ts`) run only with `tests/e2e/qa.config.ts`, not in the main suite.

@@ -1,0 +1,28 @@
+{
+ "task_id": "T09-qa-fixes",
+ "owner": "integration-manager",
+ "status": "ready_for_review",
+ "base_commit": "b0d2c64",
+ "result_commit": "e4f96de",
+ "contract_version": "protocol 1; manifest 2",
+ "changed_files": [
+  "apps/web/src/art.ts",
+  "apps/web/src/components/bits.tsx",
+  "apps/web/src/update.ts",
+  "apps/web/src/theme/premium.css",
+  "tests/e2e/fallbacks.spec.ts",
+  "tests/e2e/playwright.config.ts"
+ ],
+ "tests_run": [
+  "pnpm -r typecheck 4/4",
+  "pnpm test:unit 80/80",
+  "fallbacks.spec 2/2 twice; updates, art-fixes, entry-honesty on port 3122: pass"
+ ],
+ "evidence": [
+  "automated: fallbacks.spec blocks all /art/** and checks the back pattern, inline avatars and a full hand; 20-character name chip inside 360 px"
+ ],
+ "known_gaps": [
+  "the fix was made by the manager because the owning agent had finished; frontend-ux should review the avatar fallback look"
+ ],
+ "next_action": "Full e2e on e4f96de, then accepted."
+}

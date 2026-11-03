@@ -98,3 +98,18 @@ Listening and play on a physical phone are separate checks, marked NOT RUN until
 
 - **Copy:** `.claude/agents/*`, this playbook and `docs/handoffs/` (README + schema).
 - **Rewrite:** section 3 with the new project's sources of truth, and the "never touches" column.
+
+## 8. Lessons from the first run (2026-11-03)
+
+- **Worktree base:** new worktrees can start at the last pushed commit, not at local `main`. Every brief tells the agent
+  to `git merge --ff-only main` and check `merge-base --is-ancestor <base_commit> HEAD` first.
+- **Service workers:** Playwright routes do not see requests made by a service worker. Any test or screenshot that fakes
+  an unreachable server uses `serviceWorkers: 'block'`.
+- **Generated PNGs:** the existing e2e specs rewrite `docs/screenshots/*.png`. Agents revert them before committing;
+  new evidence is JPEG in its own folder.
+- **Stray servers:** an agent may leave its e2e server running. Before reusing a port, find the listener with
+  `lsof -i :<port>` and stop only that pid. Never use `pkill -f` with a pattern that matches your own shell.
+- **Art review measurements:** one art-director value failed its own contrast check once measured (AD-3). The
+  implementer tunes it to the acceptance rule and records the deviation. The rule wins over the number.
+- **Integrated QA finds what branch tests miss.** Example B1: blocking all `/art/**`, not only `/art/club/**`. QA runs
+  on the merged commit, and its probes stay out of the main suite (`testIgnore`).
