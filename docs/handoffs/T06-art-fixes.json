@@ -1,47 +1,47 @@
 {
-  "task_id": "T06-art-fixes",
-  "owner": "frontend-ux",
-  "status": "ready_for_review",
-  "base_commit": "9b34240",
-  "result_commit": "d9f40b7",
-  "contract_version": "protocol 1; manifest 2",
-  "changed_files": [
-    "apps/web/src/theme/premium.css",
-    "apps/web/src/theme/tokens.css",
-    "apps/web/src/components/Coach.tsx",
-    "apps/web/src/components/gifts.tsx",
-    "apps/web/public/art/club/rail-near.webp",
-    "assets/manifest.json",
-    "docs/DESIGN_SYSTEM.md",
-    "tests/e2e/art-fixes.spec.ts",
-    "tests/e2e/premium2.spec.ts",
-    "tests/unit/contracts.test.ts",
-    "docs/screenshots/journey/after-T06/",
-    "docs/handoffs/T06-art-fixes.json"
-  ],
-  "tests_run": [
-    "pnpm -r typecheck: pass",
-    "pnpm test:unit: 6 files, 69 tests pass (contracts.test.ts adds the AD-8 check and the 'retired' status)",
-    "e2e on port 3124 / table21_e2e_d: art-fixes, experience, turn-fit, coach, premium, premium2, layout-v4, offline-layout: 64 passed, 0 failed",
-    "node scripts/asset-check.mjs --write: manifest matches the files (rail-near measured 1170x78, 10784 bytes, opaque)",
-    "pnpm test:integration: NOT RUN (manager only)"
-  ],
-  "evidence": [
-    "automated: tests/e2e/art-fixes.spec.ts. AD-1 rail at 390x844 and 360x640 in bet, turn and result (rail image set, 26 px, never tiled, top at least 4 px below my cards/total/bet row, every control below it, screenshot pixel 2 px under the rail top has R > 150, file <= 25 KB). AD-2 controls 132 px / 128 px, my card >= 100 px at 390 (94 at 360), actions 56, coach strip 36 inside controls, result and betting rows inside controls. AD-3 pixel sampling of the bare felt: centre/corner luminance 2.73, brightest felt luminance 0.146, ivory on it 4.75:1. AD-4 DOM scan of .room at 390x844, 360x640, 844x390 during my online turn (the scan finds an injected gold probe, so an empty list means something): gold only in confirm / continue / blackjack / coin; coach-pick outline ivory; a cloned .timer-ring.low has stroke rgb(229, 150, 156) (the real ring is ivory, rose when low); coach meter grey below 50% and rose above. AD-5 online room at 390x844 and 360x640: no page growth, my first card top equal from turn to result (+-2), countdown on screen and contrast >= 4.5. Verdict chip: no bbox overlap with total, bet row, cards, skip button, controls buttons at 390x844 and 360x640, my hand does not move. AD-6 lobby: body background transparent, 99% of the bare background differs from #0B1218 at 390x844 and 844x390, no hue 250-290 on the home screen. AD-7 lab solo, three, six, split at 844x390 and 640x360: no box overlap among dealer cards, seats, my hand, HUD, actions; dealer card 63 px solo, 48 px with up to 2 friends, 43 px with 3 or more at 844x390; friends' cards 39 px at 844x390 with up to 2 friends. AD-8 no img.gift-art and no coffee.webp request on lab three.",
-    "grep: no box-shadow or drop-shadow with a non-zero x offset in premium.css or styles.css (AD-3 source rule).",
-    "emulated browser (Chromium via Playwright, he-IL, mobile viewport, DPR 2): screenshots docs/screenshots/journey/after-T06/ (journey 360x640, 390x844, 844x390: lobby, bet, my turn, result; lab six and split at 360x640 and 844x390, files lab-*.jpg). JPEG only.",
-    "physical device, listened: NOT RUN"
-  ],
-  "known_gaps": [
-    "AD-3 numbers differ from the review: its proposed gradient measured luminance ratio 1.25 and ivory 4.1:1 (brightest 0.175), failing its own acceptance. Used a pool of alpha 0.06, vignette radial-gradient(90% 60% at 50% 40%, transparent 10%, rgba(5,26,20,0.9)) and a 40% veil of rgb(14,70,54). Result 2.73 and 4.75:1. 'Brightest <= 0.12' of the review is replaced by the 4.5:1 rule (luminance <= 0.157). The DECISIONS.md line 'key light overhead top-centre' still needs Oz (file is on his PC).",
-    "AD-2: the review's 'gap from my bet row to the first control <= 48 px' is not met: 89 px at 390x844 to the visible chip stack (26 px of it is the rail). Cause: the 54 px hand-meta row added for AD-5, and the controls band holds the rail. Cards are 101 px at 390 and 94 px at 360 as specified. 132 px fits the tallest phase (result panel 71 + gap 8 + button 48 = 127 in practice, betting 116). I hid the practice fine print (.practice-note) in portrait because it stuck 17 px above the controls at 132 px; it is still in the LocalPlay sheet.",
-    "AD-5 needed a second change: .me-zone .my-hands .hand-meta min-height 54 px in portrait (the turn ring makes my total 44-54 px, the result total 26 px, which moved my cards 18 px online). My total is now centred in the same row, so its own top still differs by 9 px between turn and result; my cards do not move. The result panel padding/gap rules of the 360x640 block now apply to all portrait sizes (the 390 panel was 83 px and stuck out 11 px).",
-    "AD-7: the review's 'dealer card >= 60 px at 844x390' holds only for solo; with friends the seats start 80 px below the dealer's top, so up to 2 friends get 48 px and 3 or more get 43 px (was 43 and 40). Friends' cards: 3 or more friends stay at 32 px (a bigger card plus a status label reaches my hand). At 640x360 friends' cards stay at 32 px and my cards shrink from 76 to 60 px when friends are seated: seat boxes overlapped my hand there before this task too (turn-fit only tests 360x640 and 844x390).",
-    "Verdict chip: positioned by --verdict-lift (260 px, 244 px at <= 700 px tall) above the controls, i.e. in the felt above my hand; it is a fixed offset, not measured from the hand, so with split hands or very large text it can sit nearer the dealer row. Not covered: split hands in a real hand.",
-    "tests/e2e/premium2.spec.ts F1 assertion updated to the new veil (rgba(14, 70, 54, 0.4)) and the 40%-height pool. This file is owned by another role; the manager should confirm.",
-    "AD-8: coffee.webp is kept in the repo (the manifest entry club.coffee is 'retired', status enum extended in contracts.test.ts and still referenced by the manifest only). Delete it when Oz agrees. The new shoe art is not done (needs Oz, Higgsfield Web).",
-    "The Coach verdict, tip and pick colours are ivory/ rose/ grey; the verdict chip border stays green (ok) and amber (miss), as before, not gold #E5C77E.",
-    "Not touched on purpose: the last section of premium.css (another agent's block). My edits are in existing rules plus small blocks near the stable-anchors, landscape and lobby rules."
-  ],
-  "next_action": "Integration manager: merge branch worktree-agent-a24132ebc5c0ba05f, resolve premium.css against the other agents' blocks (my rules sit before the last section), run typecheck, unit and the touched e2e on main, decide on the AD-2 gap deviation and the premium2 assertion, then set accepted. Oz: append the key-light line to DECISIONS.md; Higgsfield shoe brief from the review is still open."
+ "task_id": "T06-art-fixes",
+ "owner": "frontend-ux",
+ "status": "accepted",
+ "base_commit": "9b34240",
+ "result_commit": "d9f40b7",
+ "contract_version": "protocol 1; manifest 2",
+ "changed_files": [
+  "apps/web/src/theme/premium.css",
+  "apps/web/src/theme/tokens.css",
+  "apps/web/src/components/Coach.tsx",
+  "apps/web/src/components/gifts.tsx",
+  "apps/web/public/art/club/rail-near.webp",
+  "assets/manifest.json",
+  "docs/DESIGN_SYSTEM.md",
+  "tests/e2e/art-fixes.spec.ts",
+  "tests/e2e/premium2.spec.ts",
+  "tests/unit/contracts.test.ts",
+  "docs/screenshots/journey/after-T06/",
+  "docs/handoffs/T06-art-fixes.json"
+ ],
+ "tests_run": [
+  "pnpm -r typecheck: pass",
+  "pnpm test:unit: 6 files, 69 tests pass (contracts.test.ts adds the AD-8 check and the 'retired' status)",
+  "e2e on port 3124 / table21_e2e_d: art-fixes, experience, turn-fit, coach, premium, premium2, layout-v4, offline-layout: 64 passed, 0 failed",
+  "node scripts/asset-check.mjs --write: manifest matches the files (rail-near measured 1170x78, 10784 bytes, opaque)",
+  "pnpm test:integration: NOT RUN (manager only)"
+ ],
+ "evidence": [
+  "automated: tests/e2e/art-fixes.spec.ts. AD-1 rail at 390x844 and 360x640 in bet, turn and result (rail image set, 26 px, never tiled, top at least 4 px below my cards/total/bet row, every control below it, screenshot pixel 2 px under the rail top has R > 150, file <= 25 KB). AD-2 controls 132 px / 128 px, my card >= 100 px at 390 (94 at 360), actions 56, coach strip 36 inside controls, result and betting rows inside controls. AD-3 pixel sampling of the bare felt: centre/corner luminance 2.73, brightest felt luminance 0.146, ivory on it 4.75:1. AD-4 DOM scan of .room at 390x844, 360x640, 844x390 during my online turn (the scan finds an injected gold probe, so an empty list means something): gold only in confirm / continue / blackjack / coin; coach-pick outline ivory; a cloned .timer-ring.low has stroke rgb(229, 150, 156) (the real ring is ivory, rose when low); coach meter grey below 50% and rose above. AD-5 online room at 390x844 and 360x640: no page growth, my first card top equal from turn to result (+-2), countdown on screen and contrast >= 4.5. Verdict chip: no bbox overlap with total, bet row, cards, skip button, controls buttons at 390x844 and 360x640, my hand does not move. AD-6 lobby: body background transparent, 99% of the bare background differs from #0B1218 at 390x844 and 844x390, no hue 250-290 on the home screen. AD-7 lab solo, three, six, split at 844x390 and 640x360: no box overlap among dealer cards, seats, my hand, HUD, actions; dealer card 63 px solo, 48 px with up to 2 friends, 43 px with 3 or more at 844x390; friends' cards 39 px at 844x390 with up to 2 friends. AD-8 no img.gift-art and no coffee.webp request on lab three.",
+  "grep: no box-shadow or drop-shadow with a non-zero x offset in premium.css or styles.css (AD-3 source rule).",
+  "emulated browser (Chromium via Playwright, he-IL, mobile viewport, DPR 2): screenshots docs/screenshots/journey/after-T06/ (journey 360x640, 390x844, 844x390: lobby, bet, my turn, result; lab six and split at 360x640 and 844x390, files lab-*.jpg). JPEG only.",
+  "physical device, listened: NOT RUN"
+ ],
+ "known_gaps": [
+  "AD-3 numbers differ from the review: its proposed gradient measured luminance ratio 1.25 and ivory 4.1:1 (brightest 0.175), failing its own acceptance. Used a pool of alpha 0.06, vignette radial-gradient(90% 60% at 50% 40%, transparent 10%, rgba(5,26,20,0.9)) and a 40% veil of rgb(14,70,54). Result 2.73 and 4.75:1. 'Brightest <= 0.12' of the review is replaced by the 4.5:1 rule (luminance <= 0.157). The DECISIONS.md line 'key light overhead top-centre' still needs Oz (file is on his PC).",
+  "AD-2: the review's 'gap from my bet row to the first control <= 48 px' is not met: 89 px at 390x844 to the visible chip stack (26 px of it is the rail). Cause: the 54 px hand-meta row added for AD-5, and the controls band holds the rail. Cards are 101 px at 390 and 94 px at 360 as specified. 132 px fits the tallest phase (result panel 71 + gap 8 + button 48 = 127 in practice, betting 116). I hid the practice fine print (.practice-note) in portrait because it stuck 17 px above the controls at 132 px; it is still in the LocalPlay sheet.",
+  "AD-5 needed a second change: .me-zone .my-hands .hand-meta min-height 54 px in portrait (the turn ring makes my total 44-54 px, the result total 26 px, which moved my cards 18 px online). My total is now centred in the same row, so its own top still differs by 9 px between turn and result; my cards do not move. The result panel padding/gap rules of the 360x640 block now apply to all portrait sizes (the 390 panel was 83 px and stuck out 11 px).",
+  "AD-7: the review's 'dealer card >= 60 px at 844x390' holds only for solo; with friends the seats start 80 px below the dealer's top, so up to 2 friends get 48 px and 3 or more get 43 px (was 43 and 40). Friends' cards: 3 or more friends stay at 32 px (a bigger card plus a status label reaches my hand). At 640x360 friends' cards stay at 32 px and my cards shrink from 76 to 60 px when friends are seated: seat boxes overlapped my hand there before this task too (turn-fit only tests 360x640 and 844x390).",
+  "Verdict chip: positioned by --verdict-lift (260 px, 244 px at <= 700 px tall) above the controls, i.e. in the felt above my hand; it is a fixed offset, not measured from the hand, so with split hands or very large text it can sit nearer the dealer row. Not covered: split hands in a real hand.",
+  "tests/e2e/premium2.spec.ts F1 assertion updated to the new veil (rgba(14, 70, 54, 0.4)) and the 40%-height pool. This file is owned by another role; the manager should confirm.",
+  "AD-8: coffee.webp is kept in the repo (the manifest entry club.coffee is 'retired', status enum extended in contracts.test.ts and still referenced by the manifest only). Delete it when Oz agrees. The new shoe art is not done (needs Oz, Higgsfield Web).",
+  "The Coach verdict, tip and pick colours are ivory/ rose/ grey; the verdict chip border stays green (ok) and amber (miss), as before, not gold #E5C77E.",
+  "Not touched on purpose: the last section of premium.css (another agent's block). My edits are in existing rules plus small blocks near the stable-anchors, landscape and lobby rules."
+ ],
+ "next_action": "Accepted on main (merge e900006); integrated commit e900006: typecheck 4/4, unit 79/79, integration 67/67, e2e 100/100. Independent QA follows (T08)."
 }
