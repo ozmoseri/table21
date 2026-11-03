@@ -26,7 +26,7 @@ test('About and diagnostics: client and server commit, build time, protocol, ori
   await about.scrollIntoViewIfNeeded();
   await expect(about).toContainText(cfg.commit);
   await expect(about).toContainText(cfg.build);
-  await expect(about).toContainText('127.0.0.1:3121');
+  await expect(about).toContainText(new URL(p.page.url()).host);
   await expect(p.page.getByTestId('about-match')).toHaveClass(/ok/);
   await p.ctx.close();
 });

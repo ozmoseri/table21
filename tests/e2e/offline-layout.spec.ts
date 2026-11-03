@@ -18,7 +18,7 @@ test('installed app: solo and pass-and-play work with the network off, no extern
   const p = await player(browser, 'Offline');
   const external: string[] = [];
   p.page.on('request', (r) => {
-    if (!r.url().startsWith('http://127.0.0.1:3121') && !r.url().startsWith('data:') && !r.url().startsWith('blob:')) external.push(r.url());
+    if (!r.url().startsWith(`http://127.0.0.1:${process.env.T21_E2E_PORT ?? 3121}`) && !r.url().startsWith('data:') && !r.url().startsWith('blob:')) external.push(r.url());
   });
   await onboard(p, 1);
   // Built app + activated service worker (secure context: localhost).

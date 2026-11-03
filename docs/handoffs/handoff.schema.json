@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TABLE21 task handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "owner", "status", "base_commit", "result_commit", "contract_version", "changed_files", "tests_run", "evidence", "known_gaps", "next_action"],
+  "properties": {
+    "task_id": { "type": "string", "pattern": "^T[0-9]{2,3}-[a-z0-9-]+$" },
+    "owner": { "enum": ["integration-manager", "art-director", "asset-processor", "frontend-ux", "game-feel-audio", "backend-reliability", "product-economy", "qa-independent"] },
+    "status": { "enum": ["planned", "in_progress", "blocked", "ready_for_review", "accepted"] },
+    "base_commit": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+    "result_commit": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$" },
+    "contract_version": { "type": "string", "description": "PROTOCOL_VERSION plus the contract files touched, e.g. 'protocol 1; manifest 2'" },
+    "changed_files": { "type": "array", "items": { "type": "string" } },
+    "tests_run": { "type": "array", "items": { "type": "string" } },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "known_gaps": { "type": "array", "items": { "type": "string" } },
+    "next_action": { "type": "string" }
+  }
+}
